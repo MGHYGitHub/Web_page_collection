@@ -45,7 +45,7 @@ const linksData = [
   {
     category: "工作",
     name: "工时记录表",
-    url: "/工时记录表/gs.html",
+    url: "./工时记录表/gs.html",
     mainDesc: "",
     subDesc: "工资与加班管理系统",
     localIcon: "icons/gs.ico"
@@ -53,7 +53,7 @@ const linksData = [
   {
     category: "工作",
     name: "工资计算器",
-    url: "/工资计算器/hwgz.html",
+    url: "./工资计算器/hwgz.html",
     mainDesc: "",
     subDesc: "工资计算器",
     localIcon: "./icons/gz.ico"
@@ -61,7 +61,7 @@ const linksData = [
   {
     category: "工作",
     name: "在线计时器",
-    url: "/在线计时器/在线计时器.html",
+    url: "./在线计时器/在线计时器.html",
     mainDesc: "",
     subDesc: "在线/离线计时器",
     localIcon: "icons/jsq.ico"
@@ -115,8 +115,6 @@ const linksData = [
     subDesc: "完成了今天的待办了吗?",
     localIcon: "https://vcl.mghy.top/img/favicon.ico",
   },
-
-
 
 
   // 测试用例1 - 错误链接
