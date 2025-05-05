@@ -82,8 +82,8 @@ const linksData = [
     url: "https://mghy.top/",
     mainDesc: "",
     subDesc: "我的小站Blog",
+    localIcon: "https://vcl.mghy.top/img/favicon.ico"，
     icon: "❌"
-    localIcon: "https://vcl.mghy.top/img/favicon.ico",
   },
   {
     category: "个人",
@@ -91,8 +91,8 @@ const linksData = [
     url: "https://zy.mghy.top/",
     mainDesc: "",
     subDesc: "我的个人页",
+    localIcon: "https://vcl.mghy.top/img/favicon.ico"，
     icon: "❌"
-    localIcon: "https://vcl.mghy.top/img/favicon.ico",
   },
   {
     category: "个人",
@@ -101,7 +101,7 @@ const linksData = [
     mainDesc: "",
     subDesc: "Telegraph-Image",
     icon: "❌"
-    // localIcon: "https://vcl.mghy.top/img/favicon.ico",
+    // localIcon: "https://vcl.mghy.top/img/favicon.ico"，
   },
   {
     category: "个人",
