@@ -48,7 +48,7 @@ const linksData = [
     url: "./工时记录表/gs.html",
     mainDesc: "",
     subDesc: "工资与加班管理系统",
-    localIcon: "icons/gs.ico"
+    localIcon: "icons/gs.ico",
   },
   {
     category: "工作",
@@ -56,7 +56,7 @@ const linksData = [
     url: "./工资计算器/hwgz.html",
     mainDesc: "",
     subDesc: "工资计算器",
-    localIcon: "./icons/gz.ico"
+    localIcon: "./icons/gz.ico",
   },
   {
     category: "工作",
@@ -64,17 +64,16 @@ const linksData = [
     url: "./在线计时器/在线计时器.html",
     mainDesc: "",
     subDesc: "在线/离线计时器",
-    localIcon: "icons/jsq.ico"
+    localIcon: "icons/jsq.ico",
   },
   // AI
   {
     category: "AI工具",
     name: "AI-NextChat",
     url: "https://ai.mghy.top/",
-    // localIcon: "/path/to/custom-icon.png",
     mainDesc: "",
     subDesc: "在线AI网页",
-    icon: "❌"
+    icon: "❌",
   },
   {
     category: "个人",
@@ -82,7 +81,7 @@ const linksData = [
     url: "https://mghy.top/",
     mainDesc: "",
     subDesc: "我的小站Blog",
-    localIcon: "https://vcl.mghy.top/img/favicon.ico"，
+    localIcon: "https://vcl.mghy.top/img/favicon.ico",
     icon: "❌"
   },
   {
@@ -91,8 +90,8 @@ const linksData = [
     url: "https://zy.mghy.top/",
     mainDesc: "",
     subDesc: "我的个人页",
-    localIcon: "https://vcl.mghy.top/img/favicon.ico"，
-    icon: "❌"
+    localIcon: "https://vcl.mghy.top/img/favicon.ico",
+    icon: "❌",
   },
   {
     category: "个人",
@@ -100,8 +99,7 @@ const linksData = [
     url: "https://tu.mghy.top/",
     mainDesc: "",
     subDesc: "Telegraph-Image",
-    icon: "❌"
-    // localIcon: "https://vcl.mghy.top/img/favicon.ico"，
+    icon: "❌",
   },
   {
     category: "个人",
@@ -110,7 +108,7 @@ const linksData = [
     mainDesc: "",
     subDesc: "好记性不如烂笔头",
     localIcon: "https://vcl.mghy.top/img/favicon.ico",
-    icon: "❌"
+    icon: "❌",
   },
   {
     category: "个人",
@@ -119,7 +117,7 @@ const linksData = [
     mainDesc: "",
     subDesc: "完成了今天的待办了吗?",
     localIcon: "https://vcl.mghy.top/img/favicon.ico",
-    icon: "❌"
+    icon: "❌",
   },
 
 
