@@ -74,6 +74,7 @@ const linksData = [
     // localIcon: "/path/to/custom-icon.png",
     mainDesc: "",
     subDesc: "在线AI网页",
+    icon: "❌"
   },
   {
     category: "个人",
@@ -81,6 +82,7 @@ const linksData = [
     url: "https://mghy.top/",
     mainDesc: "",
     subDesc: "我的小站Blog",
+    icon: "❌"
     localIcon: "https://vcl.mghy.top/img/favicon.ico",
   },
   {
@@ -89,6 +91,7 @@ const linksData = [
     url: "https://zy.mghy.top/",
     mainDesc: "",
     subDesc: "我的个人页",
+    icon: "❌"
     localIcon: "https://vcl.mghy.top/img/favicon.ico",
   },
   {
@@ -97,6 +100,7 @@ const linksData = [
     url: "https://tu.mghy.top/",
     mainDesc: "",
     subDesc: "Telegraph-Image",
+    icon: "❌"
     // localIcon: "https://vcl.mghy.top/img/favicon.ico",
   },
   {
@@ -106,6 +110,7 @@ const linksData = [
     mainDesc: "",
     subDesc: "好记性不如烂笔头",
     localIcon: "https://vcl.mghy.top/img/favicon.ico",
+    icon: "❌"
   },
   {
     category: "个人",
@@ -114,6 +119,7 @@ const linksData = [
     mainDesc: "",
     subDesc: "完成了今天的待办了吗?",
     localIcon: "https://vcl.mghy.top/img/favicon.ico",
+    icon: "❌"
   },
 
 
