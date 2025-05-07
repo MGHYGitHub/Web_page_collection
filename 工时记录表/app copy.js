@@ -13,7 +13,6 @@
     
     // 状态管理
     const state = {
-        leaveDeductions: {}, // 新增抵扣记录存储
         currentDate: new Date(),
         holidays: [],
         workdays: [],
@@ -508,82 +507,79 @@
     // 更新工作记录视图
     function updateRecordsView() {
         const sortedDates = Object.keys(state.hoursData).sort((a, b) => new Date(a) - new Date(b));
+        
         let tableHTML = '';
-    
-        sortedDates.forEach(dateStr => {
-            const date = new Date(dateStr);
-            const hours = parseFloat(state.hoursData[dateStr].hours);
-            const type = state.hoursData[dateStr].type || 'A';
-            
-            // 加班记录
-            if (hours > 0) {
-                // 保持原有加班显示逻辑不变
-                const rate = OVERTIME_RATES[type];
-                const amount = hours * rate;
-                let typeText = '';
+        
+        if (sortedDates.length === 0) {
+            tableHTML = '<tr><td colspan="6" class="text-center">暂无工作记录</td></tr>';
+        } else {
+            sortedDates.forEach(dateStr => {
+                const date = new Date(dateStr);
                 
-                switch(type) {
-                    case 'A': 
-                        typeText = state.workdays.includes(dateStr) ? '调休工作日加班' : '工作日加班';
-                        break;
-                    case 'B':
-                        typeText = state.specialWorkdays.includes(dateStr) ? '调休日加班' : '周末加班';
-                        break;
-                    case 'C':
-                        typeText = '节假日加班';
-                        break;
+                // 根据视图模式过滤记录
+                if (state.recordsViewMode === 'current') {
+                    if (date.getFullYear() !== state.currentDate.getFullYear() || 
+                        date.getMonth() !== state.currentDate.getMonth()) {
+                        return;
+                    }
+                } else if (state.recordsViewMode === 'specific') {
+                    if (date.getFullYear() !== state.recordsViewYear || 
+                        date.getMonth() + 1 !== state.recordsViewMonth) {
+                        return;
+                    }
+                }
+                
+                const dayOfWeek = date.getDay();
+                const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
+                const type = state.hoursData[dateStr].type || 'A';
+                
+                // 计算金额和类型
+                let amount = 0;
+                let rateText = '';
+                let typeText = '';
+                if (hours > 0) {
+                    // 加班计算
+                    const rate = OVERTIME_RATES[type];
+                    amount = hours * rate;
+                    rateText = `${rate.toFixed(2)}元/时`;
+                    
+                    switch (type) {
+                        case 'A':
+                            typeText = '工作日加班';
+                            break;
+                        case 'B':
+                            typeText = state.specialWorkdays.includes(dateStr) ? '调休日加班' : '周末加班';
+                            break;
+                        case 'C':
+                            typeText = '节假日加班';
+                            break;
+                    }
+                } else if (hours < 0) {
+                    // 请假扣款
+                    const hourlyRate = OVERTIME_RATES['A'];
+                    amount = hours * hourlyRate;
+                    rateText = `${hourlyRate.toFixed(2)}元/时 (1.5倍)`;
+                    typeText = '请假/调休';
                 }
                 
                 tableHTML += `
                     <tr>
-                        <td>${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日</td>
-                        <td>${WEEKDAYS[date.getDay()]}</td>
+                        <td>${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日</td>
+                        <td>${WEEKDAYS[dayOfWeek]}</td>
                         <td>${typeText}</td>
                         <td>${hours}小时</td>
-                        <td>${rate.toFixed(2)}元/时</td>
-                        <td>+${amount.toFixed(2)}元</td>
+                        <td>${rateText}</td>
+                        <td>${amount.toFixed(2)}元</td>
                     </tr>
                 `;
+            });
+            
+            if (!tableHTML) {
+                tableHTML = '<tr><td colspan="6" class="text-center">当前筛选条件下无记录</td></tr>';
             }
-            // 请假记录
-            else if (hours < 0) {
-                const deduction = state.leaveDeductions[dateStr] || { 
-                    usedA: 0, 
-                    usedB: 0, 
-                    remaining: Math.abs(hours)
-                };
-                
-                // 构建详细费率说明
-                const rateParts = [];
-                if (deduction.usedA > 0) {
-                    rateParts.push(`${OVERTIME_RATES.A.toFixed(2)}元 x ${deduction.usedA}h (1.5倍)`);
-                }
-                if (deduction.usedB > 0) {
-                    rateParts.push(`${OVERTIME_RATES.B.toFixed(2)}元 x ${deduction.usedB}h (2倍)`);
-                }
-                if (deduction.remaining > 0) {
-                    rateParts.push(`${OVERTIME_RATES.A.toFixed(2)}元 x ${deduction.remaining}h (未抵扣)`);
-                }
-                
-                const totalDeduction = 
-                    deduction.usedA * OVERTIME_RATES.A +
-                    deduction.usedB * OVERTIME_RATES.B +
-                    deduction.remaining * OVERTIME_RATES.A;
-    
-                tableHTML += `
-                    <tr class="leave-row">
-                        <td>${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日</td>
-                        <td>${WEEKDAYS[date.getDay()]}</td>
-                        <td>请假/调休</td>
-                        <td>${hours}小时</td>
-                        <td>${rateParts.join('<br>') || '无可用抵扣'}</td>
-                        <td>-${totalDeduction.toFixed(2)}元</td>
-                    </tr>
-                `;
-            }
-        });
-    
-        state.domCache.hoursBody.innerHTML = tableHTML || '<tr><td colspan="6">暂无记录</td></tr>';
+        }
+        
+        state.domCache.hoursBody.innerHTML = tableHTML;
     }
     
     // 更新统计信息
@@ -596,101 +592,42 @@
         let monthlyLeave = 0;
         let monthlyLeaveDeduction = 0;
         
-        // 重置所有统计和抵扣记录
-        state.leaveDeductions = {};
-        let availableA = 0, availableB = 0, availableC = 0;
-    
-        // 第一阶段：收集所有加班时数
         for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
             const dayStr = formatDate(d);
-            const record = state.hoursData[dayStr];
-            
-            if (record && record.hours > 0) {
-                const hours = parseFloat(record.hours);
-                const type = record.type || 'A';
+            if (state.hoursData[dayStr]) {
+                const hours = parseFloat(state.hoursData[dayStr].hours) || 0;
+                const type = state.hoursData[dayStr].type || 'A';
                 
-                monthlyOvertime += hours;
-                monthlyOvertimePay += hours * OVERTIME_RATES[type];
-                
-                switch(type) {
-                    case 'A': availableA += hours; break;
-                    case 'B': availableB += hours; break;
-                    case 'C': availableC += hours; break;
+                if (hours > 0) {
+                    monthlyOvertime += hours;
+                    monthlyOvertimePay += hours * OVERTIME_RATES[type];
+                } else if (hours < 0) {
+                    monthlyLeave += Math.abs(hours);
+                    monthlyLeaveDeduction += Math.abs(hours) * OVERTIME_RATES['A'];
                 }
-            }
-        }
-
-        // 计算请假扣款（优先使用A类时数）
-        let remainingLeave = monthlyLeave;
-        
-        // 先扣除A类时数
-        const usedA = Math.min(availableA, remainingLeave);
-        monthlyLeaveDeduction += usedA * OVERTIME_RATES.A;
-        remainingLeave -= usedA;
-        
-        // 再扣除B类时数
-        const usedB = Math.min(availableB, remainingLeave);
-        monthlyLeaveDeduction += usedB * OVERTIME_RATES.B;
-        remainingLeave -= usedB;
-        
-        // 最后处理剩余未抵扣部分（按1.5倍计算）
-        if (remainingLeave > 0) {
-            monthlyLeaveDeduction += remainingLeave * OVERTIME_RATES.A;
-        }
-        
-        // 第二阶段：处理请假扣款
-        for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
-            const dayStr = formatDate(d);
-            const record = state.hoursData[dayStr];
-            
-            if (record && record.hours < 0) {
-                const leaveHours = Math.abs(record.hours);
-                monthlyLeave += leaveHours;
-                
-                let remaining = leaveHours;
-                const deduction = { usedA: 0, usedB: 0, usedC: 0, remaining: 0 };
-                
-                // 抵扣顺序：A->B->C->剩余按A倍率
-                deduction.usedA = Math.min(availableA, remaining);
-                availableA -= deduction.usedA;
-                remaining -= deduction.usedA;
-                
-                deduction.usedB = Math.min(availableB, remaining);
-                availableB -= deduction.usedB;
-                remaining -= deduction.usedB;
-                
-                deduction.usedC = Math.min(availableC, remaining);
-                availableC -= deduction.usedC;
-                remaining -= deduction.usedC;
-                
-                deduction.remaining = remaining;
-                
-                // 存储抵扣详情
-                state.leaveDeductions[dayStr] = deduction;
-                
-                // 计算扣款总额
-                const totalDeduction = 
-                    deduction.usedA * OVERTIME_RATES.A +
-                    deduction.usedB * OVERTIME_RATES.B +
-                    deduction.usedC * OVERTIME_RATES.C +
-                    deduction.remaining * OVERTIME_RATES.A;
-                    
-                monthlyLeaveDeduction += totalDeduction;
             }
         }
         
         // 计算请假天数 (8小时为1天)
-        // 保持原有UI更新逻辑不变
         const leaveDays = monthlyLeave / 8;
+        
+        // 更新UI
         state.domCache.monthlyOvertime.textContent = `${monthlyOvertime.toFixed(1)}小时`;
         state.domCache.monthlyLeave.textContent = `${monthlyLeave.toFixed(1)}小时 (${leaveDays.toFixed(1)}天)`;
         state.domCache.monthlyOvertimePay.textContent = `${monthlyOvertimePay.toFixed(2)}元`;
         
+        // 计算预计实发工资
         const estimatedSalary = state.baseSalary + monthlyOvertimePay - monthlyLeaveDeduction;
         state.domCache.estimatedSalary.textContent = `${estimatedSalary.toFixed(2)}元`;
         
-        // 预警逻辑保持不变
-        state.domCache.monthlyOvertime.classList.toggle('stats-warning', monthlyOvertime > 160);
+        // 检查加班限制
+        if (monthlyOvertime > 160) {
+            state.domCache.monthlyOvertime.classList.add('stats-warning');
+            state.domCache.monthlyOvertime.classList.remove('stats-ok');
+        } else {
+            state.domCache.monthlyOvertime.classList.add('stats-ok');
+            state.domCache.monthlyOvertime.classList.remove('stats-warning');
+        }
     }
     
     // 更新工资配置
@@ -730,7 +667,6 @@
         // 更新统计信息
         updateStatistics();
         updateRecordsView();
-
         
         showMessage('工资设置已保存', 'text-success');
     }
