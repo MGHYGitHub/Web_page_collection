@@ -20,18 +20,24 @@
             --secondary-color: #3f37c9;
             --hover-color: #f1f3ff;
             --weekend-color: #fff0f0;
-            --holiday-color: #ffebee;
+            /* --holiday-color: #ffebee; */
             --workday-color: #f0fff4;
             --selected-color: #e6f7ff;
             --today-border: #4361ee;
             --table-stripe: #f8f9ff;
-            --leave-color: #ffebee;
+            /* --leave-color: #ffebee; */
             --success-color: #4cc9f0;
             --warning-color: #f8961e;
             --danger-color: #f72585;
             --border-radius: 8px;
             --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             --transition: all 0.25s cubic-bezier(0.645, 0.045, 0.355, 1);
+            --holiday-color: #ffcdd2;  /* 浅红色背景 */
+            --holiday-border: #f44336; /* 鲜红色边框 */
+
+            --leave-color: #bbdefb;    /* 浅蓝色背景 */
+            --leave-border: #2196f3;   /* 鲜蓝色边框 */
+            --leave-text-color: #0d47a1; /* 深蓝色文字 */
         }
 
         [data-theme="dark"] {
@@ -47,10 +53,14 @@
             --today-border: #4895ef;
             --table-stripe: #252525;
             --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            --holiday-color: #3a1e1e;  /* 节假日背景色 */
-            --leave-color: #2a1e2a;    /* 请假背景色（改为紫色系） */
-            --leave-text-color: #d8b4fe; /* 请假文字颜色 */
             --text-color: #f0f0f0; /* 更亮的文字颜色 */
+
+            --holiday-color: #5d1f1f;  /* 深红色背景 */
+            --holiday-border: #ff5252; /* 亮红色边框 */
+            
+            --leave-color: #1a237e;    /* 深蓝色背景 */
+            --leave-border: #448aff;   /* 亮蓝色边框 */
+            --leave-text-color: #bbdefb; /* 浅蓝色文字 */
 
             /* 增强表格和卡片文字对比度 */
             .table, .card, .form-control {
@@ -225,6 +235,7 @@
         .holiday {
             background-color: var(--holiday-color);
             border-left: 4px solid var(--danger-color);
+            border-left: 4px solid var(--holiday-border); /* 使用专用边框色 */
         }
 
         .weekend {
@@ -257,15 +268,21 @@
         .leave-day {
             background-color: var(--leave-color);
             border-left: 4px solid var(--danger-color);
+            border-left: 4px solid var(--leave-border); /* 使用专用边框色 */
         }
 
+        /* 替换图例中的请假颜色 */
+        .legend-item:nth-child(5) .legend-color {
+            background-color: var(--leave-color);
+            border-left: 3px solid var(--leave-border);
+        }
         /* ========== 加班/请假显示 ========== */
         .overtime-display {
+            background: rgba(67, 97, 238, 0.15); /* 加深背景色 */
             font-size: 0.75rem;
             color: var(--primary-color);
             text-align: center;
             width: 100%;
-            background: rgba(67, 97, 238, 0.1);
             border-radius: 4px;
             padding: 2px;
             margin-top: auto;
@@ -273,15 +290,23 @@
         }
 
         .leave-display {
+            color: var(--leave-text-color);
+            background: rgba(33, 150, 243, 0.15); /* 使用蓝色系半透明背景 */
+            font-weight: 600; /* 加粗文字 */
             font-size: 0.75rem;
             text-align: center;
             width: 100%;
             border-radius: 4px;
             padding: 2px;
             margin-top: auto;
-            font-weight: 500;
-            color: var(--leave-text-color, #f72585);
-            background: rgba(123, 31, 162, 0.1);
+        }
+        /* 添加对特殊日期的hover效果 */
+        .holiday:hover {
+            background-color: color-mix(in srgb, var(--holiday-color) 80%, white 20%);
+        }
+
+        .leave-day:hover {
+            background-color: color-mix(in srgb, var(--leave-color) 80%, white 20%);
         }
 
         /* ========== 详情面板 ========== */
@@ -307,6 +332,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: bold;
+            font-size: 1em;
         }
 
         .stats-value {
@@ -562,15 +589,62 @@
             --bs-table-accent-bg: var(--hover-color);
             color: var(--text-color);
         }
+        /* 小字样式优化 */
+        .small-text {
+            font-size: 0.55em;      /* 更小的字号 */
+            color: #ad6f6f;           /* 深灰色 */
+            padding-left: 1px;    /* 缩进 */
+            line-height: 1.5;      /* 增加行距 */
+            margin-top: 4px;       /* 与主标题的间距 */
+        }
+        /* 补贴/扣款样式 */
+        #extra-deduction-btn {
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 弹窗表格样式 */
+        #deduction-records {
+            font-size: 0.85rem;
+        }
+
+        #deduction-records th {
+            white-space: nowrap;
+        }
+
+        .deduction-positive {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+
+        .deduction-negative {
+            color: var(--danger-color);
+            font-weight: 500;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            #deduction-records td, #deduction-records th {
+                padding: 8px;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="text-center mb-0">工资与加班管理系统</h1>
-            <button class="theme-toggle" id="theme-toggle">
-                <i class="bi bi-moon-fill"></i> 深色模式
-            </button>
+            <div>
+                <button class="btn btn-outline-info me-2" id="extra-deduction-btn">
+                    <i class="bi bi-calculator"></i> 其他补贴/扣款
+                </button>
+                <button class="theme-toggle" id="theme-toggle">
+                    <i class="bi bi-moon-fill"></i> 深色模式
+                </button>
+            </div>
         </div>
         
     <!-- 工资配置 -->
@@ -686,7 +760,7 @@
             <div class="legend-scroll">
                 <div class="legend">
                     <div class="legend-item">
-                        <div class="legend-color" style="/* background-color: var(--workday-color); *//* border-left: 3px solid var(--success-color); */"></div>
+                        <div class="legend-color"></div>
                         <span>工作日 (<span class="rate-value" data-rate="A">39.66</span>元/时)</span>
                     </div>
                     <div class="legend-item">
@@ -702,7 +776,7 @@
                         <span>调休工作日 (<span class="rate-value" data-rate="B">52.87</span>元/时)</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background-color: var(--leave-color); border-left: 3px solid var(--danger-color);"></div>
+                        <div class="legend-color" style="background-color: var(--leave-color);"></div>
                         <span>请假</span>
                     </div>
                     <div class="legend-item">
@@ -788,6 +862,89 @@
                 <!-- 数据将通过JS动态填充 -->
             </tbody>
         </table>
+        <div class="modal fade" id="extraDeductionModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">其他补贴/扣款记录</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="extra-deduction-form">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">类型</label>
+                                    <select class="form-select" id="deduction-type" required>
+                                        <option value="">-- 请选择 --</option>
+                                        <option value="subsidy">补贴</option>
+                                        <option value="deduction">扣款</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">金额 (元)</label>
+                                    <input type="number" class="form-control" id="deduction-amount" step="0.01" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">分类</label>
+                                <select class="form-select" id="deduction-category">
+                                    <option value="">-- 自定义分类 --</option>
+                                    <option value="rent">房租</option>
+                                    <option value="utilities">水电费</option>
+                                    <option value="phone">电话费</option>
+                                    <option value="tax">扣税</option>
+                                    <option value="bonus">奖金</option>
+                                    <option value="meal">餐补</option>
+                                    <option value="transport">交通补贴</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">自定义分类名称</label>
+                                <input type="text" class="form-control" id="custom-category" placeholder="如: 社保扣款、项目奖金等">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">备注说明</label>
+                                <textarea class="form-control" id="deduction-notes" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">日期</label>
+                                <input type="date" class="form-control" id="deduction-date" required>
+                            </div>
+                        </form>
+                        
+                        <!-- 记录显示区域 -->
+                        <div class="mt-4">
+                            <h6>本月其他记录</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm" id="deduction-records">
+                                    <thead>
+                                        <tr>
+                                            <th>日期</th>
+                                            <th>类型</th>
+                                            <th>分类</th>
+                                            <th>金额</th>
+                                            <th>备注</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="deduction-records-body">
+                                        <!-- 记录将通过JS动态填充 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" id="save-deduction">保存记录</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
