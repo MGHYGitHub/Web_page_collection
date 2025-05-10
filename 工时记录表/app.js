@@ -24,7 +24,12 @@
         recordsViewMode: 'current',
         recordsViewYear: new Date().getFullYear(),
         recordsViewMonth: new Date().getMonth() + 1,
-        domCache: {}
+        domCache: {},
+        deductions: [], // 存储补贴/扣款记录
+        chart: null,
+        chartType: 'bar',
+        dataGroup: 'day', // 'day' 或 'week'
+        visibleDatasets: [true, true, true] // 控制显示哪些数据集
     };
     
     // DOM元素缓存
@@ -64,8 +69,17 @@
         Object.keys(elements).forEach(key => {
             state.domCache[key] = document.getElementById(elements[key]);
         });
+
+        state.domCache.batchControls = document.querySelector('.batch-controls');
+        state.domCache.toggleBatchBtn = document.getElementById('toggle-batch-mode');
+        state.domCache.batchApplyBtn = document.getElementById('batch-apply');
+        state.domCache.batchCancelBtn = document.getElementById('batch-cancel');
+        state.domCache.batchHoursInput = document.getElementById('batch-overtime-hours');
+        state.domCache.batchTypeSelect = document.getElementById('batch-overtime-type');
+        state.domCache.batchSelectedCount = document.getElementById('batch-selected-count');
     }
-    
+
+
     // 确保初始化时渲染日历
     function init() {
         cacheDOM();
@@ -79,8 +93,41 @@
         updateStatistics();
         // 更新今天标记
         updateTodayMarker();
+        initAdvancedChart();
     }
     
+// 添加批量操作面板
+const batchControlsHTML = `
+<div class="batch-controls mb-3 d-none">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">批量设置加班</h5>
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label">加班类型</label>
+                    <select class="form-select" id="batch-overtime-type">
+                        <option value="A">工作日加班 (1.5倍)</option>
+                        <option value="B">周末/调休日加班 (2倍)</option>
+                        <option value="C">节假日加班 (3倍)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">加班时长(小时)</label>
+                    <input type="number" class="form-control" id="batch-overtime-hours" min="0" step="0.5" value="1">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn btn-primary me-2" id="batch-apply">应用</button>
+                    <button class="btn btn-outline-secondary" id="batch-cancel">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="alert alert-info mt-2">
+        已选择 <span id="batch-selected-count">0</span> 个日期
+    </div>
+</div>
+`;
+
     function updateTodayMarker() {
         const todayMarker = document.querySelector('.today-marker');
         if (todayMarker) {
@@ -89,29 +136,37 @@
         }
     }
 
-    // 从本地存储加载数据
     function loadFromLocalStorage() {
-        // 加载工作数据
-        const hoursData = localStorage.getItem('hoursData');
-        if (hoursData) {
-            try {
-                state.hoursData = JSON.parse(hoursData);
-            } catch (e) {
-                console.error('解析工作数据失败:', e);
-                state.hoursData = {};
+        try {
+            // 加载工作数据
+            const hoursData = localStorage.getItem('hoursData');
+            if (hoursData) {
+                state.hoursData = JSON.parse(hoursData) || {};
             }
-        }
-        
-        // 加载主题设置
-        const theme = localStorage.getItem('theme');
-        state.darkMode = theme === 'dark';
-        applyTheme();
-        
-        // 加载工资配置
-        const savedSalary = localStorage.getItem('baseSalary');
-        if (savedSalary) {
-            state.baseSalary = parseFloat(savedSalary) || 4600;
-            state.domCache.baseSalaryInput.value = state.baseSalary;
+    
+            // 加载补贴/扣款记录
+            const deductions = localStorage.getItem('deductions');
+            if (deductions) {
+                state.deductions = JSON.parse(deductions) || [];
+            }
+    
+            // 加载主题设置
+            const theme = localStorage.getItem('theme');
+            state.darkMode = theme === 'dark';
+            applyTheme();
+            
+            // 加载工资配置
+            const savedSalary = localStorage.getItem('baseSalary');
+            if (savedSalary) {
+                state.baseSalary = parseFloat(savedSalary) || 4600;
+                state.domCache.baseSalaryInput.value = state.baseSalary;
+            }
+        } catch (e) {
+            console.error('加载本地存储数据失败:', e);
+            // 初始化默认值
+            state.hoursData = {};
+            state.deductions = [];
+            state.baseSalary = 4600;
         }
         updateSalaryConfig();
     }
@@ -142,6 +197,28 @@
     
     // 设置事件监听器
     function setupEventListeners() {
+        // 批量模式切换
+        document.getElementById('toggle-batch-mode').addEventListener('click', toggleBatchMode);
+
+        // 批量应用
+        document.getElementById('batch-apply').addEventListener('click', applyBatchOvertime);
+
+        // 批量取消
+        document.getElementById('batch-cancel').addEventListener('click', toggleBatchMode);
+        // 补贴/扣款按钮点击事件
+        document.getElementById('extra-deduction-btn').addEventListener('click', showDeductionModal);
+        
+        // 保存补贴/扣款记录
+        document.getElementById('save-deduction').addEventListener('click', saveDeduction);
+        
+        // 删除记录
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-deduction')) {
+                const id = e.target.dataset.id;
+                deleteDeduction(id);
+            }
+        });
+    
         // 月份导航
         document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
         document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
@@ -156,14 +233,40 @@
         // 日期选择器
         state.domCache.yearSelector.addEventListener('change', handleDateSelection);
         state.domCache.monthSelector.addEventListener('change', handleDateSelection);
-        
+            
+        // 批量操作事件
+        state.domCache.toggleBatchBtn.addEventListener('click', toggleBatchMode);
+        state.domCache.batchApplyBtn.addEventListener('click', applyBatchOvertime);
+        state.domCache.batchCancelBtn.addEventListener('click', toggleBatchMode);
+
         // 工作记录操作
         state.domCache.saveHours.addEventListener('click', saveHours);
         state.domCache.clearHours.addEventListener('click', clearHours);
         
         // 数据导入导出
         document.getElementById('export-excel').addEventListener('click', exportToExcel);
-        document.getElementById('import-data').addEventListener('click', showImportDialog);
+        document.getElementById('import-data').addEventListener('click', function() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.xlsx,.xls,.json';
+            fileInput.onchange = (e) => {
+                if (e.target.files.length) {
+                    handleFileImport(e.target.files[0]);
+                }
+            };
+            fileInput.click();
+        });
+        
+        // 修改后的拖放处理
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.body.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length) {
+                handleFileImport(e.dataTransfer.files[0]);
+            }
+        }
 
         // 添加拖放支持
         document.addEventListener('dragover', handleDragOver);
@@ -183,73 +286,45 @@
             document.body.classList.remove('dragover');
         }
 
+        // 修改后 - 统一使用handleFileImport处理
         function handleDrop(e) {
             e.preventDefault();
             e.stopPropagation();
             document.body.classList.remove('dragover');
             
-            const files = e.dataTransfer.files;
-            if (files.length && /\.(xlsx|xls)$/i.test(files[0].name)) {
-                importExcelFile(files[0]);
-            } else {
-                showMessage('请拖放Excel文件(.xlsx或.xls)', 'text-danger');
+            if (e.dataTransfer.files.length) {
+                handleFileImport(e.dataTransfer.files[0]);
             }
         }
 
-        function showImportDialog() {
-            showMessage('请将Excel文件拖放到页面中', 'text-info');
+
+        // 新增辅助函数 - 日期解析
+        function parseDateFromRow(row) {
+            if (!row['日期']) return null;
+            
+            const dateStr = row['日期'].toString();
+            const dateMatch = dateStr.match(/(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})/);
+            if (!dateMatch) return null;
+            
+            return new Date(
+                parseInt(dateMatch[1]),
+                parseInt(dateMatch[2]) - 1,
+                parseInt(dateMatch[3])
+            );
         }
 
-        async function importExcelFile(file) {
-            try {
-                const data = await file.arrayBuffer();
-                const wb = XLSX.read(data);
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(ws);
-                
-                let newData = {};
-                
-                jsonData.forEach(row => {
-                    if (row['日期'] && (row['工作时数'] || row['类型'])) {
-                        const dateMatch = row['日期'].match(/(\d+)年(\d+)月(\d+)日/);
-                        if (dateMatch) {
-                            const year = parseInt(dateMatch[1]);
-                            const month = parseInt(dateMatch[2]) - 1;
-                            const day = parseInt(dateMatch[3]);
-                            const date = new Date(year, month, day);
-                            const dateStr = formatDate(date);
-                            
-                            const hours = parseFloat(row['工作时数']) || 0;
-                            let type = 'A';
-                            
-                            if (row['类型']) {
-                                if (row['类型'].includes('3倍') || row['类型'].includes('节假日')) {
-                                    type = 'C';
-                                } else if (row['类型'].includes('2倍') || row['类型'].includes('周末') || row['类型'].includes('调休日')) {
-                                    type = 'B';
-                                }
-                            }
-                            
-                            if (hours !== 0) {
-                                newData[dateStr] = {
-                                    date: dateStr,
-                                    hours: hours,
-                                    type: hours > 0 ? type : null,
-                                    timestamp: new Date().toISOString()
-                                };
-                            }
-                        }
-                    }
-                });
-                
-                state.hoursData = { ...state.hoursData, ...newData };
-                saveToLocalStorage();
-                render();
-                showMessage('Excel数据导入成功', 'text-success');
-            } catch (error) {
-                console.error('导入失败:', error);
-                showMessage(`导入失败: ${error.message}`, 'text-danger');
+        // 新增辅助函数 - 确定加班类型
+        function determineOvertimeType(row, dateStr) {
+            if (!row['类型']) return 'A';
+            
+            const typeStr = row['类型'].toString();
+            if (typeStr.includes('3倍') || typeStr.includes('节假日')) {
+                return 'C';
             }
+            if (typeStr.includes('2倍') || typeStr.includes('周末') || typeStr.includes('调休')) {
+                return 'B';
+            }
+            return 'A';
         }
 
         // 主题切换
@@ -275,6 +350,7 @@
         renderCalendar();
         updateRecordsView();
         updateStatistics();
+        updateChart();
     }
     
     // 渲染日历
@@ -346,6 +422,7 @@
         
         // 添加工作信息
         let hoursDisplay = '';
+        // 确保这部分逻辑正确执行
         if (state.hoursData[dateStr]) {
             const hours = state.hoursData[dateStr].hours;
             if (hours < 0) {
@@ -355,7 +432,7 @@
                 const type = state.hoursData[dateStr].type || 'A';
                 hoursDisplay = `<div class="overtime-display">${type}-${hours}h</div>`;
             }
-        }
+        }   
         
         // 如果是选中的日期，添加选中类
         if (state.selectedDate && formatDate(state.selectedDate) === dateStr) {
@@ -442,6 +519,7 @@
     
     // 保存工作信息
     function saveHours() {
+
         if (!state.selectedDate) return;
         
         const dateStr = formatDate(state.selectedDate);
@@ -479,8 +557,13 @@
             timestamp: new Date().toISOString()
         };
         
-        saveToLocalStorage();
         render();
+        
+        // 保存后必须执行：
+        saveToLocalStorage();  // 确保数据持久化
+        renderCalendar();      // 重新渲染日历
+        updateStatistics();    // 更新统计
+        updateRecordsView();   // 更新记录视图
         showMessage('工作信息已保存', 'text-success');
     }
     
@@ -507,80 +590,143 @@
     // 更新工作记录视图
     function updateRecordsView() {
         const sortedDates = Object.keys(state.hoursData).sort((a, b) => new Date(a) - new Date(b));
-        
         let tableHTML = '';
+
+        // 添加表头
+        tableHTML += `
+        <tr class="table-header">
+            <th>日期</th>
+            <th>星期</th>
+            <th>类型</th>
+            <th>工作时数</th>
+            <th>费率</th>
+            <th>金额</th>
+        </tr>
+    `;
         
-        if (sortedDates.length === 0) {
-            tableHTML = '<tr><td colspan="6" class="text-center">暂无工作记录</td></tr>';
-        } else {
-            sortedDates.forEach(dateStr => {
-                const date = new Date(dateStr);
-                
-                // 根据视图模式过滤记录
-                if (state.recordsViewMode === 'current') {
-                    if (date.getFullYear() !== state.currentDate.getFullYear() || 
-                        date.getMonth() !== state.currentDate.getMonth()) {
-                        return;
-                    }
-                } else if (state.recordsViewMode === 'specific') {
-                    if (date.getFullYear() !== state.recordsViewYear || 
-                        date.getMonth() + 1 !== state.recordsViewMonth) {
-                        return;
-                    }
+    if (sortedDates.length === 0 && state.deductions.length === 0) {
+        tableHTML += '<tr><td colspan="6" class="text-center">暂无工作记录</td></tr>';
+    } else {
+        // 处理工作记录
+        let hasWorkRecords = false;
+        sortedDates.forEach(dateStr => {
+            const date = new Date(dateStr);
+            
+            // 根据视图模式过滤
+            if (state.recordsViewMode === 'current') {
+                if (date.getFullYear() !== state.currentDate.getFullYear() || 
+                    date.getMonth() !== state.currentDate.getMonth()) {
+                    return;
                 }
-                
-                const dayOfWeek = date.getDay();
-                const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
-                const type = state.hoursData[dateStr].type || 'A';
-                
-                // 计算金额和类型
-                let amount = 0;
-                let rateText = '';
-                let typeText = '';
-                if (hours > 0) {
-                    // 加班计算
-                    const rate = OVERTIME_RATES[type];
-                    amount = hours * rate;
-                    rateText = `${rate.toFixed(2)}元/时`;
-                    
-                    switch (type) {
-                        case 'A':
-                            typeText = '工作日加班';
-                            break;
-                        case 'B':
-                            typeText = state.specialWorkdays.includes(dateStr) ? '调休日加班' : '周末加班';
-                            break;
-                        case 'C':
-                            typeText = '节假日加班';
-                            break;
-                    }
-                } else if (hours < 0) {
-                    // 请假扣款
-                    const hourlyRate = OVERTIME_RATES['A'];
-                    amount = hours * hourlyRate;
-                    rateText = `${hourlyRate.toFixed(2)}元/时 (1.5倍)`;
-                    typeText = '请假/调休';
+            } else if (state.recordsViewMode === 'specific') {
+                if (date.getFullYear() !== state.recordsViewYear || 
+                    date.getMonth() + 1 !== state.recordsViewMonth) {
+                    return;
                 }
+            }
+            
+            const dayOfWeek = date.getDay();
+            const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
+            const type = state.hoursData[dateStr].type || 'A';
+            
+            // 计算金额和类型
+            let amount = 0;
+            let rateText = '';
+            let typeText = '';
+            if (hours > 0) {
+                const rate = OVERTIME_RATES[type];
+                amount = hours * rate;
+                rateText = `${rate.toFixed(2)}元/时`;
+                
+                switch (type) {
+                    case 'A':
+                        typeText = '工作日加班';
+                        break;
+                    case 'B':
+                        typeText = state.specialWorkdays.includes(dateStr) ? '调休日加班' : '周末加班';
+                        break;
+                    case 'C':
+                        typeText = '节假日加班';
+                        break;
+                }
+            } else if (hours < 0) {
+                const hourlyRate = OVERTIME_RATES['A'];
+                amount = hours * hourlyRate;
+                rateText = `${hourlyRate.toFixed(2)}元/时 (1.5倍)`;
+                typeText = '请假/调休';
+            }
+            
+            tableHTML += `
+                <tr>
+                    <td>${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日</td>
+                    <td>${WEEKDAYS[dayOfWeek]}</td>
+                    <td>${typeText}</td>
+                    <td>${hours}小时</td>
+                    <td>${rateText}</td>
+                    <td>${amount.toFixed(2)}元</td>
+                </tr>
+            `;
+            hasWorkRecords = true;
+        });
+        
+        // 添加补贴/扣款记录 - 现在会根据视图模式过滤
+        let showDeductions = false;
+        const deductionsToShow = state.deductions.filter(record => {
+            const recordDate = new Date(record.date);
+            
+            if (state.recordsViewMode === 'current') {
+                return recordDate.getFullYear() === state.currentDate.getFullYear() && 
+                    recordDate.getMonth() === state.currentDate.getMonth();
+            } else if (state.recordsViewMode === 'specific') {
+                return recordDate.getFullYear() === state.recordsViewYear && 
+                    recordDate.getMonth() + 1 === state.recordsViewMonth;
+            }
+            return true; // 'all' 模式显示所有
+        });
+        
+        if (deductionsToShow.length > 0) {
+            showDeductions = true;
+            tableHTML += `
+                <tr class="deduction-header">
+                    <td colspan="6" class="text-center"><strong>补贴/扣款记录</strong></td>
+                </tr>
+                <tr class="deduction-subheader">
+                    <th>日期</th>
+                    <th>星期</th>
+                    <th>类型</th>
+                    <th>分类</th>
+                    <th>金额</th>
+                    <th>备注</th>
+                </tr>
+            `;
+            hasDeductions = true;
+            
+            deductionsToShow.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(record => {
+                const date = new Date(record.date);
+                const amountClass = record.amount >= 0 ? 'deduction-positive' : 'deduction-negative';
+                const amountText = record.amount >= 0 ? `+${record.amount.toFixed(2)}` : record.amount.toFixed(2);
                 
                 tableHTML += `
-                    <tr>
+                    <tr class="deduction-row">
                         <td>${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日</td>
-                        <td>${WEEKDAYS[dayOfWeek]}</td>
-                        <td>${typeText}</td>
-                        <td>${hours}小时</td>
-                        <td>${rateText}</td>
-                        <td>${amount.toFixed(2)}元</td>
+                        <td>${WEEKDAYS[date.getDay()]}</td>
+                        <td>${record.type === 'subsidy' ? '补贴' : '扣款'}</td>
+                        <td>${record.category}</td>
+                        <td class="${amountClass}">${amountText}元</td>
+                        <td>${record.notes || '-'}</td>
                     </tr>
                 `;
             });
-            
-            if (!tableHTML) {
-                tableHTML = '<tr><td colspan="6" class="text-center">当前筛选条件下无记录</td></tr>';
-            }
         }
         
-        state.domCache.hoursBody.innerHTML = tableHTML;
+        // 最终判断 - 如果没有记录才显示"无记录"
+        if (!hasWorkRecords && !hasDeductions) {
+            tableHTML = '<tr><td colspan="6" class="text-center">暂无工作记录</td></tr>';
+        }
     }
+    
+    state.domCache.hoursBody.innerHTML = tableHTML;
+}
     
     // 更新统计信息
     function updateStatistics() {
@@ -597,6 +743,18 @@
         let overtimeTypeB = { hours: 0, pay: 0 }; // 周末/调休日加班（2倍）
         let overtimeTypeC = { hours: 0, pay: 0 }; // 节假日加班（3倍）
     
+        // 计算补贴和扣款总额
+        const currentYear = state.currentDate.getFullYear();
+        const currentMonth = state.currentDate.getMonth() + 1;
+        
+        const monthlyDeductions = state.deductions.filter(record => {
+            const recordDate = new Date(record.date);
+            return recordDate.getFullYear() === currentYear && 
+                recordDate.getMonth() + 1 === currentMonth;
+        });
+
+        const totalDeductions = monthlyDeductions.reduce((sum, record) => sum + record.amount, 0);
+
         // 遍历当月每一天
         for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
             const dateStr = formatDate(d);
@@ -663,8 +821,19 @@
     `;
         
         // 计算预计实发工资
-        const estimatedSalary = state.baseSalary + overtimeTypeA.pay + overtimeTypeB.pay + overtimeTypeC.pay - monthlyLeaveDeduction;
-        state.domCache.estimatedSalary.textContent = `${estimatedSalary.toFixed(2)}¥`;
+        // 更新预计实发工资计算
+        const estimatedSalary = state.baseSalary + 
+        overtimeTypeA.pay + 
+        overtimeTypeB.pay + 
+        overtimeTypeC.pay - 
+        monthlyLeaveDeduction +
+        totalDeductions;
+        state.domCache.estimatedSalary.innerHTML = `
+        ${Math.max(0, estimatedSalary).toFixed(2)}¥
+        <div class="small-text">
+            补贴/扣款: ${totalDeductions >= 0 ? '+' : ''}${totalDeductions.toFixed(2)}¥
+        </div>
+    `;
         
         // 检查加班限制（基于总加班时长）
         if (monthlyOvertime > 160) {
@@ -717,173 +886,789 @@
         showMessage('工资设置已保存', 'text-success');
     }
     
-    // 导出为Excel
+    // 修改exportToExcel函数，支持指定文件名
     function exportToExcel() {
-        if (Object.keys(state.hoursData).length === 0) {
-            showMessage('没有工作记录可导出', 'text-danger');
-            return;
-        }
+        // 工作记录表头修改
+        data.push(['日期', '星期', '加班类型', '工作时数', '费率', '金额', '备注']);
+      
+        // 补贴/扣款记录表头修改
+        data.push(['日期', '记录类型', '分类', '金额', '备注', '']);
+      
         
-        // 准备数据
-        const data = [
-            ['日期', '星期', '类型', '工作时数', '费率', '金额', '备注']
-        ];
-        
-        // 按日期排序
-        const sortedDates = Object.keys(state.hoursData).sort((a, b) => new Date(a) - new Date(b));
-        
-        sortedDates.forEach(dateStr => {
-            const date = new Date(dateStr);
-            const dayOfWeek = date.getDay();
+        return new Promise((resolve) => {
+            // 准备数据
+            const data = [
+                ['工资与加班记录', '', '', '', '', '']
+            ];
             
-            const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
-            const type = state.hoursData[dateStr].type || 'A';
-            
-            // 计算金额
-            let amount = 0;
-            let rateText = '';
-            let typeText = '';
-            let note = '';
-            
-            if (hours > 0) {
-                const rate = OVERTIME_RATES[type];
-                amount = hours * rate;
-                rateText = `${rate.toFixed(2)}元/时`;
+            // 添加工作记录
+            if (Object.keys(state.hoursData).length > 0) {
+                data.push([], ['工作记录', '', '', '', '', '']);
+                data.push(['日期', '星期', '类型', '工作时数', '费率', '金额', '备注']);
                 
-                switch (type) {
-                    case 'A':
-                        typeText = '工作日加班';
-                        break;
-                    case 'B':
-                        typeText = state.specialWorkdays.includes(dateStr) ? '放假调休日加班' : '周末加班';
-                        note = state.specialWorkdays.includes(dateStr) ? '放假调休日' : '';
-                        break;
-                    case 'C':
-                        typeText = '节假日加班';
-                        break;
-                }
-            } else if (hours < 0) {
-                const hourlyRate = OVERTIME_RATES['A'];
-                amount = hours * hourlyRate;
-                rateText = `${hourlyRate.toFixed(2)}元/时 (1.5倍)`;
-                typeText = '请假/调休';
+                const sortedDates = Object.keys(state.hoursData).sort((a, b) => new Date(a) - new Date(b));
+                
+                sortedDates.forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    const dayOfWeek = date.getDay();
+                    
+                    const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
+                    const type = state.hoursData[dateStr].type || 'A';
+                    
+                    // 计算金额
+                    let amount = 0;
+                    let rateText = '';
+                    let typeText = '';
+                    let note = '';
+                    
+                    if (hours > 0) {
+                        const rate = OVERTIME_RATES[type];
+                        amount = hours * rate;
+                        rateText = `${rate.toFixed(2)}元/时`;
+                        
+                        switch (type) {
+                            case 'A':
+                                typeText = '工作日加班';
+                                break;
+                            case 'B':
+                                typeText = state.specialWorkdays.includes(dateStr) ? '放假调休日加班' : '周末加班';
+                                note = state.specialWorkdays.includes(dateStr) ? '放假调休日' : '';
+                                break;
+                            case 'C':
+                                typeText = '节假日加班';
+                                break;
+                        }
+                    } else if (hours < 0) {
+                        const hourlyRate = OVERTIME_RATES['A'];
+                        amount = hours * hourlyRate;
+                        rateText = `${hourlyRate.toFixed(2)}元/时 (1.5倍)`;
+                        typeText = '请假/调休';
+                    }
+                    
+                    data.push([
+                        `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`,
+                        WEEKDAYS[dayOfWeek],
+                        typeText,
+                        hours,
+                        rateText,
+                        amount.toFixed(2),
+                        note
+                    ]);
+                });
             }
             
-            data.push([
-                `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`,
-                WEEKDAYS[dayOfWeek],
-                typeText,
-                hours,
-                rateText,
-                amount.toFixed(2),
-                note
-            ]);
+            // 添加补贴/扣款记录
+            if (state.deductions.length > 0) {
+                data.push([], ['补贴/扣款记录', '', '', '', '', '']);
+                data.push(['日期', '星期', '类型', '工作时数', '费率', '金额', '备注']);
+                
+                // 按日期排序
+                const sortedDeductions = [...state.deductions].sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                sortedDeductions.forEach(record => {
+                    const date = new Date(record.date);
+                    data.push([
+                        `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`,
+                        record.type === 'subsidy' ? '补贴' : '扣款',
+                        record.category,
+                        record.amount >= 0 ? `+${record.amount.toFixed(2)}` : record.amount.toFixed(2),
+                        record.notes || '-',
+                        ''
+                    ]);
+                });
+            }
+            
+            // 添加统计数据
+            data.push([], ['统计项', '数值', '', '', '', '']);
+            data.push(['标准工资', `${state.baseSalary.toFixed(2)}元`, '', '', '', '']);
+            
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, '工作记录');
+            
+            // 导出文件
+            const fileName = `工资记录_${formatDate(new Date())}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            // 确保文件名是字符串
+            if (typeof fileName !== 'string') {
+                throw new Error('文件名必须是字符串');
+            }
+            console.log("正在导出文件:", fileName);
+
+            // 使用XLSX.writeFile导出
+            XLSX.writeFile(wb, fileName);
+            showMessage('Excel导出成功', 'text-success');
+            
+            showMessage('Excel导出成功', 'text-success');
+            resolve();
         });
+    }
+
+    // 新增辅助函数 - 确定加班类型
+    function determineOvertimeType(row, dateStr) {
+        if (!row['类型']) return 'A'; // 默认1.5倍
         
-        // 添加统计数据
-        data.push([], ['统计项', '数值', '', '', '', '']);
-        data.push(['标准工资', `${state.baseSalary.toFixed(2)}元`, '', '', '', '']);
-        data.push(['本月总加班时长', state.domCache.monthlyOvertime.textContent, '', '', '', '']);
-        data.push(['本月总请假', state.domCache.monthlyLeave.textContent, '', '', '', '']);
-        data.push(['本月加班费', state.domCache.monthlyOvertimePay.textContent, '', '', '', '']);
-        data.push(['预计实发工资', state.domCache.estimatedSalary.textContent, '', '', '', '']);
+        const typeStr = row['类型'].toString().toLowerCase();
+        
+        if (typeStr.includes('3倍') || typeStr.includes('节假日')) {
+            return 'C'; // 3倍
+        }
+        if (typeStr.includes('2倍') || typeStr.includes('周末') || typeStr.includes('调休')) {
+            return 'B'; // 2倍
+        }
+        return 'A'; // 默认1.5倍
+    }
+
+    // 新增辅助函数 - 日期解析
+    function parseDateFromRow(row) {
+        if (!row['日期']) return null;
+        
+        // 处理多种可能的日期格式
+        const dateStr = row['日期'].toString();
+        
+        // 尝试匹配 YYYY-MM-DD, YYYY/MM/DD, YYYY年MM月DD日 等格式
+        const dateMatch = dateStr.match(/(\d{4})[-\/年]?(\d{1,2})[-\/月]?(\d{1,2})/);
+        if (!dateMatch) return null;
+        
+        // 注意：月份需要减1（JavaScript月份是0-11）
+        return new Date(
+            parseInt(dateMatch[1]),
+            parseInt(dateMatch[2]) - 1,
+            parseInt(dateMatch[3])
+        );
+    }
+
+/**
+ * 导出数据到Excel文件（优化版）
+ */
+async function exportToExcel() {
+    try {
+        showMessage('正在准备导出数据...', 'text-info');
         
         // 创建工作簿
         const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        XLSX.utils.book_append_sheet(wb, ws, '工作记录');
         
-        // 导出文件
-        const fileName = `工作记录_${formatDate(new Date())}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+        // 1. 创建工作记录表
+        const workRecordsData = prepareWorkRecordsData();
+        const workRecordsSheet = XLSX.utils.aoa_to_sheet(workRecordsData);
+        setExcelColumnWidth(workRecordsSheet, workRecordsData);
+        setExcelWrapText(workRecordsSheet, workRecordsData);
+        XLSX.utils.book_append_sheet(wb, workRecordsSheet, "工作记录");
         
-        showMessage('Excel导出成功', 'text-success');
-    }
-    
-    // 导入数据
-    function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+        // 2. 创建补贴/扣款记录表（如果有数据）
+        if (state.deductions.length > 0) {
+            const deductionData = prepareDeductionData();
+            const deductionSheet = XLSX.utils.aoa_to_sheet(deductionData);
+            setExcelColumnWidth(deductionSheet, deductionData);
+            setExcelWrapText(deductionSheet, deductionData);
+            XLSX.utils.book_append_sheet(wb, deductionSheet, "补贴扣款");
+        }
         
-        const reader = new FileReader();
-        reader.onload = function(e) {
+        // 3. 创建统计信息表
+        const statsData = prepareStatsData();
+        const statsSheet = XLSX.utils.aoa_to_sheet(statsData);
+        setExcelColumnWidth(statsSheet, statsData);
+        setExcelWrapText(statsSheet, statsData);
+        XLSX.utils.book_append_sheet(wb, statsSheet, "统计信息");
+        
+        // 导出文件（使用setTimeout避免UI阻塞）
+        setTimeout(() => {
             try {
-                let newData = {};
-                
-                if (file.name.endsWith('.json')) {
-                    // 导入JSON数据
-                    const data = JSON.parse(e.target.result);
-                    if (data && typeof data === 'object') {
-                        newData = data;
-                    } else {
-                        throw new Error('无效的JSON数据');
-                    }
-                } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-                    // 导入Excel数据
-                    const wb = XLSX.read(e.target.result, { type: 'array' });
-                    const ws = wb.Sheets[wb.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(ws);
-                    
-                    jsonData.forEach(row => {
-                        if (row['日期'] && (row['工作时数'] || row['类型'])) {
-                            const dateMatch = row['日期'].match(/(\d+)年(\d+)月(\d+)日/);
-                            if (dateMatch) {
-                                const year = parseInt(dateMatch[1]);
-                                const month = parseInt(dateMatch[2]) - 1;
-                                const day = parseInt(dateMatch[3]);
-                                const date = new Date(year, month, day);
-                                const dateStr = formatDate(date);
-                                
-                                const hours = parseFloat(row['工作时数']) || 0;
-                                let type = 'A';
-                                
-                                if (row['类型']) {
-                                    if (row['类型'].includes('3倍') || row['类型'].includes('节假日')) {
-                                        type = 'C';
-                                    } else if (row['类型'].includes('2倍') || row['类型'].includes('周末') || row['类型'].includes('调休日')) {
-                                        type = 'B';
-                                    }
-                                }
-                                
-                                if (hours !== 0) {
-                                    newData[dateStr] = {
-                                        date: dateStr,
-                                        hours: hours,
-                                        type: hours > 0 ? type : null,
-                                        timestamp: new Date().toISOString()
-                                    };
-                                }
-                            }
-                        }
-                    });
-                }
-                
-                // 合并数据
-                state.hoursData = { ...state.hoursData, ...newData };
-                saveToLocalStorage();
-                render();
-                showMessage('数据导入成功', 'text-success');
-            } catch (error) {
-                console.error('导入数据失败:', error);
-                showMessage(`导入数据失败: ${error.message}`, 'text-danger');
+                const fileName = `工资记录_${formatDate(new Date(), 'YYYY年MM月DD日')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                showMessage('Excel导出成功', 'text-success');
+            } catch (e) {
+                console.error('导出错误:', e);
+                showMessage(`导出失败: ${e.message}`, 'text-danger');
             }
-            
-            // 清除文件输入
-            event.target.value = '';
-        };
+        }, 100);
         
-        if (file.name.endsWith('.json')) {
-            reader.readAsText(file);
-        } else {
-            reader.readAsArrayBuffer(file);
+    } catch (error) {
+        console.error('导出失败:', error);
+        showMessage(`导出失败: ${error.message}`, 'text-danger');
+    }
+}
+
+/**
+ * 准备工作记录数据
+ */
+function prepareWorkRecordsData() {
+    const headers = [
+        ['工作记录'], 
+        [],
+        ['日期', '星期', '类型', '工作时数', '费率', '金额', '备注']
+    ];
+    
+    const sortedDates = Object.keys(state.hoursData).sort((a, b) => new Date(a) - new Date(b));
+    const data = sortedDates.map(dateStr => {
+        const date = new Date(dateStr);
+        const record = state.hoursData[dateStr];
+        const hours = parseFloat(record.hours) || 0;
+        const type = record.type || 'A';
+        
+        // 计算金额和类型说明
+        let amount = 0, rateText = '', typeText = '', note = '';
+        
+        if (hours > 0) {
+            const rate = OVERTIME_RATES[type];
+            amount = hours * rate;
+            rateText = `${rate.toFixed(2)}元/时`;
+            
+            switch (type) {
+                case 'A': typeText = '工作日加班'; break;
+                case 'B': 
+                    typeText = state.specialWorkdays.includes(dateStr) ? '调休日加班' : '周末加班';
+                    note = state.specialWorkdays.includes(dateStr) ? '放假调休日' : '';
+                    break;
+                case 'C': typeText = '节假日加班'; break;
+            }
+        } else if (hours < 0) {
+            const hourlyRate = OVERTIME_RATES['A'];
+            amount = hours * hourlyRate;
+            rateText = `${hourlyRate.toFixed(2)}元/时 (1.5倍)`;
+            typeText = '请假/调休';
+        }
+        
+        return [
+            formatDate(date, 'YYYY年MM月DD日'),
+            WEEKDAYS[date.getDay()],
+            typeText,
+            hours,
+            rateText,
+            amount.toFixed(2),
+            note
+        ];
+    });
+    
+    return [...headers, ...data];
+}
+
+/**
+ * 准备补贴/扣款数据
+ */
+function prepareDeductionData() {
+    const headers = [
+        ['补贴/扣款记录'], 
+        [],
+        ['日期', '类型', '分类', '金额', '备注']
+    ];
+    
+    const sortedDeductions = [...state.deductions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const data = sortedDeductions.map(record => {
+        const date = new Date(record.date);
+        return [
+            formatDate(date, 'YYYY年MM月DD日'),
+            record.type === 'subsidy' ? '补贴' : '扣款',
+            record.category,
+            record.amount >= 0 ? `+${record.amount.toFixed(2)}` : record.amount.toFixed(2),
+            record.notes || '-'
+        ];
+    });
+    
+    return [...headers, ...data];
+}
+
+/**
+ * 准备统计数据
+ */
+function prepareStatsData() {
+    const stats = calculateMonthlyStats();
+    return [
+        ['统计信息'],
+        [],
+        ['项目', '数值'],
+        ['标准工资', `${state.baseSalary.toFixed(2)}元`],
+        ['工作日加班费(1.5倍)', `${stats.typeAPay.toFixed(2)}元`],
+        ['周末加班费(2倍)', `${stats.typeBPay.toFixed(2)}元`],
+        ['节假日加班费(3倍)', `${stats.typeCPay.toFixed(2)}元`],
+        ['总加班费', `${stats.totalOvertimePay.toFixed(2)}元`],
+        ['请假扣款', `${stats.leaveDeduction.toFixed(2)}元`],
+        ['补贴/扣款总额', `${stats.totalDeductions.toFixed(2)}元`],
+        ['预计实发工资', `${stats.estimatedSalary.toFixed(2)}元`],
+        ['总加班时长', `${stats.totalOvertime.toFixed(1)}小时`]
+    ];
+}
+
+/**
+ * 设置Excel列宽自适应
+ */
+function setExcelColumnWidth(worksheet, data) {
+    if (!data || data.length === 0) return;
+    
+    // 计算每列最大字符长度
+    const colWidths = data[0].map((_, colIndex) => {
+        return data.reduce((max, row) => {
+            const cellValue = row[colIndex] || '';
+            const length = cellValue.toString().length;
+            return Math.max(max, length);
+        }, 10); // 最小宽度为10
+    });
+    
+    // 设置列宽 (Excel中1个单位≈1个字符宽度)
+    worksheet['!cols'] = colWidths.map(width => ({ 
+        width: Math.min(width + 2, 50) // 最大宽度限制为50
+    }));
+}
+
+/**
+ * 设置Excel单元格自动换行
+ */
+function setExcelWrapText(worksheet) {
+    if (!worksheet['!ref']) return;
+    
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    
+    // 为所有单元格设置自动换行
+    for (let row = range.s.r; row <= range.e.r; row++) {
+        for (let col = range.s.c; col <= range.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+            if (!worksheet[cellAddress]) continue;
+            
+            worksheet[cellAddress].s = worksheet[cellAddress].s || {};
+            worksheet[cellAddress].s.alignment = worksheet[cellAddress].s.alignment || {};
+            worksheet[cellAddress].s.alignment.wrapText = true;
         }
     }
+}
+
+/**
+ * 创建工作记录表数据
+ */
+function getWorkRecordsData() {
+    const headers = [
+        ['工作记录'], 
+        [],
+        ['日期', '星期', '类型', '工作时数', '费率', '金额', '备注']
+    ];
+    
+    const sortedDates = Object.keys(state.hoursData).sort((a, b) => new Date(a) - new Date(b));
+    const data = sortedDates.map(dateStr => {
+        const date = new Date(dateStr);
+        const record = state.hoursData[dateStr];
+        const hours = parseFloat(record.hours) || 0;
+        const type = record.type || 'A';
+        
+        // 计算金额和类型说明
+        let amount = 0, rateText = '', typeText = '', note = '';
+        
+        if (hours > 0) {
+            const rate = OVERTIME_RATES[type];
+            amount = hours * rate;
+            rateText = `${rate.toFixed(2)}元/时`;
+            
+            switch (type) {
+                case 'A': typeText = '工作日加班'; break;
+                case 'B': 
+                    typeText = '周末加班';
+                    if (state.specialWorkdays.includes(dateStr)) {
+                        typeText = '调休日加班';
+                        note = '放假调休日';
+                    }
+                    break;
+                case 'C': typeText = '节假日加班'; break;
+            }
+        } else if (hours < 0) {
+            const hourlyRate = OVERTIME_RATES['A'];
+            amount = hours * hourlyRate;
+            rateText = `${hourlyRate.toFixed(2)}元/时 (1.5倍)`;
+            typeText = '请假/调休';
+        }
+        
+        return [
+            formatDate(date, 'YYYY年MM月DD日'),
+            WEEKDAYS[date.getDay()],
+            typeText,
+            hours,
+            rateText,
+            amount.toFixed(2),
+            note
+        ];
+    });
+    
+    // 合并表头和实际数据
+    const sheetData = [...headers, ...data];
+    return [...headers, ...data];
+    return XLSX.utils.aoa_to_sheet(sheetData);
+}
+
+/**
+ * 创建补贴/扣款记录表数据
+ */
+function getDeductionData() {
+    const headers = [
+        ['补贴/扣款记录'], 
+        [],
+        ['日期', '类型', '分类', '金额', '备注']
+    ];
+    
+    const sortedDeductions = [...state.deductions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const data = sortedDeductions.map(record => {
+        const date = new Date(record.date);
+        return [
+            formatDate(date, 'YYYY年MM月DD日'),
+            record.type === 'subsidy' ? '补贴' : '扣款',
+            record.category,
+            record.amount >= 0 ? `+${record.amount.toFixed(2)}` : record.amount.toFixed(2),
+            record.notes || '-'
+        ];
+    });
+    
+    return XLSX.utils.aoa_to_sheet([...headers, ...data]);
+    return [...headers, ...data];
+}
+
+/**
+ * 计算月度统计数据
+ */
+function calculateMonthlyStats() {
+    const monthStart = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
+    const monthEnd = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
+    
+    let typeAPay = 0;  // 工作日加班费
+    let typeBPay = 0;  // 周末加班费
+    let typeCPay = 0;  // 节假日加班费
+    let leaveDeduction = 0;  // 请假扣款
+    let totalOvertime = 0;  // 总加班时长
+    
+    // 计算加班和请假数据
+    for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        if (state.hoursData[dateStr]) {
+            const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
+            const type = state.hoursData[dateStr].type || 'A';
+            
+            if (hours > 0) {
+                totalOvertime += hours;
+                const pay = hours * OVERTIME_RATES[type];
+                
+                switch (type) {
+                    case 'A': typeAPay += pay; break;
+                    case 'B': typeBPay += pay; break;
+                    case 'C': typeCPay += pay; break;
+                }
+            } else if (hours < 0) {
+                leaveDeduction += Math.abs(hours) * OVERTIME_RATES['A'];
+            }
+        }
+    }
+    
+    // 计算补贴/扣款总额
+    const currentYear = state.currentDate.getFullYear();
+    const currentMonth = state.currentDate.getMonth() + 1;
+    const totalDeductions = state.deductions
+        .filter(record => {
+            const recordDate = new Date(record.date);
+            return recordDate.getFullYear() === currentYear && 
+                   recordDate.getMonth() + 1 === currentMonth;
+        })
+        .reduce((sum, record) => sum + record.amount, 0);
+    
+    // 计算预计实发工资
+    const totalOvertimePay = typeAPay + typeBPay + typeCPay;
+    const estimatedSalary = state.baseSalary + totalOvertimePay - leaveDeduction + totalDeductions;
+    
+    return {
+        typeAPay,
+        typeBPay,
+        typeCPay,
+        totalOvertimePay,
+        leaveDeduction,
+        totalDeductions,
+        estimatedSalary,
+        totalOvertime
+    };
+}
+
+/**
+ * 创建统计信息表数据
+ */
+function createStatsSheet() {
+    const stats = calculateMonthlyStats(); // 现在这个函数已定义
+    
+    return XLSX.utils.aoa_to_sheet([
+        ['统计信息'],
+        [],
+        ['项目', '数值'],
+        ['标准工资', `${state.baseSalary.toFixed(2)}元`],
+        ['工作日加班费(1.5倍)', `${stats.typeAPay.toFixed(2)}元`],
+        ['周末加班费(2倍)', `${stats.typeBPay.toFixed(2)}元`],
+        ['节假日加班费(3倍)', `${stats.typeCPay.toFixed(2)}元`],
+        ['总加班费', `${stats.totalOvertimePay.toFixed(2)}元`],
+        ['请假扣款', `${stats.leaveDeduction.toFixed(2)}元`],
+        ['补贴/扣款总额', `${stats.totalDeductions.toFixed(2)}元`],
+        ['预计实发工资', `${stats.estimatedSalary.toFixed(2)}元`],
+        ['总加班时长', `${stats.totalOvertime.toFixed(1)}小时`]
+    ]);
+}
+
+/**
+ * 处理文件导入
+ */
+async function handleFileImport(file) {
+    try {
+        // 验证文件
+        if (!file) {
+            showMessage('未选择文件', 'text-danger');
+            return;
+        }
+        
+        if (!file.name.match(/\.(xlsx|xls|json)$/i)) {
+            showMessage('请上传Excel(.xlsx/.xls)或JSON文件', 'text-danger');
+            return;
+        }
+        
+        showMessage('正在导入数据...', 'text-info');
+        
+        // 读取文件内容
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data);
+        
+        // 解析数据
+        const importResult = {
+            workRecords: 0,
+            deductions: 0,
+            errors: []
+        };
+        
+        // 解析工作记录表
+        if (wb.SheetNames.includes("工作记录")) {
+            const ws = wb.Sheets["工作记录"];
+            const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            importResult.workRecords = parseWorkRecords(jsonData, importResult.errors);
+        }
+        
+        // 解析补贴扣款表
+        if (wb.SheetNames.includes("补贴扣款")) {
+            const ws = wb.Sheets["补贴扣款"];
+            const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            importResult.deductions = parseDeductionRecords(jsonData, importResult.errors);
+        }
+        
+        // 显示导入结果
+        showImportResult(importResult);
+        
+    } catch (error) {
+        console.error('导入失败:', error);
+        showMessage(`导入失败: ${error.message}`, 'text-danger');
+    }
+}
+
+/**
+ * 解析工作记录数据
+ */
+function parseWorkRecords(data, errors) {
+    let importedCount = 0;
+    const tempHoursData = {};
+    
+    // 跳过表头行 (前3行)
+    for (let i = 3; i < data.length; i++) {
+        const row = data[i];
+        if (!row || row.length < 6) continue;
+        
+        try {
+            const dateStr = row[0]; // 日期列
+            const hours = parseFloat(row[3]); // 工作时数列
+            
+            if (!dateStr || isNaN(hours)) {
+                errors.push(`第${i+1}行: 缺少日期或无效的工作时数`);
+                continue;
+            }
+            
+            // 解析日期
+            const dateMatch = dateStr.match(/(\d{4})[^\d]?(\d{1,2})[^\d]?(\d{1,2})/);
+            if (!dateMatch) {
+                errors.push(`第${i+1}行: 无法解析日期格式`);
+                continue;
+            }
+            
+            const date = new Date(
+                parseInt(dateMatch[1]),
+                parseInt(dateMatch[2]) - 1,
+                parseInt(dateMatch[3])
+            );
+            
+            if (isNaN(date.getTime())) {
+                errors.push(`第${i+1}行: 无效的日期`);
+                continue;
+            }
+            
+            const formattedDate = formatDate(date);
+            
+            // 确定加班类型
+            let type = 'A';
+            const typeText = row[2]; // 类型列
+            
+            if (typeText.includes('3倍') || typeText.includes('节假日')) {
+                type = 'C';
+            } else if (typeText.includes('2倍') || typeText.includes('周末') || typeText.includes('调休')) {
+                type = 'B';
+            }
+            
+            tempHoursData[formattedDate] = {
+                date: formattedDate,
+                hours: hours,
+                type: hours > 0 ? type : null,
+                timestamp: new Date().toISOString()
+            };
+            
+            importedCount++;
+            
+        } catch (e) {
+            errors.push(`第${i+1}行: ${e.message}`);
+        }
+    }
+    
+    // 合并数据
+    state.hoursData = { ...state.hoursData, ...tempHoursData };
+    return importedCount;
+}
+
+/**
+ * 解析补贴/扣款记录
+ */
+function parseDeductionRecords(data, errors) {
+    let importedCount = 0;
+    const tempDeductions = [];
+    
+    // 跳过表头行 (前3行)
+    for (let i = 3; i < data.length; i++) {
+        const row = data[i];
+        if (!row || row.length < 5) continue;
+        
+        try {
+            const dateStr = row[0]; // 日期列
+            const typeText = row[1]; // 类型列
+            const category = row[2]; // 分类列
+            const amountText = row[3]; // 金额列
+            const notes = row[4] || ''; // 备注列
+            
+            if (!dateStr || !typeText || !amountText) {
+                errors.push(`第${i+1}行: 缺少必要字段`);
+                continue;
+            }
+            
+            // 解析日期
+            const dateMatch = dateStr.match(/(\d{4})[^\d]?(\d{1,2})[^\d]?(\d{1,2})/);
+            if (!dateMatch) {
+                errors.push(`第${i+1}行: 无法解析日期格式`);
+                continue;
+            }
+            
+            const date = new Date(
+                parseInt(dateMatch[1]),
+                parseInt(dateMatch[2]) - 1,
+                parseInt(dateMatch[3])
+            );
+            
+            if (isNaN(date.getTime())) {
+                errors.push(`第${i+1}行: 无效的日期`);
+                continue;
+            }
+            
+            // 解析金额
+            const amount = parseFloat(amountText.replace(/[^\d.-]/g, ''));
+            if (isNaN(amount)) {
+                errors.push(`第${i+1}行: 无效的金额`);
+                continue;
+            }
+            
+            // 确定类型
+            const type = typeText.includes('补贴') ? 'subsidy' : 'deduction';
+            const finalAmount = type === 'subsidy' ? Math.abs(amount) : -Math.abs(amount);
+            
+            tempDeductions.push({
+                id: Date.now().toString() + i,
+                date: formatDate(date),
+                type: type,
+                category: category || '其他',
+                amount: finalAmount,
+                notes: notes,
+                timestamp: new Date().toISOString()
+            });
+            
+            importedCount++;
+            
+        } catch (e) {
+            errors.push(`第${i+1}行: ${e.message}`);
+        }
+    }
+    
+    // 合并数据
+    state.deductions = [...state.deductions, ...tempDeductions];
+    return importedCount;
+}
+
+/**
+ * 显示导入结果
+ */
+function showImportResult(result) {
+    let message = `成功导入 ${result.workRecords} 条工作记录, ${result.deductions} 条补贴/扣款记录`;
+    
+    if (result.errors.length > 0) {
+        message += ` (有 ${result.errors.length} 条记录导入失败)`;
+        
+        // 显示详细错误 (开发环境)
+        if (process.env.NODE_ENV === 'development') {
+            console.error('导入错误详情:', result.errors);
+        }
+    }
+    
+    // 保存并刷新界面
+    saveToLocalStorage();
+    render();
+    updateStatistics();
+    
+    // 显示结果弹窗
+    const modalHtml = `
+        <div class="modal fade" id="importResultModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">导入结果</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>${message}</p>
+                        ${result.errors.length > 0 ? `
+                            <div class="alert alert-warning mt-3">
+                                <h6>错误详情:</h6>
+                                <ul class="mb-0">
+                                    ${result.errors.slice(0, 5).map(err => `<li>${err}</li>`).join('')}
+                                    ${result.errors.length > 5 ? `<li>...还有 ${result.errors.length - 5} 条错误未显示</li>` : ''}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const div = document.createElement('div');
+    div.innerHTML = modalHtml;
+    document.body.appendChild(div);
+    
+    const modal = new bootstrap.Modal(div.querySelector('.modal'));
+    modal.show();
+    
+    // 移除弹窗
+    div.querySelector('.modal').addEventListener('hidden.bs.modal', () => {
+        document.body.removeChild(div);
+    });
+}
     
     // 修复清除所有数据功能
     function clearAllData() {
         if (confirm('确定要清除所有记录吗？此操作不可恢复！')) {
             localStorage.removeItem('hoursData');
             localStorage.removeItem('baseSalary');
+            localStorage.removeItem('deductions');
+            state.deductions = [];
             
             state.hoursData = {};
             state.baseSalary = 4600;
@@ -921,9 +1706,15 @@
     
     // 保存数据到本地存储
     function saveToLocalStorage() {
-        localStorage.setItem('hoursData', JSON.stringify(state.hoursData));
-        localStorage.setItem('baseSalary', state.baseSalary.toString());
-        localStorage.setItem('theme', state.darkMode ? 'dark' : 'light');
+        try {
+            localStorage.setItem('baseSalary', state.baseSalary.toString());
+            localStorage.setItem('theme', state.darkMode ? 'dark' : 'light');
+            localStorage.setItem('hoursData', JSON.stringify(state.hoursData));
+            localStorage.setItem('deductions', JSON.stringify(state.deductions));
+        } catch (e) {
+            console.error('保存到本地存储失败:', e);
+            showMessage('保存数据失败，请检查浏览器存储空间', 'text-danger');
+        }
     }
     
     // 初始化日期选择器
@@ -1042,7 +1833,735 @@
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
+
+    // 显示补贴/扣款弹窗
+    function showDeductionModal() {
+        // 初始化表单
+        document.getElementById('deduction-type').value = '';
+        document.getElementById('deduction-amount').value = '';
+        document.getElementById('deduction-category').value = '';
+        document.getElementById('custom-category').value = '';
+        document.getElementById('deduction-notes').value = '';
+        document.getElementById('deduction-date').valueAsDate = new Date();
+        
+        // 填充当前月份记录
+        renderDeductionRecords();
+        
+        // 显示弹窗
+        const modal = new bootstrap.Modal(document.getElementById('extraDeductionModal'));
+        modal.show();
+    }
+
+    // 保存补贴/扣款记录
+    function saveDeduction() {
+        const type = document.getElementById('deduction-type').value;
+        const amount = parseFloat(document.getElementById('deduction-amount').value);
+        const categorySelect = document.getElementById('deduction-category');
+        const customCategory = document.getElementById('custom-category').value.trim();
+        const notes = document.getElementById('deduction-notes').value.trim();
+        const date = document.getElementById('deduction-date').value;
+        
+        // 验证必填字段
+        if (!type || isNaN(amount) || !date) {
+            alert('请填写完整信息：类型、金额和日期为必填项');
+            return;
+        }
+        
+        // 确定分类 - 优先使用选择的分类，如果没有选择则使用自定义分类
+        let finalCategory = categorySelect.value;
+        if (!finalCategory && customCategory) {
+            finalCategory = customCategory;
+        } else if (!finalCategory && !customCategory) {
+            finalCategory = '其他'; // 默认分类
+        }
+        
+        // 创建记录
+        const record = {
+            id: Date.now().toString(),
+            date: date,
+            type: type,
+            category: finalCategory, // 使用确定的分类
+            amount: type === 'subsidy' ? Math.abs(amount) : -Math.abs(amount),
+            notes: notes || '无',
+            timestamp: new Date().toISOString()
+        };
+        
+        // 添加到数组并保存
+        state.deductions.push(record);
+        saveToLocalStorage();
+        
+        // 重新渲染记录和统计
+        renderDeductionRecords();
+        updateStatistics();
+
+        // 新增：刷新主表格显示
+        updateRecordsView();
+        
+        // 重置表单
+        document.getElementById('extra-deduction-form').reset();
+        document.getElementById('deduction-date').valueAsDate = new Date();
+        
+        // 显示成功消息
+        showMessage('记录已保存', 'text-success');
+    }
+
+    // 渲染补贴/扣款记录
+    function renderDeductionRecords() {
+        const currentYear = state.currentDate.getFullYear();
+        const currentMonth = state.currentDate.getMonth() + 1;
+        
+        const tbody = document.getElementById('deduction-records-body');
+        tbody.innerHTML = '';
+        
+        // 筛选并排序记录
+        const currentRecords = state.deductions
+            .filter(record => {
+                const recordDate = new Date(record.date);
+                return recordDate.getFullYear() === currentYear && 
+                    recordDate.getMonth() + 1 === currentMonth;
+            })
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        if (currentRecords.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">暂无记录</td></tr>';
+            return;
+        }
+        
+        currentRecords.forEach(record => {
+            const row = document.createElement('tr');
+            const date = new Date(record.date);
+            const amountClass = record.amount >= 0 ? 'deduction-positive' : 'deduction-negative';
+            const amountText = record.amount >= 0 ? `+${record.amount.toFixed(2)}` : record.amount.toFixed(2);
+            
+            row.innerHTML = `
+                <td>${formatDate(date, 'YYYY-MM-DD')}</td>
+                <td>${record.type === 'subsidy' ? '补贴' : '扣款'}</td>
+                <td>${record.category}</td>
+                <td class="${amountClass}">${amountText}元</td>
+                <td>${record.notes}</td>
+                <td><button class="btn btn-sm btn-outline-danger delete-deduction" data-id="${record.id}">删除</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 删除补贴/扣款记录
+    function deleteDeduction(id) {
+        if (confirm('确定要删除这条记录吗？')) {
+            state.deductions = state.deductions.filter(record => record.id !== id);
+            saveToLocalStorage();
+            renderDeductionRecords();
+            updateStatistics();
+            updateRecordsView();
+        }
+    }
     
+
+    /**
+ * 格式化日期
+ * @param {Date} date - 日期对象
+ * @param {string} [format='YYYY-MM-DD'] - 格式模板
+ * @returns {string} 格式化后的日期字符串
+ */
+function formatDate(date, format = 'YYYY-MM-DD') {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return format
+        .replace('YYYY', year)
+        .replace('MM', month)
+        .replace('DD', day);
+}
+
+/**
+ * 显示消息
+ */
+function showMessage(message, className) {
+    const el = document.getElementById('hours-message');
+    el.textContent = message;
+    el.className = className;
+    el.style.display = 'block';
+    
+    // 3秒后自动消失
+    if (className.includes('text-success') || className.includes('text-danger')) {
+        setTimeout(() => {
+            el.style.display = 'none';
+        }, 3000);
+    }
+}
+
+/**
+ * 设置Excel列宽自适应
+ * @param {Worksheet} worksheet - 工作表对象
+ * @param {Array} data - 工作表数据
+ */
+function setExcelColumnWidth(worksheet, data) {
+    // 计算每列最大字符长度
+    const colWidths = data[0].map((_, colIndex) => {
+        return data.reduce((max, row) => {
+            const cellValue = row[colIndex] || '';
+            const length = cellValue.toString().length;
+            return Math.max(max, length);
+        }, 10); // 最小宽度为10
+    });
+    
+    // 设置列宽 (Excel中1个单位≈1个字符宽度)
+    worksheet['!cols'] = colWidths.map(width => ({ 
+        width: Math.min(width + 2, 50) // 最大宽度限制为50
+    }));
+}
+
+/**
+ * 设置Excel单元格自动换行
+ * @param {Worksheet} worksheet - 工作表对象
+ * @param {Array} data - 工作表数据
+ */
+function setExcelWrapText(worksheet, data) {
+    // 获取工作表的单元格范围
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    
+    // 为所有单元格设置自动换行
+    for (let row = range.s.r; row <= range.e.r; row++) {
+        for (let col = range.s.c; col <= range.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+            if (!worksheet[cellAddress]) continue;
+            
+            // 设置单元格样式
+            worksheet[cellAddress].s = worksheet[cellAddress].s || {};
+            worksheet[cellAddress].s.alignment = worksheet[cellAddress].s.alignment || {};
+            worksheet[cellAddress].s.alignment.wrapText = true;
+        }
+    }
+}
+
+// 批量操作状态
+const batchState = {
+    active: false,
+    selectedDates: []
+};
+
+// 切换批量模式
+function toggleBatchMode() {
+    batchState.active = !batchState.active;
+    batchState.selectedDates = [];
+    
+    const batchControls = document.querySelector('.batch-controls');
+    const toggleBtn = document.getElementById('toggle-batch-mode');
+    const calendar = document.getElementById('calendar-days');
+    
+    if (batchState.active) {
+        batchControls.classList.remove('d-none');
+        toggleBtn.classList.add('btn-primary');
+        toggleBtn.classList.remove('btn-outline-primary');
+        calendar.classList.add('batch-mode');
+    } else {
+        batchControls.classList.add('d-none');
+        toggleBtn.classList.remove('btn-primary');
+        toggleBtn.classList.add('btn-outline-primary');
+        calendar.classList.remove('batch-mode');
+        
+        // 清除所有批量选择标记
+        document.querySelectorAll('.selected-for-batch').forEach(el => {
+            el.classList.remove('selected-for-batch');
+        });
+    }
+    
+    updateBatchSelectionCount();
+}
+
+// 处理批量选择日期
+function handleBatchDateSelection(dateStr) {
+    const index = batchState.selectedDates.indexOf(dateStr);
+    const dayElement = document.querySelector(`.calendar-day[data-date="${dateStr}"]`);
+    
+    if (index === -1) {
+        // 添加选择
+        batchState.selectedDates.push(dateStr);
+        dayElement.classList.add('selected-for-batch');
+    } else {
+        // 移除选择
+        batchState.selectedDates.splice(index, 1);
+        dayElement.classList.remove('selected-for-batch');
+    }
+    
+    updateBatchSelectionCount();
+}
+
+// 更新已选择日期计数
+function updateBatchSelectionCount() {
+    document.getElementById('batch-selected-count').textContent = batchState.selectedDates.length;
+}
+
+// 应用批量加班设置
+function applyBatchOvertime() {
+    const hours = parseFloat(document.getElementById('batch-overtime-hours').value);
+    const type = document.getElementById('batch-overtime-type').value;
+    
+    if (isNaN(hours)) {  // 修正这里的语法错误
+        showMessage('请输入有效的加班时长', 'text-danger');
+        return;
+    }
+    
+    batchState.selectedDates.forEach(dateStr => {
+        state.hoursData[dateStr] = {
+            date: dateStr,
+            hours: hours,
+            type: type,
+            timestamp: new Date().toISOString()
+        };
+    });
+    
+    saveToLocalStorage();
+    renderCalendar();
+    updateStatistics();
+    updateRecordsView();
+    
+    showMessage(`已为 ${batchState.selectedDates.length} 个日期设置加班`, 'text-success');
+    toggleBatchMode();
+}
+
+// 修改日历点击处理函数，支持批量选择
+function handleCalendarDayClick(event) {
+    const dayElement = event.target.closest('.calendar-day');
+    if (!dayElement) return;
+    
+    const dateStr = dayElement.dataset.date;
+    
+    if (batchState.active) {
+        handleBatchDateSelection(dateStr);
+        return;
+    }
+    
+    // 原有的单个日期处理逻辑
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    showDayDetails(date);
+}
+
+// 优先使用现有元素
+const calendarContainer = document.getElementById('calendar-container') || 
+                         document.getElementById('calendar-days');
+if (calendarContainer) {
+  calendarContainer.insertAdjacentHTML('beforebegin', batchControlsHTML);
+} else {
+  console.error('无法找到日历容器元素');
+}
+
+// 在您的app.js中添加以下代码
+
+// 批量清除按钮点击事件
+document.getElementById('batch-clear').addEventListener('click', function() {
+    batchState.selectedDates.forEach(dateStr => {
+        if (state.hoursData[dateStr]) {
+            delete state.hoursData[dateStr];
+        }
+    });
+    saveToLocalStorage();
+    renderCalendar();
+    updateStatistics();
+    updateRecordsView();
+    showMessage(`已清除 ${batchState.selectedDates.length} 个日期的记录`, 'text-success');
+    toggleBatchMode();
+});
+
+// 修改批量应用逻辑，处理时数为0的情况
+document.getElementById('batch-apply').addEventListener('click', function() {
+    const hours = parseFloat(document.getElementById('batch-overtime-hours').value);
+    const type = document.getElementById('batch-overtime-type').value;
+    
+    batchState.selectedDates.forEach(dateStr => {
+        if (hours === 0) {
+            // 时数为0时删除记录
+            delete state.hoursData[dateStr];
+        } else {
+            // 否则设置记录
+            state.hoursData[dateStr] = {
+                date: dateStr,
+                hours: hours,
+                type: type,
+                timestamp: new Date().toISOString()
+            };
+        }
+    });
+    
+    saveToLocalStorage();
+    renderCalendar();
+    updateStatistics();
+    updateRecordsView();
+    
+    const action = hours === 0 ? '清除' : '设置';
+    showMessage(`已${action} ${batchState.selectedDates.length} 个日期的记录`, 'text-success');
+    toggleBatchMode();
+});
+
+// 初始化高级图表
+function initAdvancedChart() {
+    const ctx = document.getElementById('dataChart').getContext('2d');
+    
+    // 注册高级插件
+    Chart.register(
+        ChartDataLabels,
+        {
+            id: 'customBackground',
+            beforeDraw: (chart) => drawChartBackground(chart)
+        }
+    );
+
+    state.chart = new Chart(ctx, getAdvancedChartConfig());
+    setupChartControls();
+}
+
+// 高级图表配置
+function getAdvancedChartConfig() {
+    const isDarkMode = state.darkMode;
+    const { labels, datasets } = prepareAdvancedChartData();
+
+    return {
+        type: state.chartType,
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: { top: 20, right: 20, bottom: 15, left: 20 }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: isDarkMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
+                    titleColor: isDarkMode ? '#fff' : '#333',
+                    bodyColor: isDarkMode ? '#fff' : '#333',
+                    borderColor: 'rgba(0,0,0,0.1)',
+                    borderWidth: 1,
+                    padding: 12,
+                    usePointStyle: true,
+                    callbacks: {
+                        label: (context) => {
+                            const label = context.dataset.label || '';
+                            const value = context.raw;
+                            let suffix = '';
+                            
+                            if (context.datasetIndex === 2) {
+                                suffix = '元';
+                            } else {
+                                suffix = '小时';
+                            }
+                            
+                            return `${label}: ${value} ${suffix}`;
+                        }
+                    }
+                },
+                datalabels: {
+                    display: state.chartType === 'pie',
+                    formatter: (value, context) => {
+                        if (state.chartType === 'pie' && value > 5) {
+                            return `${Math.round(value)}%`;
+                        }
+                        return '';
+                    },
+                    color: isDarkMode ? '#fff' : '#333',
+                    font: { weight: 'bold' },
+                    anchor: 'center',
+                    align: 'center',
+                    offset: 2
+                }
+            },
+            scales: getAdvancedScales(),
+            animation: {
+                duration: 800,
+                easing: 'easeOutQuart'
+            },
+            elements: {
+                bar: { borderRadius: 6 },
+                line: { tension: 0.3, fill: false }
+            }
+        }
+    };
+}
+
+// 修改 prepareAdvancedChartData 函数
+function prepareAdvancedChartData() {
+    const monthStart = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
+    const monthEnd = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
+    
+    // 按日/周聚合数据
+    const aggregation = state.dataGroup === 'week' ? aggregateByWeek() : aggregateByDay();
+    
+    const datasets = [
+        { // 加班数据
+            label: '加班时长 (小时)',
+            data: aggregation.overtime,
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            hidden: !state.visibleDatasets[0],
+            yAxisID: 'y'
+        },
+        { // 请假数据
+            label: '请假时长 (小时)',
+            data: aggregation.leave,
+            backgroundColor: 'rgba(255, 99, 132, 0.8)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1,
+            hidden: !state.visibleDatasets[1],
+            yAxisID: 'y'
+        },
+        { // 补贴数据
+            label: '补贴/扣款 (元)',
+            data: aggregation.deduction,
+            backgroundColor: 'rgba(75, 192, 192, 0.8)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+            hidden: !state.visibleDatasets[2],
+            yAxisID: 'y1'
+        }
+    ];
+
+    return {
+        labels: aggregation.labels,
+        datasets: state.chartType === 'pie' ? convertToPieData(datasets) : datasets
+    };
+}
+
+// 按周聚合数据
+function aggregateByWeek() {
+    const monthStart = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
+    const monthEnd = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
+    
+    const result = { labels: [], overtime: [], leave: [], deduction: [] };
+    let currentWeek = 1;
+    let weekTotal = { overtime: 0, leave: 0, deduction: 0 };
+    
+    // 遍历整个月
+    for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        
+        // 汇总每日数据
+        if (state.hoursData[dateStr]) {
+            const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
+            if (hours > 0) weekTotal.overtime += hours;
+            else weekTotal.leave += Math.abs(hours);
+        }
+        
+        // 汇总补贴
+        const dayDeductions = state.deductions.filter(r => formatDate(new Date(r.date)) === dateStr);
+        weekTotal.deduction += dayDeductions.reduce((sum, r) => sum + r.amount, 0);
+        
+        // 每周结束或月末
+        if (d.getDay() === 0 || d.getDate() === monthEnd.getDate()) {
+            result.labels.push(`第${currentWeek}周`);
+            result.overtime.push(parseFloat(weekTotal.overtime.toFixed(1)));
+            result.leave.push(parseFloat(weekTotal.leave.toFixed(1)));
+            result.deduction.push(parseFloat(weekTotal.deduction.toFixed(2)));
+            
+            // 重置周统计
+            weekTotal = { overtime: 0, leave: 0, deduction: 0 };
+            currentWeek++;
+        }
+    }
+    
+    return result;
+}
+
+// 转换为饼图数据
+function convertToPieData(datasets) {
+    const totals = datasets.map(ds => ds.data.reduce((a, b) => a + b, 0));
+    const total = totals.reduce((a, b) => a + b, 0);
+    
+    return [{
+        label: '数据分布',
+        data: totals.map(v => total > 0 ? (v / total * 100) : 0),
+        backgroundColor: datasets.map(ds => ds.backgroundColor),
+        borderColor: datasets.map(ds => ds.borderColor),
+        borderWidth: 1
+    }];
+}
+
+// 设置图表控制交互
+function setupChartControls() {
+    // 图表类型切换
+    document.querySelectorAll('.chart-type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            state.chartType = this.dataset.type;
+            updateAdvancedChart();
+        });
+    });
+    
+    // 数据聚合方式切换
+    document.querySelectorAll('.data-group-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.data-group-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            state.dataGroup = this.dataset.group;
+            updateAdvancedChart();
+            document.getElementById('chart-subtitle').textContent = 
+                state.dataGroup === 'week' ? '本周数据 (按周汇总)' : '本月数据 (按日显示)';
+        });
+    });
+    
+    // 图例显示切换
+    document.querySelectorAll('.legend-toggle button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.classList.toggle('active');
+            const datasetIndex = parseInt(this.dataset.dataset);
+            state.visibleDatasets[datasetIndex] = !state.visibleDatasets[datasetIndex];
+            state.chart.setDatasetVisibility(datasetIndex, state.visibleDatasets[datasetIndex]);
+            state.chart.update();
+        });
+    });
+}
+
+// 绘制专业背景
+function drawChartBackground(chart) {
+    const {ctx, chartArea: {left, top, width, height}} = chart;
+    const isDarkMode = state.darkMode;
+    
+    // 渐变背景
+    const gradient = ctx.createLinearGradient(0, top, 0, top + height);
+    gradient.addColorStop(0, isDarkMode ? 'rgba(30, 30, 40, 0.8)' : 'rgba(240, 240, 245, 0.8)');
+    gradient.addColorStop(1, isDarkMode ? 'rgba(20, 20, 30, 0.6)' : 'rgba(230, 230, 235, 0.6)');
+    
+    ctx.save();
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(left - 10, top - 10, width + 20, height + 20, 12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+}
+function getAdvancedScales() {
+    const isDarkMode = state.darkMode;
+    return {
+        x: {
+            grid: {
+                color: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                drawBorder: false
+            },
+            ticks: {
+                color: isDarkMode ? '#fff' : '#666'
+            }
+        },
+        y: {
+            beginAtZero: true,
+            grid: {
+                color: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                drawBorder: false
+            },
+            ticks: {
+                color: isDarkMode ? '#fff' : '#666'
+            }
+        },
+        y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            grid: { 
+                drawOnChartArea: false,
+                color: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+            },
+            ticks: {
+                color: isDarkMode ? '#fff' : '#666'
+            }
+        }
+    };
+}
+
+function updateChart() {
+    if (!state.chart) return initAdvancedChart();
+    
+    const { labels, datasets } = prepareAdvancedChartData();
+    
+    state.chart.data.labels = labels;
+    state.chart.data.datasets.forEach((dataset, i) => {
+        dataset.data = datasets[i].data;
+        dataset.hidden = !state.visibleDatasets[i];
+    });
+    
+    state.chart.options.scales = getAdvancedScales();
+    state.chart.update();
+}
+
+/**
+ * 按日聚合数据
+ */
+function aggregateByDay() {
+    const monthStart = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
+    const monthEnd = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
+    
+    const result = {
+        labels: [],
+        overtime: [],
+        leave: [],
+        deduction: []
+    };
+    
+    // 遍历整个月
+    for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        const dayLabel = `${d.getMonth() + 1}/${d.getDate()}`;
+        
+        result.labels.push(dayLabel);
+        
+        // 初始化每日数据
+        let dayOvertime = 0;
+        let dayLeave = 0;
+        let dayDeduction = 0;
+        
+        // 处理工作记录
+        if (state.hoursData[dateStr]) {
+            const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
+            if (hours > 0) {
+                dayOvertime = hours;
+            } else {
+                dayLeave = Math.abs(hours);
+            }
+        }
+        
+        // 处理补贴/扣款记录
+        const dayDeductions = state.deductions.filter(r => formatDate(new Date(r.date)) === dateStr);
+        dayDeduction = dayDeductions.reduce((sum, r) => sum + r.amount, 0);
+        
+        result.overtime.push(parseFloat(dayOvertime.toFixed(1)));
+        result.leave.push(parseFloat(dayLeave.toFixed(1)));
+        result.deduction.push(parseFloat(dayDeduction.toFixed(2)));
+    }
+    
+    return result;
+}
+
+/**
+ * 更新高级图表
+ */
+function updateAdvancedChart() {
+    if (!state.chart) return initAdvancedChart();
+    
+    const { labels, datasets } = prepareAdvancedChartData();
+    
+    state.chart.data.labels = labels;
+    state.chart.data.datasets.forEach((dataset, i) => {
+        dataset.data = datasets[i].data;
+        dataset.hidden = !state.visibleDatasets[i];
+    });
+    
+    // 根据图表类型调整显示
+    if (state.chartType === 'pie') {
+        state.chart.options.scales = { display: false };
+        state.chart.options.plugins.datalabels.display = true;
+    } else {
+        state.chart.options.scales = getAdvancedScales();
+        state.chart.options.plugins.datalabels.display = false;
+    }
+    
+    state.chart.update();
+}
+
     // 启动应用
     init();
 })();
