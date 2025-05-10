@@ -27,7 +27,6 @@
         domCache: {},
         deductions: [], // 存储补贴/扣款记录
         chart: null,
-        chartType: 'bar',
         dataGroup: 'day', // 'day' 或 'week'
         visibleDatasets: [true, true, true] // 控制显示哪些数据集
     };
@@ -94,6 +93,7 @@
         // 更新今天标记
         updateTodayMarker();
         initAdvancedChart();
+        applyTheme(); // 应用保存的主题
     }
     
 // 添加批量操作面板
@@ -2197,9 +2197,15 @@ document.getElementById('batch-apply').addEventListener('click', function() {
 
 // 初始化高级图表
 function initAdvancedChart() {
-    const ctx = document.getElementById('dataChart').getContext('2d');
+    const ctx = document.getElementById('dataChart');
+    if (!ctx) return;
     
-    // 注册高级插件
+    // 销毁旧图表实例
+    if (state.chart) {
+        state.chart.destroy();
+    }
+    
+    // 注册插件
     Chart.register(
         ChartDataLabels,
         {
@@ -2217,69 +2223,109 @@ function getAdvancedChartConfig() {
     const isDarkMode = state.darkMode;
     const { labels, datasets } = prepareAdvancedChartData();
 
-    return {
-        type: state.chartType,
-        data: { labels, datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: {
-                padding: { top: 20, right: 20, bottom: 15, left: 20 }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: isDarkMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
-                    titleColor: isDarkMode ? '#fff' : '#333',
-                    bodyColor: isDarkMode ? '#fff' : '#333',
-                    borderColor: 'rgba(0,0,0,0.1)',
-                    borderWidth: 1,
-                    padding: 12,
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: state.chartType !== 'pie',
+                position: 'top',
+                labels: {
+                    color: isDarkMode ? '#fff' : '#666',
                     usePointStyle: true,
-                    callbacks: {
-                        label: (context) => {
-                            const label = context.dataset.label || '';
-                            const value = context.raw;
-                            let suffix = '';
-                            
-                            if (context.datasetIndex === 2) {
-                                suffix = '元';
-                            } else {
-                                suffix = '小时';
-                            }
-                            
-                            return `${label}: ${value} ${suffix}`;
-                        }
-                    }
-                },
-                datalabels: {
-                    display: state.chartType === 'pie',
-                    formatter: (value, context) => {
-                        if (state.chartType === 'pie' && value > 5) {
-                            return `${Math.round(value)}%`;
-                        }
-                        return '';
-                    },
-                    color: isDarkMode ? '#fff' : '#333',
-                    font: { weight: 'bold' },
-                    anchor: 'center',
-                    align: 'center',
-                    offset: 2
+                    padding: 20
                 }
             },
-            scales: getAdvancedScales(),
-            animation: {
-                duration: 800,
-                easing: 'easeOutQuart'
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const label = context.dataset.label || '';
+                        if (state.chartType === 'pie') {
+                            return `${label}: ${context.raw.toFixed(1)}%`;
+                        }
+                        return `${label}: ${context.raw} ${label.includes('补贴') ? '元' : '小时'}`;
+                    }
+                }
             },
-            elements: {
-                bar: { borderRadius: 6 },
-                line: { tension: 0.3, fill: false }
+            // 在getAdvancedChartConfig()的plugins中调整：
+            datalabels: {
+                display: state.chartType === 'pie',
+                formatter: (value, context) => {
+                    if (state.chartType === 'pie') {
+                        const dataset = context.chart.data.datasets[0];
+                        const label = dataset.label || '';
+                        return `${label}\n${value.toFixed(1)}%`; // 显示百分比
+                    }
+                    return '';
+                }
             }
+        },
+        animation: {
+            duration: 800,
+            easing: 'easeOutQuart'
         }
     };
+
+    // 根据图表类型返回不同配置
+    switch(state.chartType) {
+        case 'line':
+            return {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    ...commonOptions,
+                    elements: {
+                        line: {
+                            tension: 0.3,
+                            fill: false,
+                            borderWidth: 3
+                        },
+                        point: {
+                            radius: 5,
+                            hoverRadius: 7
+                        }
+                    },
+                    scales: getAdvancedScales()
+                }
+            };
+            
+        case 'pie':
+            return {
+                type: 'pie',
+                data: { labels, datasets },
+                options: {
+                    layout: {
+                      padding: {
+                        left: 20,
+                        right: 20,
+                        top: 20,
+                        bottom: 20
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        position: 'right', // 将图例放在右侧
+                        align: 'center'    // 图例内容居中
+                      }
+                    }
+                  }
+            };
+            
+        default: // bar
+            return {
+                type: 'bar',
+                data: { labels, datasets },
+                options: {
+                    ...commonOptions,
+                    elements: {
+                        bar: {
+                            borderRadius: 6
+                        }
+                    },
+                    scales: getAdvancedScales()
+                }
+            };
+    }
 }
 
 // 修改 prepareAdvancedChartData 函数
@@ -2321,8 +2367,12 @@ function prepareAdvancedChartData() {
     ];
 
     return {
-        labels: aggregation.labels,
-        datasets: state.chartType === 'pie' ? convertToPieData(datasets) : datasets
+        labels: state.chartType === 'pie' 
+            ? ['加班时长', '请假时长'] // 饼图只显示两类标签
+            : aggregation.labels,
+        datasets: state.chartType === 'pie' 
+            ? convertToPieData(datasets) 
+            : datasets
     };
 }
 
@@ -2367,15 +2417,17 @@ function aggregateByWeek() {
 }
 
 // 转换为饼图数据
+// 修正后的饼图数据转换
 function convertToPieData(datasets) {
-    const totals = datasets.map(ds => ds.data.reduce((a, b) => a + b, 0));
+    const hourlyDatasets = datasets.filter(d => !d.label.includes('补贴')); // 排除金额数据
+    const totals = hourlyDatasets.map(d => d.data.reduce((a, b) => a + b, 0));
     const total = totals.reduce((a, b) => a + b, 0);
-    
+
     return [{
-        label: '数据分布',
+        label: '时间分布',
         data: totals.map(v => total > 0 ? (v / total * 100) : 0),
-        backgroundColor: datasets.map(ds => ds.backgroundColor),
-        borderColor: datasets.map(ds => ds.borderColor),
+        backgroundColor: hourlyDatasets.map(d => d.backgroundColor),
+        borderColor: hourlyDatasets.map(d => d.borderColor),
         borderWidth: 1
     }];
 }
@@ -2388,9 +2440,22 @@ function setupChartControls() {
             document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             state.chartType = this.dataset.type;
-            updateAdvancedChart();
+            
+            // 销毁旧图表并重新创建
+            if (state.chart) {
+                state.chart.destroy();
+            }
+            initAdvancedChart();
         });
     });
+            
+            // 切换时自动调整可见数据集
+            if (state.chartType === 'pie') {
+                state.visibleDatasets = [true, true, true];
+                document.querySelectorAll('.legend-toggle button').forEach((b, i) => {
+                    b.classList.toggle('active', state.visibleDatasets[i]);
+                });
+            }
     
     // 数据聚合方式切换
     document.querySelectorAll('.data-group-btn').forEach(btn => {
@@ -2474,17 +2539,32 @@ function getAdvancedScales() {
 }
 
 function updateChart() {
-    if (!state.chart) return initAdvancedChart();
+    if (!state.chart) {
+        initAdvancedChart();
+        return;
+    }
     
     const { labels, datasets } = prepareAdvancedChartData();
     
+    // 更新图表数据
     state.chart.data.labels = labels;
     state.chart.data.datasets.forEach((dataset, i) => {
         dataset.data = datasets[i].data;
         dataset.hidden = !state.visibleDatasets[i];
     });
     
-    state.chart.options.scales = getAdvancedScales();
+    // 更新图表类型
+    state.chart.config.type = state.chartType;
+    
+    // 特殊处理饼图
+    if (state.chartType === 'pie') {
+        state.chart.options.scales = { display: false };
+        state.chart.options.plugins.datalabels.display = true;
+    } else {
+        state.chart.options.scales = getAdvancedScales();
+        state.chart.options.plugins.datalabels.display = false;
+    }
+    
     state.chart.update();
 }
 
@@ -2502,29 +2582,22 @@ function aggregateByDay() {
         deduction: []
     };
     
-    // 遍历整个月
     for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
         const dateStr = formatDate(d);
         const dayLabel = `${d.getMonth() + 1}/${d.getDate()}`;
         
         result.labels.push(dayLabel);
         
-        // 初始化每日数据
         let dayOvertime = 0;
         let dayLeave = 0;
         let dayDeduction = 0;
         
-        // 处理工作记录
         if (state.hoursData[dateStr]) {
             const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
-            if (hours > 0) {
-                dayOvertime = hours;
-            } else {
-                dayLeave = Math.abs(hours);
-            }
+            if (hours > 0) dayOvertime = hours;
+            else dayLeave = Math.abs(hours);
         }
         
-        // 处理补贴/扣款记录
         const dayDeductions = state.deductions.filter(r => formatDate(new Date(r.date)) === dateStr);
         dayDeduction = dayDeductions.reduce((sum, r) => sum + r.amount, 0);
         
@@ -2536,31 +2609,72 @@ function aggregateByDay() {
     return result;
 }
 
+function aggregateByWeek() {
+    const monthStart = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth(), 1);
+    const monthEnd = new Date(state.currentDate.getFullYear(), state.currentDate.getMonth() + 1, 0);
+    
+    const result = { 
+        labels: [], 
+        overtime: [], 
+        leave: [], 
+        deduction: [] 
+    };
+    
+    let currentWeek = 1;
+    let weekTotal = { overtime: 0, leave: 0, deduction: 0 };
+    
+    for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        
+        if (state.hoursData[dateStr]) {
+            const hours = parseFloat(state.hoursData[dateStr].hours) || 0;
+            if (hours > 0) weekTotal.overtime += hours;
+            else weekTotal.leave += Math.abs(hours);
+        }
+        
+        const dayDeductions = state.deductions.filter(r => formatDate(new Date(r.date)) === dateStr);
+        weekTotal.deduction += dayDeductions.reduce((sum, r) => sum + r.amount, 0);
+        
+        if (d.getDay() === 0 || d.getDate() === monthEnd.getDate()) {
+            result.labels.push(`第${currentWeek}周`);
+            result.overtime.push(parseFloat(weekTotal.overtime.toFixed(1)));
+            result.leave.push(parseFloat(weekTotal.leave.toFixed(1)));
+            result.deduction.push(parseFloat(weekTotal.deduction.toFixed(2)));
+            
+            weekTotal = { overtime: 0, leave: 0, deduction: 0 };
+            currentWeek++;
+        }
+    }
+    
+    return result;
+}
+
 /**
  * 更新高级图表
  */
 function updateAdvancedChart() {
     if (!state.chart) return initAdvancedChart();
     
+    // 获取新数据
     const { labels, datasets } = prepareAdvancedChartData();
     
-    state.chart.data.labels = labels;
-    state.chart.data.datasets.forEach((dataset, i) => {
-        dataset.data = datasets[i].data;
-        dataset.hidden = !state.visibleDatasets[i];
-    });
-    
-    // 根据图表类型调整显示
-    if (state.chartType === 'pie') {
-        state.chart.options.scales = { display: false };
-        state.chart.options.plugins.datalabels.display = true;
-    } else {
-        state.chart.options.scales = getAdvancedScales();
-        state.chart.options.plugins.datalabels.display = false;
-    }
-    
-    state.chart.update();
+    // 完全销毁并重新创建图表
+    state.chart.destroy();
+    state.chart = new Chart(
+        document.getElementById('dataChart'),
+        getAdvancedChartConfig()
+    );
 }
+
+window.addEventListener('resize', function() {
+    if (state.chart) {
+        state.chart.resize();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    init(); // 您的初始化函数
+});
 
     // 启动应用
     init();
