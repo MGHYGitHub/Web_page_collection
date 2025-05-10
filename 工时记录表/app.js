@@ -1414,7 +1414,11 @@ async function handleFileImport(file) {
             return;
         }
         
-        if (!file.name.match(/\.(xlsx|xls|json)$/i)) {
+        // 检查文件类型
+        const validExtensions = ['.xlsx', '.xls', '.json'];
+        const fileExt = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        
+        if (!validExtensions.includes(fileExt)) {
             showMessage('请上传Excel(.xlsx/.xls)或JSON文件', 'text-danger');
             return;
         }
@@ -1423,7 +1427,34 @@ async function handleFileImport(file) {
         
         // 读取文件内容
         const data = await file.arrayBuffer();
-        const wb = XLSX.read(data);
+        let wb;
+        
+        try {
+            if (fileExt === '.json') {
+                // 处理JSON文件
+                const jsonText = new TextDecoder().decode(data);
+                const jsonData = JSON.parse(jsonText);
+                wb = XLSX.utils.book_new();
+                
+                // 假设JSON数据包含工作记录和补贴扣款
+                if (jsonData.hoursData) {
+                    const ws = XLSX.utils.json_to_sheet(jsonData.hoursData);
+                    XLSX.utils.book_append_sheet(wb, ws, "工作记录");
+                }
+                
+                if (jsonData.deductions) {
+                    const ws = XLSX.utils.json_to_sheet(jsonData.deductions);
+                    XLSX.utils.book_append_sheet(wb, ws, "补贴扣款");
+                }
+            } else {
+                // 处理Excel文件
+                wb = XLSX.read(data);
+            }
+        } catch (e) {
+            console.error('解析文件失败:', e);
+            showMessage('文件解析失败，请检查文件格式', 'text-danger');
+            return;
+        }
         
         // 解析数据
         const importResult = {
@@ -1437,6 +1468,8 @@ async function handleFileImport(file) {
             const ws = wb.Sheets["工作记录"];
             const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
             importResult.workRecords = parseWorkRecords(jsonData, importResult.errors);
+        } else {
+            importResult.errors.push('工作记录表不存在');
         }
         
         // 解析补贴扣款表
@@ -1500,9 +1533,9 @@ function parseWorkRecords(data, errors) {
             let type = 'A';
             const typeText = row[2]; // 类型列
             
-            if (typeText.includes('3倍') || typeText.includes('节假日')) {
+            if (typeText && (typeText.includes('3倍') || typeText.includes('节假日'))) {
                 type = 'C';
-            } else if (typeText.includes('2倍') || typeText.includes('周末') || typeText.includes('调休')) {
+            } else if (typeText && (typeText.includes('2倍') || typeText.includes('周末') || typeText.includes('调休'))) {
                 type = 'B';
             }
             
@@ -1521,7 +1554,7 @@ function parseWorkRecords(data, errors) {
     }
     
     // 合并数据
-    state.hoursData = { ...state.hoursData, ...tempHoursData };
+    Object.assign(state.hoursData, tempHoursData);
     return importedCount;
 }
 
@@ -1596,7 +1629,7 @@ function parseDeductionRecords(data, errors) {
     }
     
     // 合并数据
-    state.deductions = [...state.deductions, ...tempDeductions];
+    state.deductions.push(...tempDeductions);
     return importedCount;
 }
 
@@ -1619,6 +1652,8 @@ function showImportResult(result) {
     saveToLocalStorage();
     render();
     updateStatistics();
+    
+    showMessage(message, result.errors.length > 0 ? 'text-warning' : 'text-success');
     
     // 显示结果弹窗
     const modalHtml = `
@@ -2540,31 +2575,29 @@ function getAdvancedScales() {
 
 function updateChart() {
     if (!state.chart) {
-        initAdvancedChart();
+        initAdvancedChart(); // 如果图表不存在，则初始化
         return;
     }
-    
+
     const { labels, datasets } = prepareAdvancedChartData();
     
-    // 更新图表数据
-    state.chart.data.labels = labels;
-    state.chart.data.datasets.forEach((dataset, i) => {
-        dataset.data = datasets[i].data;
-        dataset.hidden = !state.visibleDatasets[i];
+    // 确保数据集格式正确
+    datasets.forEach((dataset, i) => {
+        if (!state.chart.data.datasets[i]) {
+            // 如果数据集不存在，则添加
+            state.chart.data.datasets.push({
+                ...dataset,
+                hidden: !state.visibleDatasets[i]
+            });
+        } else {
+            // 更新现有数据集
+            state.chart.data.datasets[i].data = dataset.data;
+            state.chart.data.datasets[i].hidden = !state.visibleDatasets[i];
+        }
     });
-    
-    // 更新图表类型
-    state.chart.config.type = state.chartType;
-    
-    // 特殊处理饼图
-    if (state.chartType === 'pie') {
-        state.chart.options.scales = { display: false };
-        state.chart.options.plugins.datalabels.display = true;
-    } else {
-        state.chart.options.scales = getAdvancedScales();
-        state.chart.options.plugins.datalabels.display = false;
-    }
-    
+
+    // 更新标签和数据
+    state.chart.data.labels = labels;
     state.chart.update();
 }
 
