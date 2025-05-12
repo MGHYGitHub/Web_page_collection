@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蓝膜矩阵 Mapping 图</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 8px 16px;
+            margin: 0 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .status-legend {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        #matrix-container {
+            position: relative;
+            display: inline-block;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        
+        #matrix {
+            display: grid;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .cell {
+            width: 10px;
+            height: 10px;
+            border: 1px solid #eee;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .cell.status-0 { background-color: white; }
+        .cell.status-1 { background-color: #3498db; }
+        .cell.status-2 { background-color: #e74c3c; }
+        
+        .cell:hover {
+            opacity: 0.8;
+        }
+        
+        #selection-box {
+            position: absolute;
+            background-color: rgba(52, 152, 219, 0.3);
+            border: 1px solid rgba(52, 152, 219, 0.8);
+            z-index: 2;
+            display: none;
+        }
+        
+        .stats {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>蓝膜矩阵 Mapping 图</h1>
+    
+    <div class="controls">
+        <button id="set-1">设为有(1)</button>
+        <button id="set-0">设为无(0)</button>
+        <button id="set-2">设为已使用(2)</button>
+        <button id="clear-all">全部清空</button>
+        <button id="random-fill">随机填充</button>
+        <button id="save-btn">保存状态</button>
+        <button id="load-btn">加载状态</button>
+    </div>
+    
+    <div class="status-legend">
+        <div class="legend-item">
+            <div class="legend-color status-0"></div>
+            <span>无(0)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color status-1"></div>
+            <span>有(1)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color status-2"></div>
+            <span>已使用(2)</span>
+        </div>
+    </div>
+    
+    <div id="matrix-container">
+        <div id="matrix"></div>
+        <div id="selection-box"></div>
+    </div>
+    
+    <div class="stats">
+        <p>统计: 无(0): <span id="count-0">0</span> | 有(1): <span id="count-1">0</span> | 已使用(2): <span id="count-2">0</span></p>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const matrixSize = 64;
+            let matrixData = Array(matrixSize).fill().map(() => Array(matrixSize).fill(0));
+            let isSelecting = false;
+            let selectionStart = { x: 0, y: 0 };
+            let currentOperation = '1'; // 默认操作为设为"有"
+            
+            const matrixContainer = document.getElementById('matrix-container');
+            const matrix = document.getElementById('matrix');
+            const selectionBox = document.getElementById('selection-box');
+            
+            // 初始化矩阵
+            function initMatrix() {
+                matrix.style.gridTemplateColumns = `repeat(${matrixSize}, 10px)`;
+                matrix.innerHTML = '';
+                
+                // 创建椭圆形矩阵
+                const center = matrixSize / 2 - 0.5;
+                const radiusX = matrixSize * 0.4;
+                const radiusY = matrixSize * 0.3;
+                
+                for (let y = 0; y < matrixSize; y++) {
+                    for (let x = 0; x < matrixSize; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell status-0';
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                        
+                        // 检查是否在椭圆内
+                        const dx = (x - center) / radiusX;
+                        const dy = (y - center) / radiusY;
+                        const inEllipse = dx * dx + dy * dy <= 1;
+                        
+                        if (!inEllipse) {
+                            cell.style.visibility = 'hidden';
+                        } else {
+                            cell.addEventListener('mousedown', handleCellMouseDown);
+                            cell.addEventListener('mouseover', handleCellMouseOver);
+                        }
+                        
+                        matrix.appendChild(cell);
+                    }
+                }
+                
+                updateStats();
+            }
+            
+            // 更新统计信息
+            function updateStats() {
+                let counts = [0, 0, 0];
+                for (let y = 0; y < matrixSize; y++) {
+                    for (let x = 0; x < matrixSize; x++) {
+                        counts[matrixData[y][x]]++;
+                    }
+                }
+                
+                document.getElementById('count-0').textContent = counts[0];
+                document.getElementById('count-1').textContent = counts[1];
+                document.getElementById('count-2').textContent = counts[2];
+            }
+            
+            // 更新单元格显示
+            function updateCellDisplay(x, y) {
+                const index = y * matrixSize + x;
+                const cell = matrix.children[index];
+                if (cell) {
+                    cell.className = `cell status-${matrixData[y][x]}`;
+                }
+            }
+            
+            // 设置单元格状态
+            function setCellStatus(x, y, status) {
+                if (x >= 0 && x < matrixSize && y >= 0 && y < matrixSize) {
+                    matrixData[y][x] = status;
+                    updateCellDisplay(x, y);
+                }
+            }
+            
+            // 处理单元格鼠标按下
+            function handleCellMouseDown(e) {
+                const x = parseInt(e.target.dataset.x);
+                const y = parseInt(e.target.dataset.y);
+                
+                // 开始框选
+                isSelecting = true;
+                selectionStart = { x, y };
+                
+                // 设置当前选择框位置
+                selectionBox.style.left = `${x * 10}px`;
+                selectionBox.style.top = `${y * 10}px`;
+                selectionBox.style.width = '10px';
+                selectionBox.style.height = '10px';
+                selectionBox.style.display = 'block';
+                
+                // 设置当前操作
+                if (e.shiftKey) {
+                    currentOperation = '0';
+                } else if (e.ctrlKey || e.metaKey) {
+                    currentOperation = '2';
+                }
+                
+                // 立即设置当前单元格
+                setCellStatus(x, y, parseInt(currentOperation));
+                
+                e.preventDefault();
+            }
+            
+            // 处理单元格鼠标移动
+            function handleCellMouseOver(e) {
+                if (!isSelecting) return;
+                
+                const x = parseInt(e.target.dataset.x);
+                const y = parseInt(e.target.dataset.y);
+                
+                // 更新选择框大小和位置
+                const left = Math.min(selectionStart.x, x);
+                const top = Math.min(selectionStart.y, y);
+                const width = Math.abs(x - selectionStart.x) + 1;
+                const height = Math.abs(y - selectionStart.y) + 1;
+                
+                selectionBox.style.left = `${left * 10}px`;
+                selectionBox.style.top = `${top * 10}px`;
+                selectionBox.style.width = `${width * 10}px`;
+                selectionBox.style.height = `${height * 10}px`;
+                
+                // 设置所有在选择框内的单元格状态
+                for (let cy = top; cy < top + height; cy++) {
+                    for (let cx = left; cx < left + width; cx++) {
+                        setCellStatus(cx, cy, parseInt(currentOperation));
+                    }
+                }
+            }
+            
+            // 鼠标抬起事件
+            document.addEventListener('mouseup', function() {
+                if (isSelecting) {
+                    isSelecting = false;
+                    selectionBox.style.display = 'none';
+                    updateStats();
+                }
+            });
+            
+            // 按钮事件
+            document.getElementById('set-0').addEventListener('click', function() {
+                currentOperation = '0';
+            });
+            
+            document.getElementById('set-1').addEventListener('click', function() {
+                currentOperation = '1';
+            });
+            
+            document.getElementById('set-2').addEventListener('click', function() {
+                currentOperation = '2';
+            });
+            
+            document.getElementById('clear-all').addEventListener('click', function() {
+                if (confirm('确定要清空整个矩阵吗？')) {
+                    for (let y = 0; y < matrixSize; y++) {
+                        for (let x = 0; x < matrixSize; x++) {
+                            matrixData[y][x] = 0;
+                            updateCellDisplay(x, y);
+                        }
+                    }
+                    updateStats();
+                }
+            });
+            
+            document.getElementById('random-fill').addEventListener('click', function() {
+                if (confirm('确定要随机填充矩阵吗？')) {
+                    const center = matrixSize / 2 - 0.5;
+                    const radiusX = matrixSize * 0.4;
+                    const radiusY = matrixSize * 0.3;
+                    
+                    for (let y = 0; y < matrixSize; y++) {
+                        for (let x = 0; x < matrixSize; x++) {
+                            const dx = (x - center) / radiusX;
+                            const dy = (y - center) / radiusY;
+                            const inEllipse = dx * dx + dy * dy <= 1;
+                            
+                            if (inEllipse) {
+                                matrixData[y][x] = Math.floor(Math.random() * 3);
+                                updateCellDisplay(x, y);
+                            }
+                        }
+                    }
+                    updateStats();
+                }
+            });
+            
+            document.getElementById('save-btn').addEventListener('click', function() {
+                const dataStr = JSON.stringify(matrixData);
+                localStorage.setItem('blueFilmMatrix', dataStr);
+                alert('状态已保存到本地存储');
+            });
+            
+            document.getElementById('load-btn').addEventListener('click', function() {
+                const savedData = localStorage.getItem('blueFilmMatrix');
+                if (savedData) {
+                    matrixData = JSON.parse(savedData);
+                    for (let y = 0; y < matrixSize; y++) {
+                        for (let x = 0; x < matrixSize; x++) {
+                            updateCellDisplay(x, y);
+                        }
+                    }
+                    updateStats();
+                    alert('状态已从本地存储加载');
+                } else {
+                    alert('没有找到保存的状态');
+                }
+            });
+            
+            // 初始化
+            initMatrix();
+        });
+    </script>
+</body>
+</html>

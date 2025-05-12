@@ -197,6 +197,30 @@
 
     // 设置事件监听器
     function setupEventListeners() {
+        // 清理旧事件监听器
+        cleanEventListeners();
+
+        // 新增事件清理函数
+        function cleanEventListeners() {
+            // 通过克隆节点移除所有旧监听
+            const elementsToClean = ['prev-month', 'next-month'];
+            elementsToClean.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.replaceWith(el.cloneNode(true));
+            });
+        }
+
+        // 创建带防抖的处理器
+        function createMonthHandler(offset) {
+            let isProcessing = false;
+            return () => {
+                if (!isProcessing) {
+                    isProcessing = true;
+                    changeMonth(offset);
+                    setTimeout(() => isProcessing = false, 100);
+                }
+            };
+        }
         // 批量模式切换
         document.getElementById('toggle-batch-mode').addEventListener('click', toggleBatchMode);
 
