@@ -10,7 +10,6 @@
         C: 79.31035  // 节假日加班 3倍
     };
 
-
     // 状态管理
     const state = {
         currentDate: new Date(),
@@ -28,7 +27,8 @@
         deductions: [], // 存储补贴/扣款记录
         chart: null,
         dataGroup: 'day', // 'day' 或 'week'
-        visibleDatasets: [true, true, true] // 控制显示哪些数据集
+        visibleDatasets: [true, true, true], // 控制显示哪些数据集
+        chartType: 'bar', // 明确设置默认图表类型
     };
 
     // DOM元素缓存
@@ -53,7 +53,6 @@
             'baseSalaryInput': 'base-salary',
             'dailySalary': 'daily-salary',
             'hourlySalary': 'hourly-salary',
-            // 'fileInput': 'file-input',
             'saveHours': 'save-hours',
             'clearHours': 'clear-hours',
             'clearAllData': 'clear-all-data',
@@ -81,6 +80,7 @@
 
     // 确保初始化时渲染日历
     function init() {
+        state.chartType = 'bar'; // 确保默认类型
         cacheDOM();
         loadFromLocalStorage();
         fetchHolidays();
@@ -94,8 +94,52 @@
         updateTodayMarker();
         initAdvancedChart();
         applyTheme(); // 应用保存的主题
+        setupChartControls(); // 新增这行
+        // 使用setTimeout确保DOM完全加载
+        setTimeout(() => {
+            setupChartControls();
+        }, 100);
     }
 
+
+    // 增强版初始化检查
+    function initApp() {
+        console.log('initApp() 执行中...');
+
+        const REQUIRED_ELEMENTS = {
+            calendarContainer: '#calendar-days',
+            salaryConfigPanel: '.salary-config',
+            dataChart: '#dataChart'
+        };
+
+        // 调试：打印所有元素状态
+        Object.entries(REQUIRED_ELEMENTS).forEach(([name, selector]) => {
+            console.log(`检查元素 ${name}:`, document.querySelector(selector));
+        });
+
+        const missingElements = Object.entries(REQUIRED_ELEMENTS).filter(
+            ([id, selector]) => {
+                const exists = !!document.querySelector(selector);
+                if (!exists) console.error(`未找到元素: ${selector} (${id})`);
+                return !exists;
+            }
+        );
+
+        if (missingElements.length > 0) {
+            console.error('缺少必要元素:', missingElements);
+            setTimeout(initApp, 500);
+            return;
+        }
+
+        console.log('所有元素存在，开始初始化');
+        init();
+    }
+
+
+    // 三种启动方式确保执行
+    document.addEventListener('DOMContentLoaded', initApp);
+    window.addEventListener('load', initApp);
+    setTimeout(initApp, 1000); // 最终后备方案
     // 添加批量操作面板
     const batchControlsHTML = `
 <div class="batch-controls mb-3 d-none">
@@ -197,6 +241,9 @@
 
     // 设置事件监听器
     function setupEventListeners() {
+        // 先移除旧监听器
+        const importBtn = document.getElementById('import-data');
+        importBtn.replaceWith(importBtn.cloneNode(true));
         // 清理旧事件监听器
         cleanEventListeners();
 
@@ -224,21 +271,21 @@
         // 新增带防抖的记录月份处理器
         function createRecordsMonthHandler(offset) {
             let isProcessing = false;
-            return function(e) {
+            return function (e) {
                 e.stopPropagation();
                 if (!isProcessing) {
                     isProcessing = true;
                     const newDate = new Date(state.recordsViewYear, state.recordsViewMonth - 1 + offset, 1);
                     state.recordsViewYear = newDate.getFullYear();
                     state.recordsViewMonth = newDate.getMonth() + 1;
-                    
+
                     // 更新选择器值
                     state.domCache.yearSelect.value = state.recordsViewYear;
                     state.domCache.monthSelect.value = state.recordsViewMonth;
-                    
+
                     state.recordsViewMode = 'specific';
                     updateRecordsView();
-                    
+
                     setTimeout(() => {
                         isProcessing = false;
                     }, 100);
@@ -261,8 +308,12 @@
         document.getElementById('save-deduction').addEventListener('click', saveDeduction);
 
         // 删除记录
+        // 修改删除按钮的事件监听
         document.addEventListener('click', function (e) {
             if (e.target.classList.contains('delete-deduction')) {
+                e.stopPropagation(); // 阻止事件冒泡
+                e.preventDefault();  // 阻止默认行为
+
                 const id = e.target.dataset.id;
                 deleteDeduction(id);
             }
@@ -304,158 +355,7 @@
             fileInput.click();
         });
 
-        // 修改后的拖放处理
-        function handleDrop(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.body.classList.remove('dragover');
 
-            if (e.dataTransfer.files.length) {
-                handleFileImport(e.dataTransfer.files[0]);
-            }
-        }
-
-        // 添加拖放支持
-        document.addEventListener('dragover', handleDragOver);
-        document.addEventListener('dragleave', handleDragLeave);
-        document.addEventListener('drop', handleDrop);
-
-        // 拖放相关函数
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.body.classList.add('dragover');
-        }
-
-        function handleDragLeave(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.body.classList.remove('dragover');
-        }
-
-        // 修改后 - 统一使用handleFileImport处理
-        function handleDrop(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.body.classList.remove('dragover');
-
-            if (e.dataTransfer.files.length) {
-                handleFileImport(e.dataTransfer.files[0]);
-            }
-        }
-
-
-        // 新增辅助函数 - 日期解析
-        function parseDateFromRow(row) {
-            if (!row['日期']) return null;
-
-            const dateStr = row['日期'].toString();
-            const dateMatch = dateStr.match(/(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})/);
-            if (!dateMatch) return null;
-
-            return new Date(
-                parseInt(dateMatch[1]),
-                parseInt(dateMatch[2]) - 1,
-                parseInt(dateMatch[3])
-            );
-        }
-
-        // 新增辅助函数 - 确定加班类型
-        function determineOvertimeType(row, dateStr) {
-            if (!row['类型']) return 'A';
-
-            const typeStr = row['类型'].toString();
-            if (typeStr.includes('3倍') || typeStr.includes('节假日')) {
-                return 'C';
-            }
-            if (typeStr.includes('2倍') || typeStr.includes('周末') || typeStr.includes('调休')) {
-                return 'B';
-            }
-            return 'A';
-        }    function setupEventListeners() {
-        // 清理旧事件监听器
-        cleanEventListeners();
-
-        // 新增事件清理函数
-        function cleanEventListeners() {
-            // 通过克隆节点移除所有旧监听
-            const elementsToClean = ['prev-month', 'next-month'];
-            elementsToClean.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.replaceWith(el.cloneNode(true));
-            });
-        }
-
-        // 创建带防抖的处理器
-        function createMonthHandler(offset) {
-            let isProcessing = false;
-            return () => {
-                if (!isProcessing) {
-                    isProcessing = true;
-                    changeMonth(offset);
-                    setTimeout(() => isProcessing = false, 100);
-                }
-            };
-        }
-        // 批量模式切换
-        document.getElementById('toggle-batch-mode').addEventListener('click', toggleBatchMode);
-
-        // 批量应用
-        document.getElementById('batch-apply').addEventListener('click', applyBatchOvertime);
-
-        // 批量取消
-        document.getElementById('batch-cancel').addEventListener('click', toggleBatchMode);
-        // 补贴/扣款按钮点击事件
-        document.getElementById('extra-deduction-btn').addEventListener('click', showDeductionModal);
-
-        // 保存补贴/扣款记录
-        document.getElementById('save-deduction').addEventListener('click', saveDeduction);
-
-        // 删除记录
-        document.addEventListener('click', function (e) {
-            if (e.target.classList.contains('delete-deduction')) {
-                const id = e.target.dataset.id;
-                deleteDeduction(id);
-            }
-        });
-
-        // 月份导航
-        document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
-        document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
-
-        // 记录视图导航
-        document.getElementById('prev-month-records').addEventListener('click', () => changeRecordsMonth(-1));
-        document.getElementById('next-month-records').addEventListener('click', () => changeRecordsMonth(1));
-        document.getElementById('current-month-records').addEventListener('click', showCurrentMonthRecords);
-        document.getElementById('all-records').addEventListener('click', showAllRecords);
-        document.getElementById('go-to-date').addEventListener('click', goToSelectedDate);
-
-        // 日期选择器
-        state.domCache.yearSelector.addEventListener('change', handleDateSelection);
-        state.domCache.monthSelector.addEventListener('change', handleDateSelection);
-
-        // 批量操作事件
-        state.domCache.toggleBatchBtn.addEventListener('click', toggleBatchMode);
-        state.domCache.batchApplyBtn.addEventListener('click', applyBatchOvertime);
-        state.domCache.batchCancelBtn.addEventListener('click', toggleBatchMode);
-
-        // 工作记录操作
-        state.domCache.saveHours.addEventListener('click', saveHours);
-        state.domCache.clearHours.addEventListener('click', clearHours);
-
-        // 数据导入导出
-        document.getElementById('export-excel').addEventListener('click', exportToExcel);
-        document.getElementById('import-data').addEventListener('click', function () {
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = '.xlsx,.xls,.json';
-            fileInput.onchange = (e) => {
-                if (e.target.files.length) {
-                    handleFileImport(e.target.files[0]);
-                }
-            };
-            fileInput.click();
-        });
 
         // 修改后的拖放处理
         function handleDrop(e) {
@@ -526,24 +426,6 @@
             }
             return 'A';
         }
-
-        // 主题切换
-        state.domCache.themeToggle.addEventListener('click', toggleTheme);
-
-        // 工资配置
-        state.domCache.baseSalaryInput.addEventListener('change', updateSalaryConfig);
-
-        // 其他操作
-        document.getElementById('clear-all-data').addEventListener('click', clearAllData);
-
-        // 自动保存
-        // state.domCache.hoursInput.addEventListener('blur', autoSaveHours);
-
-        state.domCache.saveSalary.addEventListener('click', updateSalaryConfig);
-
-        // 使用事件委托处理日历点击
-        state.domCache.calendarDays.addEventListener('click', handleCalendarDayClick);
-    }
 
         // 主题切换
         state.domCache.themeToggle.addEventListener('click', toggleTheme);
@@ -2038,31 +1920,31 @@
     }
 
     // 修复记录视图月份切换
-function changeRecordsMonth(offset) {
-    // 添加防抖检查
-    if (this._isChangingMonth) return;
-    this._isChangingMonth = true;
-    
-    console.log("changeRecordsMonth called with offset:", offset); // 调试用
-    
-    // 创建新的日期对象避免直接修改状态
-    const newDate = new Date(state.recordsViewYear, state.recordsViewMonth - 1 + offset, 1);
-    
-    state.recordsViewYear = newDate.getFullYear();
-    state.recordsViewMonth = newDate.getMonth() + 1;
-    
-    // 更新选择器值
-    state.domCache.yearSelect.value = state.recordsViewYear;
-    state.domCache.monthSelect.value = state.recordsViewMonth;
-    
-    state.recordsViewMode = 'specific';
-    updateRecordsView();
-    
-    // 防抖解锁
-    setTimeout(() => {
-        this._isChangingMonth = false;
-    }, 100);
-}
+    function changeRecordsMonth(offset) {
+        // 添加防抖检查
+        if (this._isChangingMonth) return;
+        this._isChangingMonth = true;
+
+        console.log("changeRecordsMonth called with offset:", offset); // 调试用
+
+        // 创建新的日期对象避免直接修改状态
+        const newDate = new Date(state.recordsViewYear, state.recordsViewMonth - 1 + offset, 1);
+
+        state.recordsViewYear = newDate.getFullYear();
+        state.recordsViewMonth = newDate.getMonth() + 1;
+
+        // 更新选择器值
+        state.domCache.yearSelect.value = state.recordsViewYear;
+        state.domCache.monthSelect.value = state.recordsViewMonth;
+
+        state.recordsViewMode = 'specific';
+        updateRecordsView();
+
+        // 防抖解锁
+        setTimeout(() => {
+            this._isChangingMonth = false;
+        }, 100);
+    }
 
 
     // 显示当前月记录
@@ -2170,11 +2052,12 @@ function changeRecordsMonth(offset) {
     function renderDeductionRecords() {
         const currentYear = state.currentDate.getFullYear();
         const currentMonth = state.currentDate.getMonth() + 1;
-
         const tbody = document.getElementById('deduction-records-body');
+
+        // 先清空表格
         tbody.innerHTML = '';
 
-        // 筛选并排序记录
+        // 筛选当前年月记录
         const currentRecords = state.deductions
             .filter(record => {
                 const recordDate = new Date(record.date);
@@ -2188,34 +2071,78 @@ function changeRecordsMonth(offset) {
             return;
         }
 
+        // 确保事件委托只绑定一次
+        if (!tbody._hasEventDelegate) {
+            tbody.addEventListener('click', handleDeleteClick);
+            tbody._hasEventDelegate = true;
+        }
+
+        // 使用DOM API创建行和按钮
         currentRecords.forEach(record => {
             const row = document.createElement('tr');
             const date = new Date(record.date);
             const amountClass = record.amount >= 0 ? 'deduction-positive' : 'deduction-negative';
             const amountText = record.amount >= 0 ? `+${record.amount.toFixed(2)}` : record.amount.toFixed(2);
 
-            row.innerHTML = `
-                <td>${formatDate(date, 'YYYY-MM-DD')}</td>
-                <td>${record.type === 'subsidy' ? '补贴' : '扣款'}</td>
-                <td>${record.category}</td>
-                <td class="${amountClass}">${amountText}元</td>
-                <td>${record.notes}</td>
-                <td><button class="btn btn-sm btn-outline-danger delete-deduction" data-id="${record.id}">删除</button></td>
-            `;
+            // 创建单元格
+            const cells = [
+                document.createElement('td'), // 日期
+                document.createElement('td'), // 类型
+                document.createElement('td'), // 分类
+                document.createElement('td'), // 金额
+                document.createElement('td'), // 备注
+                document.createElement('td')  // 操作
+            ];
+
+            // 设置单元格内容
+            cells[0].textContent = formatDate(date, 'YYYY-MM-DD');
+            cells[1].textContent = record.type === 'subsidy' ? '补贴' : '扣款';
+            cells[2].textContent = record.category;
+            cells[3].className = amountClass;
+            cells[3].textContent = `${amountText}元`;
+            cells[4].textContent = record.notes || '-';
+
+            // 创建删除按钮
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-sm btn-outline-danger delete-deduction';
+            deleteBtn.textContent = '删除';
+            deleteBtn.dataset.id = record.id;
+
+            // 将按钮添加到操作单元格
+            cells[5].appendChild(deleteBtn);
+
+            // 将所有单元格添加到行
+            cells.forEach(cell => row.appendChild(cell));
+
+            // 将行添加到表格
             tbody.appendChild(row);
         });
     }
+
+    function handleDeleteClick(e) {
+        const deleteBtn = e.target.closest('.delete-deduction');
+        if (!deleteBtn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const id = deleteBtn.dataset.id;
+        deleteDeduction(id);
+    }
+
+
 
     // 删除补贴/扣款记录
     function deleteDeduction(id) {
         if (confirm('确定要删除这条记录吗？')) {
             state.deductions = state.deductions.filter(record => record.id !== id);
             saveToLocalStorage();
-            renderDeductionRecords();
-            updateStatistics();
-            updateRecordsView();
+            renderDeductionRecords();  // 重新渲染表格
+            updateStatistics();        // 更新统计信息
+            updateRecordsView();      // 更新记录视图
         }
     }
+
 
 
     /**
@@ -2461,23 +2388,161 @@ function changeRecordsMonth(offset) {
         const ctx = document.getElementById('dataChart');
         if (!ctx) return;
 
-        // 销毁旧图表实例
+        // 销毁旧图表
         if (state.chart) {
             state.chart.destroy();
         }
 
-        // 注册插件
-        Chart.register(
-            ChartDataLabels,
-            {
-                id: 'customBackground',
-                beforeDraw: (chart) => drawChartBackground(chart)
-            }
-        );
+        // 获取数据
+        const { labels, datasets } = getChartData();
 
-        state.chart = new Chart(ctx, getAdvancedChartConfig());
-        setupChartControls();
+        // 创建新图表
+        state.chart = new Chart(ctx, {
+            type: state.chartType, // 使用state中的类型
+            data: { labels, datasets },
+            options: getChartOptions()
+        });
+
+        // 确保按钮状态同步
+        updateControlButtonStates();
     }
+
+
+
+    // 新增函数 - 获取图表数据
+    function getChartData() {
+        const isDark = state.darkMode;
+        const baseColors = isDark ?
+            ['#5B8FF9', '#5AD8A6', '#F6BD16'] :
+            ['#3366CC', '#4CAF50', '#FFC107'];
+
+        const dataMethod = state.dataGroup === 'day' ? getDailyData : getWeeklyData;
+        const { labels, overtime, leave, subsidy } = dataMethod();
+
+        // 统一数据集类型，根据chartType决定
+        const datasets = [
+            {
+                label: '加班时长',
+                data: overtime,
+                backgroundColor: `${baseColors[0]}80`,
+                borderColor: baseColors[0],
+                borderWidth: 2,
+                hidden: !state.visibleDatasets[0],
+                yAxisID: 'y',
+                type: state.chartType === 'bar' ? 'bar' : 'line' // 统一类型
+            },
+            {
+                label: '请假时长',
+                data: leave,
+                backgroundColor: `${baseColors[1]}80`,
+                borderColor: baseColors[1],
+                borderWidth: 2,
+                hidden: !state.visibleDatasets[1],
+                yAxisID: 'y',
+                type: state.chartType === 'bar' ? 'bar' : 'line' // 统一类型
+            },
+            {
+                label: '补贴金额',
+                data: subsidy,
+                backgroundColor: `${baseColors[2]}80`,
+                borderColor: baseColors[2],
+                borderWidth: 2,
+                hidden: !state.visibleDatasets[2],
+                yAxisID: 'y1',
+                type: state.chartType === 'bar' ? 'bar' : 'line' // 统一类型
+            }
+        ];
+
+        return { labels, datasets };
+    }
+
+
+    function getDailyData() {
+        const daysInMonth = new Date(
+            state.currentDate.getFullYear(),
+            state.currentDate.getMonth() + 1,
+            0
+        ).getDate();
+
+        const labels = Array.from({ length: daysInMonth }, (_, i) => `${i + 1}日`);
+        const overtime = Array(daysInMonth).fill(0);
+        const leave = Array(daysInMonth).fill(0);
+        const subsidy = Array(daysInMonth).fill(0);
+
+        // 填充每日数据
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(state.currentDate);
+            date.setDate(day);
+            const dateKey = formatDate(date);
+
+            // 加班数据
+            if (state.hoursData[dateKey]?.hours > 0) {
+                overtime[day - 1] = state.hoursData[dateKey].hours;
+            }
+
+            // 请假数据
+            if (state.hoursData[dateKey]?.hours < 0) {
+                leave[day - 1] = Math.abs(state.hoursData[dateKey].hours);
+            }
+
+            // 补贴数据
+            subsidy[day - 1] = state.deductions
+                .filter(d => d.date === dateKey)
+                .reduce((sum, d) => sum + (d.type === 'subsidy' ? d.amount : 0), 0);
+        }
+
+        return { labels, overtime, leave, subsidy };
+    }
+
+    function getWeeklyData() {
+        const weeks = 5; // 最多5周
+        const labels = Array.from({ length: weeks }, (_, i) => `第${i + 1}周`);
+        const overtime = Array(weeks).fill(0);
+        const leave = Array(weeks).fill(0);
+        const subsidy = Array(weeks).fill(0);
+
+        // 1. 处理加班和请假数据
+        Object.entries(state.hoursData).forEach(([dateStr, record]) => {
+            const date = new Date(dateStr);
+            // 确保数据在当前月份
+            if (date.getFullYear() === state.currentDate.getFullYear() &&
+                date.getMonth() === state.currentDate.getMonth()) {
+
+                const day = date.getDate();
+                const weekIndex = Math.min(Math.floor((day - 1) / 7), weeks - 1);
+
+                if (record.hours > 0) {
+                    overtime[weekIndex] += record.hours;
+                } else {
+                    leave[weekIndex] += Math.abs(record.hours);
+                }
+            }
+        });
+
+        // 2. 处理补贴数据（完整实现）
+        state.deductions.forEach(d => {
+            if (d.type === 'subsidy') {
+                const date = new Date(d.date);
+                if (date.getFullYear() === state.currentDate.getFullYear() &&
+                    date.getMonth() === state.currentDate.getMonth()) {
+
+                    const day = date.getDate();
+                    const weekIndex = Math.min(Math.floor((day - 1) / 7), weeks - 1);
+                    subsidy[weekIndex] += d.amount;
+                }
+            }
+        });
+
+        // 3. 格式化返回数据
+        return {
+            labels,
+            overtime: overtime.map(h => parseFloat(h.toFixed(1))),
+            leave: leave.map(h => parseFloat(h.toFixed(1))),
+            subsidy: subsidy.map(amount => parseFloat(amount.toFixed(2)))
+        };
+    }
+
+
 
     // 高级图表配置
     function getAdvancedChartConfig() {
@@ -2693,54 +2758,140 @@ function changeRecordsMonth(offset) {
         }];
     }
 
-    // 设置图表控制交互
-    function setupChartControls() {
-        // 图表类型切换
-        document.querySelectorAll('.chart-type-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                state.chartType = this.dataset.type;
 
-                // 销毁旧图表并重新创建
-                if (state.chart) {
-                    state.chart.destroy();
-                }
-                initAdvancedChart();
-            });
+
+    // 修改初始化代码，确保DOM加载完成
+    document.addEventListener('DOMContentLoaded', function () {
+        const requiredElements = {
+            calendarContainer: '日历容器',
+            salaryConfigPanel: '薪资配置面板',
+            dataChart: '数据图表'
+        };
+
+        let missingElements = [];
+        Object.keys(requiredElements).forEach(id => {
+            if (!document.getElementById(id)) {
+                missingElements.push(id);
+                console.error(`未找到元素: #${id} (${requiredElements[id]})`);
+            }
         });
 
-        // 切换时自动调整可见数据集
-        if (state.chartType === 'pie') {
-            state.visibleDatasets = [true, true, true];
-            document.querySelectorAll('.legend-toggle button').forEach((b, i) => {
-                b.classList.toggle('active', state.visibleDatasets[i]);
-            });
+        if (missingElements.length === 0) {
+            init(); // 只有所有元素都存在时才初始化
+        } else {
+            const errorMsg = `无法初始化，缺少以下元素: ${missingElements.join(', ')}`;
+            console.error(errorMsg);
+
+            // 显示用户可见的错误提示（可选）
+            alert(`页面加载不完整，请刷新\n缺失元素: ${missingElements.map(id => requiredElements[id]).join(', ')}`);
+        }
+    });
+
+
+
+
+    function setupExportControl() {
+        let exportBtn = document.querySelector('[data-action="export-chart"]');
+        if (!exportBtn) {
+            // 尝试在dropdown-menu中添加导出按钮
+            const dropdownMenu = document.querySelector('.dropdown-menu');
+            if (dropdownMenu) {
+                exportBtn = document.createElement('button');
+                exportBtn.className = 'dropdown-item';
+                exportBtn.innerHTML = '<i class="bi bi-download me-2"></i>导出图表';
+                exportBtn.dataset.action = 'export-chart';
+                dropdownMenu.appendChild(exportBtn);
+            }
         }
 
-        // 数据聚合方式切换
-        document.querySelectorAll('.data-group-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('.data-group-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                state.dataGroup = this.dataset.group;
-                updateAdvancedChart();
-                document.getElementById('chart-subtitle').textContent =
-                    state.dataGroup === 'week' ? '本周数据 (按周汇总)' : '本月数据 (按日显示)';
-            });
+        if (exportBtn) {
+            exportBtn.addEventListener('click', exportChartImage);
+        } else {
+            console.warn('未能创建或找到导出图表按钮');
+        }
+    }
+
+    function exportChartImage() {
+        if (!state.chart) {
+            console.error('图表实例未初始化');
+            showMessage('图表未准备好，请稍后再试', 'text-danger');
+            return;
+        }
+
+        try {
+            const link = document.createElement('a');
+            link.download = `加班统计_${formatDate(new Date())}.png`;
+            link.href = state.chart.toBase64Image('image/png', 1);
+            link.click();
+            showMessage('图表导出成功', 'text-success');
+        } catch (error) {
+            console.error('导出图表失败:', error);
+            showMessage(`导出图表失败: ${error.message}`, 'text-danger');
+        }
+    }
+
+
+    function exportChartImage() {
+        if (!state.chart) {
+            console.error('图表实例未初始化');
+            return;
+        }
+        try {
+            const link = document.createElement('a');
+            link.download = `加班统计_${formatDate(new Date())}.png`;
+            link.href = state.chart.toBase64Image('image/png', 1);
+            link.click();
+        } catch (e) {
+            console.error('导出图表失败:', e);
+            showMessage('导出图表失败，请重试', 'text-danger');
+        }
+    }
+
+    function updateControlButtonStates() {
+        // 更新图表类型按钮状态
+        document.querySelectorAll('.chart-type-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.type === state.chartType);
         });
 
-        // 图例显示切换
-        document.querySelectorAll('.legend-toggle button').forEach(btn => {
-            btn.addEventListener('click', function () {
-                this.classList.toggle('active');
-                const datasetIndex = parseInt(this.dataset.dataset);
-                state.visibleDatasets[datasetIndex] = !state.visibleDatasets[datasetIndex];
-                state.chart.setDatasetVisibility(datasetIndex, state.visibleDatasets[datasetIndex]);
-                state.chart.update();
-            });
+        // 更新数据分组按钮状态
+        document.querySelectorAll('.data-group-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.group === state.dataGroup);
+        });
+
+        // 更新数据集切换按钮状态
+        document.querySelectorAll('.legend-toggle button').forEach((btn, index) => {
+            if (index < state.visibleDatasets.length) {
+                btn.classList.toggle('active', state.visibleDatasets[index]);
+            }
         });
     }
+
+    // 5. 确保在DOM加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        // 确保其他依赖元素已存在
+        if (document.getElementById('dataChart') &&
+            document.querySelector('[data-chart-type]')) {
+            init();
+        } else {
+            console.error('必要的DOM元素未找到，初始化失败');
+            // 可以设置重试机制
+            setTimeout(() => {
+                if (document.getElementById('dataChart')) {
+                    init();
+                }
+            }, 500);
+        }
+    });
+
+
+
+    // 新增窗口大小调整监听
+    window.addEventListener('resize', () => {
+        if (state.chart) {
+            state.chart.resize();
+        }
+    });
+
 
     // 绘制专业背景
     function drawChartBackground(chart) {
@@ -2799,32 +2950,292 @@ function changeRecordsMonth(offset) {
         };
     }
 
-    function updateChart() {
-        if (!state.chart) {
-            initAdvancedChart(); // 如果图表不存在，则初始化
-            return;
+    // 在图表初始化代码前添加此函数
+    function drawDataLabels(chart) {
+        const ctx = chart.ctx;
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = '#333';
+
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+            meta.data.forEach((element, index) => {
+                const value = dataset.data[index];
+                if (value && value > 0) { // 只显示正值
+                    const position = element.tooltipPosition();
+                    ctx.fillText(
+                        value.toFixed(1), // 保留1位小数
+                        position.x,
+                        position.y - 5
+                    );
+                }
+            });
+        });
+    }
+
+    function getChartOptions() {
+        const isDark = state.theme === 'dark';
+        const textColor = isDark ? '#fff' : '#666';
+        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'nearest',
+                intersect: false,
+                axis: 'x'
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const label = context.dataset.label || '';
+                            const value = context.raw;
+                            const unit = context.datasetIndex === 2 ? '元' : '小时';
+                            return `${label}: ${value} ${unit}`;
+                        },
+                        footer: (items) => {
+                            if (state.chartType === 'bar') {
+                                const date = items[0].label;
+                                const total = items.reduce((sum, item) => {
+                                    return item.datasetIndex !== 2 ? sum + item.raw : sum;
+                                }, 0);
+                                return `总时长: ${total.toFixed(1)}小时`;
+                            }
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: textColor,
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            size: 12
+                        },
+                        generateLabels: (chart) => {
+                            return chart.data.datasets.map((dataset, i) => ({
+                                text: dataset.label,
+                                fillStyle: dataset.backgroundColor,
+                                strokeStyle: dataset.borderColor,
+                                lineWidth: 2,
+                                hidden: !chart.isDatasetVisible(i),
+                                index: i
+                            }));
+                        }
+                    },
+                    onClick: (e, legendItem, legend) => {
+                        const index = legendItem.index;
+                        state.visibleDatasets[index] = !legend.chart.isDatasetVisible(index);
+                        updateChart();
+                    }
+                },
+                annotation: {
+                    annotations: {
+                        overtimeLimit: {
+                            type: 'line',
+                            yMin: 36,
+                            yMax: 36,
+                            borderColor: '#ff6b6b',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            label: {
+                                content: '法定上限: 36小时',
+                                enabled: true,
+                                position: 'right'
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '小时',
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: textColor,
+                        stepSize: 2
+                    }
+                },
+                y1: {
+                    position: 'right',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '金额',
+                        color: textColor
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                        color: gridColor
+                    },
+                    ticks: {
+                        color: textColor,
+                        callback: (value) => `${value}元`
+                    }
+                },
+                x: {
+                    grid: {
+                        color: gridColor,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: textColor
+                    }
+                }
+            },
+            animation: {
+                duration: 800,
+                easing: 'easeOutQuart',
+                onComplete: () => {
+                    if (state.chartType === 'bar') {
+                        drawDataLabels(state.chart);
+                    }
+                }
+            }
+        };
+    }
+
+
+
+    // 新增函数 - 按周聚合数据
+    function aggregateWeeklyData(type) {
+        const currentYear = state.currentDate.getFullYear();
+        const currentMonth = state.currentDate.getMonth() + 1;
+        const weeks = [[], [], [], [], []]; // 5周
+
+        // 填充每周数据
+        for (let day = 1; day <= 31; day++) {
+            const date = new Date(currentYear, currentMonth - 1, day);
+            if (date.getMonth() !== currentMonth - 1) break;
+
+            const weekIndex = Math.floor((day - 1) / 7);
+            const dateStr = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+            switch (type) {
+                case 'overtime':
+                    const hours = state.hoursData[dateStr]?.hours > 0 ? state.hoursData[dateStr].hours : 0;
+                    weeks[weekIndex].push(hours);
+                    break;
+                case 'leave':
+                    const leave = state.hoursData[dateStr]?.hours < 0 ? Math.abs(state.hoursData[dateStr].hours) : 0;
+                    weeks[weekIndex].push(leave);
+                    break;
+                case 'subsidy':
+                    const subsidy = state.deductions
+                        .filter(d => d.date === dateStr)
+                        .reduce((sum, d) => sum + d.amount, 0);
+                    weeks[weekIndex].push(subsidy);
+                    break;
+            }
         }
 
-        const { labels, datasets } = prepareAdvancedChartData();
+        // 计算每周总和
+        return weeks.map(week => week.reduce((sum, val) => sum + val, 0));
+    }
 
-        // 确保数据集格式正确
-        datasets.forEach((dataset, i) => {
-            if (!state.chart.data.datasets[i]) {
-                // 如果数据集不存在，则添加
-                state.chart.data.datasets.push({
-                    ...dataset,
-                    hidden: !state.visibleDatasets[i]
-                });
-            } else {
-                // 更新现有数据集
-                state.chart.data.datasets[i].data = dataset.data;
-                state.chart.data.datasets[i].hidden = !state.visibleDatasets[i];
-            }
-        });
+    // 完整 updateChart 函数实现
+    function updateChart() {
+        if (!state.chart) {
+            return initAdvancedChart();
+        }
 
-        // 更新标签和数据
+        const { labels, datasets } = getChartData();
+
+        // 更新数据
         state.chart.data.labels = labels;
+        state.chart.data.datasets = datasets;
+        state.chart.config.type = state.chartType;
+
+        // 更新选项
+        state.chart.options = getChartOptions();
+
+        // 平滑更新
         state.chart.update();
+    }
+
+
+
+    // 在您的app.js中找到setupChartControls函数，替换为以下内容：
+
+    function setupChartControls() {
+        // 1. 图表类型切换
+        const chartTypeContainer = document.querySelector('.chart-type-toggle');
+        if (chartTypeContainer) {
+            const chartTypeBtns = chartTypeContainer.querySelectorAll('.btn');
+            chartTypeBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    chartTypeBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    state.chartType = this.dataset.type || 'bar';
+                    updateChart();
+                });
+
+                // 初始化选中状态
+                if (btn.dataset.type === state.chartType) {
+                    btn.classList.add('active');
+                }
+            });
+        } else {
+            console.warn('图表类型切换容器未找到');
+        }
+
+        // 2. 数据分组切换
+        const groupTypeContainer = document.querySelector('.data-group-toggle');
+        if (groupTypeContainer) {
+            const groupTypeBtns = groupTypeContainer.querySelectorAll('.btn');
+            groupTypeBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    groupTypeBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    state.dataGroup = this.dataset.group || 'day';
+                    updateChart();
+                });
+
+                // 初始化选中状态
+                if (btn.dataset.group === state.dataGroup) {
+                    btn.classList.add('active');
+                }
+            });
+        } else {
+            console.warn('数据分组切换容器未找到');
+        }
+
+        // 3. 数据集可见性切换
+        const legendToggleContainer = document.querySelector('.legend-toggle');
+        if (legendToggleContainer) {
+            const datasetToggles = legendToggleContainer.querySelectorAll('.btn');
+            datasetToggles.forEach((btn, index) => {
+                if (index < state.visibleDatasets.length) {
+                    btn.addEventListener('click', function () {
+                        this.classList.toggle('active');
+                        state.visibleDatasets[index] = this.classList.contains('active');
+                        updateChart();
+                    });
+
+                    // 初始化选中状态
+                    if (state.visibleDatasets[index]) {
+                        btn.classList.add('active');
+                    }
+                }
+            });
+        } else {
+            console.warn('图例切换容器未找到');
+        }
+
+        // 4. 导出图表功能
+        setupExportControl();
     }
 
     /**

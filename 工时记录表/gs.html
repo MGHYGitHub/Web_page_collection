@@ -926,8 +926,8 @@
         </div>
     </div>
 
-    <!-- 工资配置 -->
-    <div class="salary-config card mb-4">
+    <!-- 工资配置区域（修正后） -->
+    <div class="salary-config card mb-4" id="salaryConfigPanel">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">工资配置</h5>
         </div>
@@ -970,7 +970,10 @@
             </div>
         </div>
     </div>
-
+    <!-- 日历容器（修正后） -->
+    <div class="calendar-grid" id="calendarContainer">
+        <!-- 日历内容将通过JS动态填充 -->
+    </div>
     <!-- 统计卡片 -->
     <div class="row">
         <div class="col-md-3">
@@ -1035,7 +1038,7 @@
         <div class="calendar-day-header">周六</div>
     </div>
 
-    <div class="calendar-grid" id="calendar-days"></div>
+    <div class="    " id="calendar-days"></div>
 
     <div class="legend-container">
         <div class="legend-scroll">
@@ -1270,9 +1273,12 @@
             </div>
             <div class="mt-3 text-center">
                 <div class="btn-group btn-group-sm legend-toggle">
-                    <button class="btn btn-outline-primary active" data-dataset="0"><i class="bi bi-square-fill text-primary"></i> 加班</button>
-                    <button class="btn btn-outline-danger active" data-dataset="1"><i class="bi bi-square-fill text-danger"></i> 请假</button>
-                    <button class="btn btn-outline-success active" data-dataset="2"><i class="bi bi-square-fill text-success"></i> 补贴</button>
+                    <button class="btn btn-outline-primary active" data-dataset="0"><i
+                            class="bi bi-square-fill text-primary"></i> 加班</button>
+                    <button class="btn btn-outline-danger active" data-dataset="1"><i
+                            class="bi bi-square-fill text-danger"></i> 请假</button>
+                    <button class="btn btn-outline-success active" data-dataset="2"><i
+                            class="bi bi-square-fill text-success"></i> 补贴</button>
                 </div>
             </div>
         </div>
