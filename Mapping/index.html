@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>蓝膜 Mapping 工具</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #matrix { display: grid; gap: 2px; margin-top: 20px; user-select: none; }
+    .cell {
+      width: 30px; height: 30px;
+      text-align: center; line-height: 30px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+    }
+    .bin-1 { background: #4caf50; color: white; } /* 有料 */
+    .bin-2 { background: #f44336; color: white; } /* 无料 */
+    .selected { outline: 2px solid blue; }
+    #controls { margin-top: 10px; }
+    #context-menu {
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 5px;
+      display: none;
+      z-index: 1000;
+      font-size: 14px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<h2>蓝膜矩阵 Mapping 工具</h2>
+<input type="file" id="upload" accept=".xlsx, .xls" />
+<div id="controls">
+  <button onclick="setBin(1)">设置为有料（1）</button>
+  <button onclick="setBin(2)">设置为无料（2）</button>
+  <button onclick="exportToExcel()">导出为 Excel</button>
+</div>
+<div id="matrix"></div>
+<div id="context-menu"></div>
+
+<script>
+let matrixData = {}; // {"row-col": bin}
+let selectedCells = new Set();
+let maxRow = 0, maxCol = 0;
+let isSelecting = false;
+let startCell = null;
+
+document.getElementById('upload').addEventListener('change', handleFile);
+document.addEventListener('click', () => document.getElementById('context-menu').style.display = 'none');
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const data = new Uint8Array(evt.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    matrixData = {};
+    maxRow = 0; maxCol = 0;
+
+    json.forEach(row => {
+      const r = parseInt(row["BAR_Y"]);
+      const c = parseInt(row["Chip No"]);
+      const bin = parseInt(row["Bin"]);
+      if (!isNaN(r) && !isNaN(c)) {
+        matrixData[`${r}-${c}`] = bin;
+        if (r > maxRow) maxRow = r;
+        if (c > maxCol) maxCol = c;
+      }
+    });
+
+    renderMatrix();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderMatrix() {
+  const container = document.getElementById('matrix');
+  container.innerHTML = '';
+  container.style.gridTemplateColumns = `repeat(${maxCol + 1}, 30px)`;
+  selectedCells.clear();
+
+  for (let r = 0; r <= maxRow; r++) {
+    for (let c = 0; c <= maxCol; c++) {
+      const key = `${r}-${c}`;
+      const bin = matrixData[key] || 0;
+      const cell = document.createElement('div');
+      cell.className = `cell bin-${bin}`;
+      cell.dataset.key = key;
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      cell.innerText = bin || '';
+      container.appendChild(cell);
+
+      // 鼠标框选逻辑
+      cell.addEventListener('mousedown', e => {
+        if (e.button === 0) {
+          isSelecting = true;
+          startCell = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
+          selectedCells.clear();
+          updateSelection(startCell, startCell);
+        }
+      });
+
+      cell.addEventListener('mouseenter', e => {
+        if (isSelecting && startCell) {
+          const endCell = { row: parseInt(cell.dataset.row), col: parseInt(cell.dataset.col) };
+          updateSelection(startCell, endCell);
+        }
+      });
+
+      // 右键菜单显示坐标
+      cell.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        const row = cell.dataset.row;
+        const col = cell.dataset.col;
+        const menu = document.getElementById('context-menu');
+        menu.innerText = `坐标: (${row}, ${col})`;
+        menu.style.left = `${e.pageX + 5}px`;
+        menu.style.top = `${e.pageY + 5}px`;
+        menu.style.display = 'block';
+      });
+    }
+  }
+
+  document.addEventListener('mouseup', () => isSelecting = false);
+}
+
+function updateSelection(start, end) {
+  const container = document.getElementById('matrix');
+  selectedCells.clear();
+  container.querySelectorAll('.cell').forEach(cell => {
+    const r = parseInt(cell.dataset.row);
+    const c = parseInt(cell.dataset.col);
+    if (r >= Math.min(start.row, end.row) && r <= Math.max(start.row, end.row) &&
+        c >= Math.min(start.col, end.col) && c <= Math.max(start.col, end.col)) {
+      selectedCells.add(`${r}-${c}`);
+    }
+  });
+  updateCellStyles();
+}
+
+function updateCellStyles() {
+  document.querySelectorAll('.cell').forEach(cell => {
+    const key = cell.dataset.key;
+    const bin = matrixData[key] || 0;
+    cell.className = `cell bin-${bin}`;
+    if (selectedCells.has(key)) cell.classList.add('selected');
+  });
+}
+
+function setBin(binValue) {
+  selectedCells.forEach(key => {
+    matrixData[key] = binValue;
+  });
+  renderMatrix();
+}
+
+function exportToExcel() {
+  const data = [["BAR_Y", "Chip No", "Bin"]];
+  for (let r = 0; r <= maxRow; r++) {
+    for (let c = 0; c <= maxCol; c++) {
+      const key = `${r}-${c}`;
+      const bin = matrixData[key];
+      if (bin !== undefined) {
+        data.push([r, c, bin]);
+      }
+    }
+  }
+
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Mapping");
+
+  XLSX.writeFile(workbook, "mapping_result.xlsx");
+}
+</script>
+
+</body>
+</html>
