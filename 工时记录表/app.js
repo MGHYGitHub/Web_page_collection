@@ -209,6 +209,182 @@
                 if (el) el.replaceWith(el.cloneNode(true));
             });
         }
+        // 记录视图导航 - 替换这部分
+        const prevRecordsBtn = document.getElementById('prev-month-records');
+        const nextRecordsBtn = document.getElementById('next-month-records');
+
+        // 先移除旧监听器
+        prevRecordsBtn.replaceWith(prevRecordsBtn.cloneNode(true));
+        nextRecordsBtn.replaceWith(nextRecordsBtn.cloneNode(true));
+
+        // 重新绑定带防抖的新监听器
+        document.getElementById('prev-month-records').addEventListener('click', createRecordsMonthHandler(-1));
+        document.getElementById('next-month-records').addEventListener('click', createRecordsMonthHandler(1))
+
+        // 新增带防抖的记录月份处理器
+        function createRecordsMonthHandler(offset) {
+            let isProcessing = false;
+            return function(e) {
+                e.stopPropagation();
+                if (!isProcessing) {
+                    isProcessing = true;
+                    const newDate = new Date(state.recordsViewYear, state.recordsViewMonth - 1 + offset, 1);
+                    state.recordsViewYear = newDate.getFullYear();
+                    state.recordsViewMonth = newDate.getMonth() + 1;
+                    
+                    // 更新选择器值
+                    state.domCache.yearSelect.value = state.recordsViewYear;
+                    state.domCache.monthSelect.value = state.recordsViewMonth;
+                    
+                    state.recordsViewMode = 'specific';
+                    updateRecordsView();
+                    
+                    setTimeout(() => {
+                        isProcessing = false;
+                    }, 100);
+                }
+            };
+        }
+
+        // 批量模式切换
+        document.getElementById('toggle-batch-mode').addEventListener('click', toggleBatchMode);
+
+        // 批量应用
+        document.getElementById('batch-apply').addEventListener('click', applyBatchOvertime);
+
+        // 批量取消
+        document.getElementById('batch-cancel').addEventListener('click', toggleBatchMode);
+        // 补贴/扣款按钮点击事件
+        document.getElementById('extra-deduction-btn').addEventListener('click', showDeductionModal);
+
+        // 保存补贴/扣款记录
+        document.getElementById('save-deduction').addEventListener('click', saveDeduction);
+
+        // 删除记录
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('delete-deduction')) {
+                const id = e.target.dataset.id;
+                deleteDeduction(id);
+            }
+        });
+
+        // 月份导航
+        document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
+        document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
+
+        // 记录视图导航
+        document.getElementById('current-month-records').addEventListener('click', showCurrentMonthRecords);
+        document.getElementById('all-records').addEventListener('click', showAllRecords);
+        document.getElementById('go-to-date').addEventListener('click', goToSelectedDate);
+
+        // 日期选择器
+        state.domCache.yearSelector.addEventListener('change', handleDateSelection);
+        state.domCache.monthSelector.addEventListener('change', handleDateSelection);
+
+        // 批量操作事件
+        state.domCache.toggleBatchBtn.addEventListener('click', toggleBatchMode);
+        state.domCache.batchApplyBtn.addEventListener('click', applyBatchOvertime);
+        state.domCache.batchCancelBtn.addEventListener('click', toggleBatchMode);
+
+        // 工作记录操作
+        state.domCache.saveHours.addEventListener('click', saveHours);
+        state.domCache.clearHours.addEventListener('click', clearHours);
+
+        // 数据导入导出
+        document.getElementById('export-excel').addEventListener('click', exportToExcel);
+        document.getElementById('import-data').addEventListener('click', function () {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.xlsx,.xls,.json';
+            fileInput.onchange = (e) => {
+                if (e.target.files.length) {
+                    handleFileImport(e.target.files[0]);
+                }
+            };
+            fileInput.click();
+        });
+
+        // 修改后的拖放处理
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.body.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length) {
+                handleFileImport(e.dataTransfer.files[0]);
+            }
+        }
+
+        // 添加拖放支持
+        document.addEventListener('dragover', handleDragOver);
+        document.addEventListener('dragleave', handleDragLeave);
+        document.addEventListener('drop', handleDrop);
+
+        // 拖放相关函数
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.body.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.body.classList.remove('dragover');
+        }
+
+        // 修改后 - 统一使用handleFileImport处理
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.body.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length) {
+                handleFileImport(e.dataTransfer.files[0]);
+            }
+        }
+
+
+        // 新增辅助函数 - 日期解析
+        function parseDateFromRow(row) {
+            if (!row['日期']) return null;
+
+            const dateStr = row['日期'].toString();
+            const dateMatch = dateStr.match(/(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})/);
+            if (!dateMatch) return null;
+
+            return new Date(
+                parseInt(dateMatch[1]),
+                parseInt(dateMatch[2]) - 1,
+                parseInt(dateMatch[3])
+            );
+        }
+
+        // 新增辅助函数 - 确定加班类型
+        function determineOvertimeType(row, dateStr) {
+            if (!row['类型']) return 'A';
+
+            const typeStr = row['类型'].toString();
+            if (typeStr.includes('3倍') || typeStr.includes('节假日')) {
+                return 'C';
+            }
+            if (typeStr.includes('2倍') || typeStr.includes('周末') || typeStr.includes('调休')) {
+                return 'B';
+            }
+            return 'A';
+        }    function setupEventListeners() {
+        // 清理旧事件监听器
+        cleanEventListeners();
+
+        // 新增事件清理函数
+        function cleanEventListeners() {
+            // 通过克隆节点移除所有旧监听
+            const elementsToClean = ['prev-month', 'next-month'];
+            elementsToClean.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.replaceWith(el.cloneNode(true));
+            });
+        }
 
         // 创建带防抖的处理器
         function createMonthHandler(offset) {
@@ -350,6 +526,24 @@
             }
             return 'A';
         }
+
+        // 主题切换
+        state.domCache.themeToggle.addEventListener('click', toggleTheme);
+
+        // 工资配置
+        state.domCache.baseSalaryInput.addEventListener('change', updateSalaryConfig);
+
+        // 其他操作
+        document.getElementById('clear-all-data').addEventListener('click', clearAllData);
+
+        // 自动保存
+        // state.domCache.hoursInput.addEventListener('blur', autoSaveHours);
+
+        state.domCache.saveSalary.addEventListener('click', updateSalaryConfig);
+
+        // 使用事件委托处理日历点击
+        state.domCache.calendarDays.addEventListener('click', handleCalendarDayClick);
+    }
 
         // 主题切换
         state.domCache.themeToggle.addEventListener('click', toggleTheme);
@@ -1844,24 +2038,32 @@
     }
 
     // 修复记录视图月份切换
-    function changeRecordsMonth(offset) {
-        state.recordsViewMonth += offset;
+function changeRecordsMonth(offset) {
+    // 添加防抖检查
+    if (this._isChangingMonth) return;
+    this._isChangingMonth = true;
+    
+    console.log("changeRecordsMonth called with offset:", offset); // 调试用
+    
+    // 创建新的日期对象避免直接修改状态
+    const newDate = new Date(state.recordsViewYear, state.recordsViewMonth - 1 + offset, 1);
+    
+    state.recordsViewYear = newDate.getFullYear();
+    state.recordsViewMonth = newDate.getMonth() + 1;
+    
+    // 更新选择器值
+    state.domCache.yearSelect.value = state.recordsViewYear;
+    state.domCache.monthSelect.value = state.recordsViewMonth;
+    
+    state.recordsViewMode = 'specific';
+    updateRecordsView();
+    
+    // 防抖解锁
+    setTimeout(() => {
+        this._isChangingMonth = false;
+    }, 100);
+}
 
-        if (state.recordsViewMonth < 1) {
-            state.recordsViewMonth = 12;
-            state.recordsViewYear--;
-        } else if (state.recordsViewMonth > 12) {
-            state.recordsViewMonth = 1;
-            state.recordsViewYear++;
-        }
-
-        // 更新选择器值
-        state.domCache.yearSelect.value = state.recordsViewYear;
-        state.domCache.monthSelect.value = state.recordsViewMonth;
-
-        state.recordsViewMode = 'specific';
-        updateRecordsView();
-    }
 
     // 显示当前月记录
     function showCurrentMonthRecords() {
