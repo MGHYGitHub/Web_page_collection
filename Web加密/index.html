@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>JS 在线加密工具</title>
+  <script src="https://cdn.jsdelivr.net/npm/javascript-obfuscator/dist/index.browser.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background: #f0f2f5;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    textarea {
+      width: 48%;
+      height: 400px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      resize: none;
+      background: #fff;
+    }
+    button {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 30px;
+      font-size: 16px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>JavaScript 在线加密工具</h1>
+
+  <div class="container">
+    <textarea id="inputCode" placeholder="请输入原始 JavaScript 代码..."></textarea>
+    <textarea id="outputCode" placeholder="加密后的代码将在此显示..." readonly></textarea>
+  </div>
+
+  <button onclick="encryptCode()">加密</button>
+
+  <script>
+    function encryptCode() {
+      const input = document.getElementById("inputCode").value;
+
+      try {
+        const obfuscated = JavaScriptObfuscator.obfuscate(input, {
+          compact: true,
+          controlFlowFlattening: true,
+          deadCodeInjection: true,
+          debugProtection: false,
+          disableConsoleOutput: true,
+          stringArray: true,
+          stringArrayEncoding: ['base64'], // 可设置为 'rc4'/'base64'
+          stringArrayThreshold: 0.75,
+        });
+
+        document.getElementById("outputCode").value = obfuscated.getObfuscatedCode();
+      } catch (e) {
+        alert("加密失败，请检查代码是否有语法错误！");
+        console.error(e);
+      }
+    }
+  </script>
+
+</body>
+</html>
