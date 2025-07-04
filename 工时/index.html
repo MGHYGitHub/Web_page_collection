@@ -16,12 +16,6 @@
             --font: 'Segoe UI', Roboto, sans-serif;
         }
 
-        /* 添加CSS样式 */
-        .day.today {
-            box-shadow: 0 0 0 2px var(--accent);
-            font-weight: bold;
-        }
-
         * {
             box-sizing: border-box;
         }
@@ -501,6 +495,92 @@
             background-color: #ffeb3b;
             border: 1px dashed #ff9800;
         }
+
+        .day.today>div:first-child::after {
+            content: "";
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 50%;
+        }
+
+        /* 添加加班类型和时长的显示样式 */
+        /* 保持加班时长显示的样式 */
+        .overtime-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: rgba(0, 123, 255, 0.1);
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            font-size: 0.7rem;
+            margin-top: 2px;
+        }
+
+        /* 不同类型设置不同颜色 */
+        .badge-A {
+            color: #2e7d32;
+            border-color: #2e7d32;
+            background-color: rgba(46, 125, 50, 0.1);
+        }
+
+        .badge-B {
+            color: #1565c0;
+            border-color: #1565c0;
+            background-color: rgba(21, 101, 192, 0.1);
+        }
+
+        .badge-C {
+            color: #6a1b9a;
+            border-color: #6a1b9a;
+            background-color: rgba(106, 27, 154, 0.1);
+        }
+
+        .badge-leave {
+            color: #c62828;
+            border-color: #c62828;
+            background-color: rgba(198, 40, 40, 0.1);
+        }
+
+        #rateTips {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 123, 255, 0.2);
+        }
+
+        #rateDetails span {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(0, 123, 255, 0.05);
+        }
+
+        /* 日期数字基础样式 */
+        .day-number {
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* 今天日期的特殊样式 - 居中高亮圆形 */
+        .today-highlight {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            color: white;
+            margin: 0 auto;
+        }
+
+        /* 移除原来的小蓝点样式 */
+        .day.today>div:first-child::after {
+            display: none;
+        }
     </style>
 </head>
 
@@ -511,6 +591,17 @@
         <input type="number" id="salaryInput" value="4600" style="width: 80px;" />
         <span id="dailyWage">日薪：¥0.00</span>
         <span id="hourlyWage">时薪：¥0.00</span>
+    </div>
+
+    <!-- 添加加班费率提示 -->
+    <div id="rateTips" class="glass" style="margin-bottom: 10px; padding: 8px 12px;">
+        <!-- <div style="margin-bottom: 5px;">加班费率：工作日1.5倍(×1.5) | 周末2倍(×2) | 节假日3倍(×3)</div> -->
+        <div id="rateDetails" style="display: flex; gap: 15px; font-size: 0.9em;">
+            <span>工作日 (<span id="weekdayRate">0.00元/时</span>)</span>
+            <span>周末 (<span id="weekendRate">0.00元/时</span>)</span>
+            <span>节假日 (<span id="holidayRate">0.00元/时</span>)</span>
+            <span>调休工作日 (<span id="adjustedRate">0.00元/时</span>)</span>
+        </div>
     </div>
 
 
@@ -648,10 +739,10 @@
     <script>
         // 工资计算函数
         function daily() {
-            return salary / 21.75; // 使用已定义的salary变量
+            return salary / 21.75; // 月薪/21.75天
         }
         function hourly() {
-            return daily() / 8;
+            return daily() / 8; // 日薪/8小时
         }
 
         let monthlyAllowances = JSON.parse(localStorage.getItem("monthlyAllowances")) || {};
@@ -749,6 +840,8 @@
 
         function applyBatchChanges() {
             const hours = parseFloat(document.getElementById('batchHoursInput').value);
+
+            const isLeave = hours < 0;  // 明确定义
             if (isNaN(hours)) {
                 alert("请输入有效的数字");
                 return;
@@ -756,36 +849,41 @@
 
             const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
 
-            // 如果该月份不存在则初始化
             if (!monthlyRecords[currentMonthKey]) {
                 monthlyRecords[currentMonthKey] = {};
             }
 
             selectedDates.forEach(date => {
                 if (hours === 0) {
-                    // 同时从records和monthlyRecords中删除
                     delete records[date];
                     delete monthlyRecords[currentMonthKey][date];
                 } else {
                     const isHoliday = holidays.includes(date);
                     const isWeekend = [0, 6].includes(new Date(date).getDay());
                     const isAdjust = adjustDays.includes(date);
+                    const isSpecial = specialWorkdays.includes(date);
                     const leave = hours < 0;
+
+                    // 修改后的倍率计算逻辑
                     const multiplier = leave ? 1.5 :
-                        holidays.includes(selectedDate) ? 3 :
-                            specialWorkdays.includes(selectedDate) ? 2 : // 特殊调休日2倍
-                                [0, 6].includes(new Date(selectedDate).getDay()) ? 2 : // 周末2倍
-                                    adjustDays.includes(selectedDate) ? 1.5 : // 调休工作日1.5倍
+                        isHoliday ? 3 :
+                            isAdjust ? 1.5 : // 补班日1.5倍
+                                isSpecial ? 2 :
+                                    isWeekend ? 2 :
                                         1.5; // 普通工作日1.5倍
 
-
-
-                    // 同时更新records和monthlyRecords
+                    // 在 applyBatchChanges() 函数中修改为：
                     records[date] = {
-                        hours: hours,
+                        hours: Math.abs(hours), // 存储绝对值
                         leave: leave,
-                        multiplier: multiplier,
-                        pay: hours * multiplier * hourly()
+                        multiplier: leave ? 1.5 : (   // 请假1.5倍，否则按正常加班规则计算
+                            holidays.includes(date) ? 3 :
+                                specialWorkdays.includes(date) ? 2 :
+                                    [0, 6].includes(new Date(date).getDay()) ? 2 : 1.5
+                        ),
+                        pay: leave ?
+                            -(Math.abs(hours) * hourly() * 1.5) :
+                            (hours * multiplier * hourly())
                     };
 
                     monthlyRecords[currentMonthKey][date] = {
@@ -843,7 +941,7 @@
             const calendar = document.getElementById("calendar");
             calendar.innerHTML = "";
 
-            // 添加美观的星期标题行
+            // 添加星期标题行
             const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
             weekdays.forEach(day => {
                 const dayHeader = document.createElement("div");
@@ -856,17 +954,17 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const todayStr = new Date().toISOString().slice(0, 10);
 
-            for (let i = 0; i < firstDay; i++) calendar.appendChild(document.createElement("div"));
+            // 添加空白格子
+            for (let i = 0; i < firstDay; i++) {
+                calendar.appendChild(document.createElement("div"));
+            }
+
+            // 添加日期格子
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                 const dayEl = document.createElement("div");
                 dayEl.className = "day";
-
-                // 今天高亮显示
-                if (dateStr === todayStr) {
-                    dayEl.classList.add("today");
-                    dayEl.innerHTML = `<div>${day}</div><div class="day-info">今天</div>`;
-                }
+                dayEl.dataset.date = dateStr;
 
                 // 设置日期样式
                 if (holidays.includes(dateStr)) {
@@ -884,18 +982,42 @@
                     dayEl.classList.add("leave");
                 }
 
-                dayEl.dataset.date = dateStr;
+                // 添加日期数字
+                const dayNumber = document.createElement("div");
+                dayNumber.className = "day-number";
+                dayNumber.textContent = day;
 
-                // 如果不是今天，使用原来的内容
-                if (dateStr !== todayStr) {
-                    dayEl.innerHTML = `<div>${day}</div><div class="day-info">${currentMonthRecords[dateStr]?.hours && currentMonthRecords[dateStr].hours !== 0
-                        ? currentMonthRecords[dateStr].hours
-                        : ""
-                        }</div>`;
+                // 如果是今天，添加高亮样式
+                if (dateStr === todayStr) {
+                    dayNumber.classList.add("today-highlight");
+                }
+
+                dayEl.appendChild(dayNumber);
+
+                // 添加加班标记（如果有记录）
+                const record = currentMonthRecords[dateStr];
+                if (record?.hours && record.hours !== 0) {
+                    const typeClass = record.leave ? "badge-leave" :
+                        holidays.includes(dateStr) ? "badge-C" :
+                            specialWorkdays.includes(dateStr) ? "badge-B" :
+                                [0, 6].includes(new Date(dateStr).getDay()) ? "badge-B" :
+                                    "badge-A";
+
+                    const typeText = record.leave ? "请假" :
+                        holidays.includes(dateStr) ? "C" :
+                            specialWorkdays.includes(dateStr) ? "B" :
+                                [0, 6].includes(new Date(dateStr).getDay()) ? "B" :
+                                    "A";
+
+                    const badge = document.createElement("div");
+                    badge.className = `overtime-badge ${typeClass}`;
+                    badge.textContent = `${typeText}-${Math.abs(record.hours)}h`;
+                    dayEl.appendChild(badge);
                 }
 
                 calendar.appendChild(dayEl);
             }
+
             document.getElementById("yearSelect").value = year;
             document.getElementById("monthSelect").value = month;
             updateStats();
@@ -978,11 +1100,11 @@
             selectedDate = dateStr;
             document.getElementById("modalDate").innerText = dateStr;
             document.getElementById("modalType").innerText =
-                holidays.includes(dateStr) ? "节假日(C)" :
-                    specialWorkdays.includes(dateStr) ? "调休日(B)" :
-                        [0, 6].includes(new Date(dateStr).getDay()) ? "周末(B)" :
-                            adjustDays.includes(dateStr) ? "调休工作日(A)" :
-                                "工作日(A)";
+                holidays.includes(dateStr) ? "节假日(C类)" :
+                    adjustDays.includes(dateStr) ? "调休工作日(A类)" : // 先判断补班日
+                        specialWorkdays.includes(dateStr) ? "调休日(B类)" :
+                            [0, 6].includes(new Date(dateStr).getDay()) ? "周末(B类)" :
+                                "工作日(A类)";
             document.getElementById("modal").style.display = "flex";
 
             const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
@@ -1013,19 +1135,13 @@
                         const isAdjust = adjustDays.includes(selectedDate);
                         const isSpecial = specialWorkdays.includes(selectedDate);
                         const leave = val < 0;  // 添加这行定义leave变量
+                        // 在 keydown 事件处理中
                         const multiplier = leave ? 1.5 :
-                            isHoliday ? 3 :
-                                isSpecial ? 2 :
-                                    isWeekend ? 2 :
-                                        isAdjust ? 1.5 :
+                            holidays.includes(selectedDate) ? 3 :
+                                adjustDays.includes(selectedDate) ? 1.5 : // 先判断补班日
+                                    specialWorkdays.includes(selectedDate) ? 2 :
+                                        [0, 6].includes(new Date(selectedDate).getDay()) ? 2 :
                                             1.5;
-
-                        monthlyRecords[currentMonthKey][selectedDate] = {
-                            hours: val,
-                            leave,
-                            multiplier,
-                            pay: +(val * multiplier * hourly()).toFixed(2),
-                        };
 
                         // 同时更新全局records
                         records[selectedDate] = {
@@ -1050,10 +1166,13 @@
         }
 
         // 在 `keydown` 事件处理中调整扣款计算
-        document.getElementById("overtimeInput").addEventListener("keydown", e => {
+        document.getElementById("overtimeInput").addEventListener("keydown", function (e) {
             if (e.key === "Enter") {
                 const val = parseFloat(e.target.value);
                 if (!isNaN(val)) {
+                    // 修复：明确定义 isLeave 变量
+                    const isLeave = val < 0;  // 添加这行定义
+
                     const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
                     if (!monthlyRecords[currentMonthKey]) {
                         monthlyRecords[currentMonthKey] = {};
@@ -1067,27 +1186,31 @@
                         const isWeekend = [0, 6].includes(new Date(selectedDate).getDay());
                         const isAdjust = adjustDays.includes(selectedDate);
                         const isSpecial = specialWorkdays.includes(selectedDate);
-                        const leave = val < 0;  // 添加这行定义leave变量
-                        const multiplier = leave ? 1.5 :
+
+                        // 使用已定义的 isLeave 变量
+                        const multiplier = isLeave ? 1.5 :
                             isHoliday ? 3 :
-                                isSpecial ? 2 :
-                                    isWeekend ? 2 :
-                                        isAdjust ? 1.5 :
+                                isAdjust ? 1.5 :
+                                    isSpecial ? 2 :
+                                        isWeekend ? 2 :
                                             1.5;
 
                         monthlyRecords[currentMonthKey][selectedDate] = {
-                            hours: val,
-                            leave,
-                            multiplier,
-                            pay: +(val * multiplier * hourly()).toFixed(2),
+                            hours: isLeave ? Math.abs(val) : val,
+                            leave: isLeave,
+                            multiplier: multiplier,
+                            pay: isLeave ?
+                                -(Math.abs(val) * hourly() * multiplier) :
+                                (val * multiplier * hourly())
                         };
 
-                        // 同时更新全局records
                         records[selectedDate] = {
-                            hours: val,
-                            leave,
-                            multiplier,
-                            pay: +(val * multiplier * hourly()).toFixed(2),
+                            hours: isLeave ? Math.abs(val) : val,
+                            leave: isLeave,
+                            multiplier: multiplier,
+                            pay: isLeave ?
+                                -(Math.abs(val) * hourly() * multiplier) :
+                                (val * multiplier * hourly())
                         };
                     }
 
@@ -1108,59 +1231,66 @@
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 try {
+                    // 添加这行代码，重新计算所有记录的金额
+                    recalculateAllRecords();
                     const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
                     const currentMonthRecords = monthlyRecords[currentMonthKey] || {};
                     const currentMonthAllowances = monthlyAllowances[currentMonthKey] || [];
 
-                    // 确保所有需要的元素都存在
-                    const requiredElements = [
-                        'totalOvertime', 'netOvertime', 'totalLeave', 'leaveDeduction',
-                        'overtimePay', 'payA', 'payB', 'payC', 'realPay', 'paySpecial',
-                        'allowanceLabel', 'totalAllowance', 'dailyWage', 'hourlyWage'
-                    ];
-
-                    for (const id of requiredElements) {
-                        if (!document.getElementById(id)) {
-                            console.error(`Element with id '${id}' not found`);
-                            return;
-                        }
-                    }
-
                     // 初始化统计变量
                     let total = 0;      // 总加班时长
-                    let leave = 0;      // 总请假时长
+                    let leave = 0;      // 总请假时长(正数)
                     let payA = 0, payB = 0, payC = 0, paySpecial = 0;
+                    let leaveDeductionAmount = 0; // 初始化请假扣款变量
 
                     // 计算当前月份的补贴总额
                     let allowanceTotal = currentMonthAllowances.reduce((sum, item) => sum + item.amount, 0);
 
                     // 计算加班和请假数据
                     for (const [date, r] of Object.entries(currentMonthRecords)) {
-                        const currentPay = r.hours * r.multiplier * hourly();
                         if (r.leave) {
+                            // 请假计算（使用存储的multiplier确保一致性）
                             leave += Math.abs(r.hours);
+                            // 计算请假扣款 - 改为按时薪计算
+                            leaveDeductionAmount += Math.abs(r.pay); // 直接使用存储的扣款金额
                         } else {
+                            // 加班计算
                             total += r.hours;
+                            const currentPay = r.hours * r.multiplier * hourly();
+
                             if (specialWorkdays.includes(date)) {
-                                paySpecial += currentPay; // 特殊调休日按2倍计算
+                                paySpecial += currentPay;
                             } else if (holidays.includes(date)) {
-                                payC += currentPay; // 节假日3倍
-                            } else if ([0, 6].includes(new Date(date).getDay())) {
-                                payB += currentPay; // 周末2倍
+                                payC += currentPay;
                             } else if (adjustDays.includes(date)) {
-                                payA += currentPay; // 调休工作日1.5倍
+                                payA += currentPay;
+                            } else if ([0, 6].includes(new Date(date).getDay())) {
+                                payB += currentPay;
                             } else {
-                                payA += currentPay; // 普通工作日1.5倍
+                                payA += currentPay;
                             }
                         }
                     }
+                    function recalculateAllRecords() {
+                        // 遍历所有月份的记录
+                        for (const [monthKey, monthRecords] of Object.entries(monthlyRecords)) {
+                            for (const [date, record] of Object.entries(monthRecords)) {
+                                if (record) {
+                                    // 重新计算金额
+                                    record.pay = record.leave ?
+                                        -(Math.abs(record.hours) * hourly() * record.multiplier) :
+                                        (record.hours * record.multiplier * hourly());
+                                }
+                            }
+                        }
 
-                    // 计算实际工资（加班费 + 补贴）
+                        // 保存更新后的记录
+                        localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
+                        localStorage.setItem("records", JSON.stringify(records));
+                    }
+                    // 计算实际工资（标准工资 + 加班费 + 补贴 - 请假扣款）
                     const totalPay = payA + payB + payC + paySpecial;
-                    const realPay = totalPay + allowanceTotal;
-
-                    // 计算请假扣款
-                    const leaveDeductionAmount = leave * hourly();
+                    const realPay = salary + totalPay + allowanceTotal - leaveDeductionAmount;
 
                     // 更新DOM元素
                     document.getElementById("totalOvertime").innerText = total.toFixed(1);
@@ -1174,8 +1304,15 @@
                     document.getElementById("paySpecial").innerText = `¥${paySpecial.toFixed(0)}`;
                     document.getElementById("realPay").innerText = `¥${realPay.toFixed(0)}`;
                     document.getElementById("totalAllowance").innerText = `¥${allowanceTotal.toFixed(0)}`;
-                    document.getElementById("dailyWage").innerText = `¥${daily().toFixed(0)}`;
-                    document.getElementById("hourlyWage").innerText = `¥${hourly().toFixed(0)}`;
+                    document.getElementById("dailyWage").innerText = `日薪：¥${daily().toFixed(2)}`;
+                    document.getElementById("hourlyWage").innerText = `时薪：¥${hourly().toFixed(2)}`;
+
+                    // 更新加班费率详情
+                    const baseHourly = hourly();
+                    document.getElementById("weekdayRate").innerText = `${(baseHourly * 1.5).toFixed(2)}元/时`;
+                    document.getElementById("weekendRate").innerText = `${(baseHourly * 2).toFixed(2)}元/时`;
+                    document.getElementById("holidayRate").innerText = `${(baseHourly * 3).toFixed(2)}元/时`;
+                    document.getElementById("adjustedRate").innerText = `${(baseHourly * 2).toFixed(2)}元/时`;
 
                     // 更新补贴标签显示
                     const allowanceLabel = document.getElementById("allowanceLabel");
@@ -1183,6 +1320,7 @@
                         `补贴(${currentMonthAllowances.length}项)` : "补贴";
 
                     localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
+                    renderDetailTable();
                 } catch (error) {
                     console.error("Error in updateStats:", error);
                 }
@@ -1203,36 +1341,45 @@
             const currentMonthRecords = monthlyRecords[currentMonthKey] || {};
             const tbody = document.getElementById("detailTable");
 
-            if (!tbody) {
-                console.error("错误：找不到ID为'detailTable'的表格tbody元素");
-                return;
-            }
+            if (!tbody) return;
 
-            tbody.innerHTML = ""; // 清空现有内容
+            tbody.innerHTML = "";
 
             if (Object.keys(currentMonthRecords).length === 0) {
-                tbody.innerHTML = `
-            <td colspan="5" style="text-align:center;color:#999;padding:1rem;">
-                暂无加班记录，请添加记录
-            </td>
-        `;
+                tbody.innerHTML = `<td colspan="5" style="text-align:center;color:#999;padding:1rem;">暂无加班记录，请添加记录</td>`;
                 return;
             }
 
-            // 按日期排序
             const sortedRecords = Object.entries(currentMonthRecords)
                 .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB));
 
             sortedRecords.forEach(([date, record]) => {
-                if (record.hours === 0) return; // 跳过0小时的记录
+                if (!record || record.hours === 0) return;  // 添加空值检查
+
+                const typeClass = record.leave ? "badge-leave" :
+                    holidays.includes(date) ? "badge-C" :
+                        specialWorkdays.includes(date) ? "badge-B" :
+                            [0, 6].includes(new Date(date).getDay()) ? "badge-B" :
+                                "badge-A";
+
+                const typeText = record.leave ? "请假" :
+                    holidays.includes(date) ? "C类加班" :
+                        specialWorkdays.includes(date) ? "B类加班" :
+                            [0, 6].includes(new Date(date).getDay()) ? "B类加班" :
+                                "A类加班";
+
+                // 统一使用存储的pay值，确保显示一致
+                const displayPay = record.leave ?
+                    `-¥${Math.abs(record.pay).toFixed(2)}` :
+                    `¥${record.pay.toFixed(2)}`;
 
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
             <td>${date}</td>
-            <td>${record.leave ? "请假" : "加班"}</td>
+            <td><span class="overtime-badge ${typeClass}">${typeText}</span></td>
             <td>${record.hours}小时</td>
             <td>${record.multiplier}倍</td>
-            <td>¥${(record.hours * record.multiplier * hourly()).toFixed(2)}</td>
+            <td>${displayPay}</td>
         `;
                 tbody.appendChild(tr);
             });
@@ -1289,13 +1436,13 @@
                 // 3. 统计表
                 const statsData = [
                     ["统计项", "值"],
+                    ["标准工资", `¥${salary.toFixed(2)}`],
                     ["总加班时长", document.getElementById("totalOvertime").textContent],
                     ["总请假时长", document.getElementById("totalLeave").textContent],
                     ["加班工资", document.getElementById("overtimePay").textContent],
                     ["请假扣款", document.getElementById("leaveDeduction").textContent],
                     ["补贴扣款", document.getElementById("totalAllowance").textContent],
                     ["实发工资", document.getElementById("realPay").textContent],
-                    ["标准工资", salary],
                     ["导出时间", new Date().toLocaleString()]
                 ];
                 const wsStats = XLSX.utils.aoa_to_sheet(statsData);
@@ -1423,9 +1570,15 @@
         }
 
         // 实时监听工资输入框
-        document.getElementById("salaryInput").addEventListener("change", e => {
-            salary = parseFloat(e.target.value) || 4600;
+        document.getElementById("salaryInput").addEventListener("input", function (e) {
+            salary = parseFloat(e.target.value) || 0;
             localStorage.setItem("baseSalary", salary);
+
+            // 更新工资显示
+            document.getElementById("dailyWage").innerText = `日薪：¥${(salary / 21.75).toFixed(2)}`;
+            document.getElementById("hourlyWage").innerText = `时薪：¥${hourly().toFixed(2)}`;
+
+            // 强制更新所有统计和记录
             updateStats();
         });
 
