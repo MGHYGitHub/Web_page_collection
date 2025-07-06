@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +18,6 @@
             padding: 20px;
             position: relative;
         }
-
         #top-controls {
             position: absolute;
             top: 20px;
@@ -27,10 +25,7 @@
             display: flex;
             align-items: center;
         }
-
-        #currentTimeBtn,
-        #exportBtn,
-        #toggleMsBtn {
+        #currentTimeBtn, #exportBtn, #toggleMsBtn {
             padding: 10px 15px;
             font-size: 16px;
             cursor: pointer;
@@ -39,39 +34,30 @@
             margin-right: 10px;
             transition: background 0.3s;
         }
-
         #currentTimeBtn {
             background-color: #00796b;
             color: white;
         }
-
         #exportBtn {
             background-color: #42a5f5;
             color: white;
         }
-
         #toggleMsBtn {
             background-color: #f44336;
             color: white;
         }
-
         #toggleMsBtn.on {
             background-color: #4caf50;
         }
-
-        #currentTimeBtn:hover,
-        #exportBtn:hover,
-        #toggleMsBtn:hover {
+        #currentTimeBtn:hover, #exportBtn:hover, #toggleMsBtn:hover {
             opacity: 0.8;
         }
-
         #timer {
             font-size: 48px;
             color: #00796b;
             margin-bottom: 20px;
             text-align: center;
         }
-
         .control-button {
             padding: 10px 20px;
             font-size: 16px;
@@ -83,12 +69,10 @@
             color: white;
             transition: background 0.3s, transform 0.2s;
         }
-
         .control-button:hover {
             background: linear-gradient(90deg, #478ed1, #42a5f5);
             transform: scale(1.05);
         }
-
         #records {
             margin-top: 20px;
             width: 350px;
@@ -99,7 +83,6 @@
             background-color: #ffffff;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-
         .record {
             display: flex;
             align-items: center;
@@ -107,34 +90,28 @@
             border-bottom: 1px solid #eee;
             transition: background 0.2s;
         }
-
         .record:hover {
             background-color: #f1f1f1;
         }
-
         .record:last-child {
             border-bottom: none;
         }
-
         .index {
             font-weight: bold;
             color: #00796b;
             margin-right: 10px;
             min-width: 20px;
         }
-
         .separator {
             margin: 0 5px;
             color: #00796b;
         }
-
         .time {
             font-size: 14px;
             color: #00796b;
             margin-right: 10px;
             min-width: 80px;
         }
-
         .interval {
             font-size: 12px;
             color: #ff5722;
@@ -142,7 +119,6 @@
             min-width: 60px;
             font-style: italic;
         }
-
         .remark {
             flex-grow: 1;
             border: none;
@@ -151,12 +127,10 @@
             font-size: 14px;
             color: #333;
         }
-
         #currentTime {
             font-size: 16px;
             color: white;
         }
-
         #shortcuts {
             position: absolute;
             right: 20px;
@@ -172,7 +146,6 @@
         }
     </style>
 </head>
-
 <body>
 
     <div id="top-controls">
@@ -190,17 +163,6 @@
     <button class="control-button" id="countBtn" style="display:none;">计数</button>
 
     <div id="records"></div>
-
-    <div id="shortcuts">
-        <strong>快捷键提示：</strong><br>
-        开始/继续: S<br>
-        暂停: P<br>
-        重置: R<br>
-        计数: C<br>
-        导出: E<br>
-        切换毫秒显示: M<br><br>
-        备注输入后按Enter确认键保存,双击备注地方即可修改<br>
-    </div>
 
     <script>
         let timerInterval;
@@ -236,7 +198,7 @@
             recordDiv.className = 'record';
             recordCount++;
             const timeText = formatTime(milliseconds);
-
+            
             // 计算间隔时间
             let intervalText = '';
             if (recordCount > 1) {
@@ -271,12 +233,8 @@
             remarkInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
                     remarkInput.readOnly = true;
-                } else if (event.key === 'Escape') {
-                    remarkInput.readOnly = true;
-                    remarkInput.blur(); // 移除焦点
                 }
             });
-
 
             remarkInput.addEventListener('dblclick', () => {
                 remarkInput.readOnly = false;
@@ -383,80 +341,37 @@
         });
 
         setInterval(updateCurrentTime, 1000);
-
-        // 添加快捷键
-        // 修改后的快捷键监听代码
-        document.addEventListener('keydown', (event) => {
-            // 如果焦点在备注输入框，则不触发快捷键
-            if (event.target.classList.contains('remark')) {
-                return;
-            }
-
-            const key = event.key.toLowerCase();
-            switch (key) {
-                case 's': // 开始/继续
-                    if (!isRunning) {
-                        startTimer();
-                    }
-                    break;
-                case 'p': // 暂停
-                    if (isRunning) {
-                        isRunning = false;
-                        document.getElementById('pauseBtn').style.display = 'none';
-                        document.getElementById('startBtn').innerText = '继续';
-                        document.getElementById('startBtn').style.display = 'inline-block';
-                    }
-                    break;
-                case 'r': // 重置
-                    document.getElementById('resetBtn').click();
-                    break;
-                case 'c': // 计数
-                    if (isRunning) {
-                        addRecord();
-                    }
-                    break;
-                case 'e': // 导出
-                    exportToTXT();
-                    break;
-                case 'm': // 切换毫秒显示
-                    document.getElementById('toggleMsBtn').click();
-                    break;
-            }
-        });
-
-
+        
         // 防伪信息 - 兼容深色/浅色模式
         window.addEventListener('load', () => {
             // 简单的分隔线
-            console.log("%c====================================",
+            console.log("%c====================================", 
                 "color: #888; font-size: 12px;");
-
+            
             // 标题
-            console.log("%c计时器控制台信息",
+            console.log("%c计时器控制台信息", 
                 "color: white; background: #333; font-size: 18px; font-weight: bold; padding: 5px 15px; border-radius: 4px;");
-
+            
             // 版权信息
-            console.log("%c版权所有 © 2024 廖工",
+            console.log("%c版权所有 © 2025 廖工", 
                 "color: white; background: #ff5722; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
-
+            
             // 联系方式
-            console.log("%c如有任何问题，请联系: 84376722",
+            console.log("%c如有任何问题，请联系: 84376722", 
                 "color: white; background: #2196F3; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
-
+            
             // 版本信息
-            console.log("%c版本 V3.2",
+            console.log("%c版本 V3.2", 
                 "color: white; background: #4CAF50; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
-
+            
             // 安全警告
-            console.log("%c请勿在此处输入任何代码，以防安全风险",
+            console.log("%c请勿在此处输入任何代码，以防安全风险", 
                 "color: #ffeb3b; background: #f44336; font-size: 14px; font-weight: bold; padding: 5px 10px; border-radius: 3px;");
-
+            
             // 结束分隔线
-            console.log("%c====================================",
-                "color: #888; font-size: 12px;");
-        });
+            console.log("%c====================================", 
+                "color: #888; font-size: 12px;"); });
     </script>
 
 </body>
-
 </html>
