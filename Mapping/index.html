@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>蓝膜 Mapping 工具</title>
-  <script src="/xlsx.full.min.js"></script>
+  <script src="./xlsx.full.min.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -132,7 +132,7 @@
       有料：0， 无料：0，总数：0
     </div>
     <div id="controls">
-      <input type="file" id="upload" accept=".xlsx, .xls" />
+      <input type="file" id="upload" accept=".xlsx, .xls, .csv" />
       <button onclick="setBin(1)">设置为有料（1）</button>
       <button onclick="setBin(2)">设置为无料（2）</button>
       <button onclick="updateCellSize(5)">放大</button>
@@ -180,7 +180,7 @@
         maxCol = 0;
 
         json.forEach(row => {
-          const r = parseInt(row["BAR_Y"]);
+          const r = parseInt(row["Bar_Y"]);
           const c = parseInt(row["Chip No"]);
           const bin = parseInt(row["Bin"]);
           if (!isNaN(r) && !isNaN(c)) {
@@ -323,14 +323,14 @@
     // 修改导出函数：加入固定表头数据
     function exportToExcel() {
       const headers = [
-        "CUSTOMER PRODUCT ID", "COL QTY BAR", "ROW QTY BAR", "DIE ON BAR STD",
-        "BAR No", "Lot ID", "Wafer ID", "Carrier ID", "Bar_X",
-        "BAR_Y", "Chip No", "Die ID", "Bin"
+        "CUSTOMER PRODUCT ID ", "COL QTY BAR", "ROW QTY BAR", "DIE ON BAR STD",
+        "BAR No", "Lot ID", "Wafer ID ", "Carrier ID", "Bar_X",
+        "Bar_Y", "Chip No", "Die ID", "Bin"
       ];
 
       const fixedFields = [
         "OC3610-TX1 V200-Chip-CH4", 4, 24, 23,
-        "", "A120J62#01-2", "A120J62#01-2", "A120J62#01-2CC02", 0
+        0, "A120J62#01-2", "A120J62#01-2", "A120J62#01-2CC02", 0
       ];
 
       const dieIdList = Array.from({ length: 1311 }, (_, i) => "FD" + String(i + 1).padStart(2, '0'));
@@ -353,7 +353,7 @@
       const worksheet = XLSX.utils.aoa_to_sheet(data);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Mapping");
-      XLSX.writeFile(workbook, `mapping_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.xlsx`);
+      XLSX.writeFile(workbook, `mapping_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`);
     }
     // 初始化时优先从localStorage加载
     function loadFromLocalStorage() {
@@ -416,7 +416,7 @@
     };
     function downloadTemplate() {
       const a = document.createElement('a');
-      a.href = "/Mapping/TIA.xlsx";
+      a.href = "https://clouddrive.huawei.com/p/4f0038a0360dafac00e15c03cfce99a3";
       a.download = "TIA.xlsx";
       a.click();
     }
