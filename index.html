@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>极简导航面板</title>
+  <!-- 预加载CSS提高性能 -->
+  <link rel="preload" href="style.css" as="style">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/x-icon" href="./icons/dh.ico">
+</head>
+<body>
+  <div class="container">
+    <div class="layout-wrapper">
+      <div class="main-content">
+        <header>
+          <h1>极简导航</h1>
+          <p class="subtitle">快速访问您的数字资源</p>
+        </header>
+        
+        <div class="search-container">
+          <input type="text" class="search-input" placeholder="搜索导航项..." aria-label="搜索导航项">
+        </div>
+        
+        <div class="category-filter" id="categoryFilter"></div>
+        
+        <div class="cards-container" id="cardsContainer"></div>
+      </div>
+    </div> <!-- 闭合 layout-wrapper -->
+  </div> <!-- 闭合 container -->
+
+  <div class="announcement-modal" id="announcementModal">
+    <div class="announcement-content">
+      <div class="announcement-header">
+        <h3>📢 重要公告</h3>
+        <button class="announcement-close" onclick="closeAnnouncement()">×</button>
+      </div>
+      <div class="announcement-body">
+        <div class="announcement-item">
+          <div class="announcement-title">个人集合导航站</div>
+          <div class="announcement-text">这是一个导航站,用于个人链接集合录。</div>
+          <div class="announcement-text">可前往仓库下载做内网使用，区分内外网双版本</div>
+          <div class="announcement-text">❌严格禁止❌任何非个人开发原创（含掺杂公司内部链接等信息）或在外网散布内部消息</div>
+        </div>
+        <div class="announcement-item">
+          <div class="announcement-title">项目GitHub仓库</div>
+          <div class="announcement-text">
+            欢迎访问我们的GitHub仓库：
+            <a href="https://github.com/MGHYGitHub/Web_page_collection" 
+               target="_blank" 
+               style="color: var(--primary-color); text-decoration: underline;">
+              Github
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="announcement-footer">
+        <button class="announcement-action dont-show" onclick="dontShowAnnouncement()">24小时内不再显示</button>
+        <button class="announcement-action confirm" onclick="closeAnnouncement()">我知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 异步加载JS -->
+  <script src="links.js" defer></script>
+  <script>
+    // 全局函数
+    function closeAnnouncement() {
+      const modal = document.getElementById('announcementModal');
+      modal.classList.remove('show');
+    }
+
+    function dontShowAnnouncement() {
+      const now = new Date();
+      const dontShowUntil = now.setDate(now.getDate() + 1);
+      localStorage.setItem('announcementDontShowUntil', dontShowUntil.toString());
+      closeAnnouncement();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // 检查本地存储是否设置了不显示
+      const dontShowUntil = localStorage.getItem('announcementDontShowUntil');
+      const now = new Date().getTime();
+      
+      if (!dontShowUntil || now > parseInt(dontShowUntil)) {
+        // 显示公告弹窗
+        setTimeout(() => {
+          const modal = document.getElementById('announcementModal');
+          modal.classList.add('show');
+          
+          // 20秒后自动关闭
+          setTimeout(() => {
+            if (modal.classList.contains('show')) {
+              closeAnnouncement();
+            }
+          }, 20000);
+        }, 1000);
+      }
+
+      // 主逻辑
+      const cardsContainer = document.getElementById('cardsContainer');
+      const categoryFilter = document.getElementById('categoryFilter');
+      const searchInput = document.querySelector('.search-input');
+      
+      // 获取所有分类
+      const categories = [...new Set(linksData.map(item => item.category))];
+      
+      // 生成分类按钮
+      function renderCategoryButtons() {
+        categoryFilter.innerHTML = '';
+        
+        // 添加"全部"按钮
+        const allBtn = document.createElement('button');
+        allBtn.className = 'category-btn active';
+        allBtn.textContent = '全部';
+        allBtn.dataset.category = 'all';
+        allBtn.addEventListener('click', filterByCategory);
+        categoryFilter.appendChild(allBtn);
+        
+        // 添加其他分类按钮
+        categories.forEach(category => {
+          const btn = document.createElement('button');
+          btn.className = 'category-btn';
+          btn.textContent = category;
+          btn.dataset.category = category;
+          btn.addEventListener('click', filterByCategory);
+          categoryFilter.appendChild(btn);
+        });
+      }
+      
+        // 生成卡片
+        function renderCards(data) {
+          cardsContainer.innerHTML = '';
+          
+          data.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.dataset.category = item.category;
+            
+            // 创建图标容器
+            const iconContainer = document.createElement('div');
+            iconContainer.className = 'icon-container';
+            
+            // 1. 优先使用本地图标
+            if (item.localIcon) {
+              iconContainer.innerHTML = `<img src="${item.localIcon}" alt="${item.name}" class="card-icon-img">`;
+            } 
+            // 2. 否则处理在线图标
+            else {
+              try {
+                // 尝试解析URL
+                const domain = new URL(item.url).hostname;
+                const faviconUrl = `https://${domain}/favicon.ico`;
+                
+                const img = document.createElement('img');
+                img.src = faviconUrl;
+                img.alt = item.name;
+                img.className = 'card-icon-img';
+                
+                img.onerror = () => {
+                  // 3. favicon加载失败时显示指定的emoji或默认图标
+                  showFallbackIcon(iconContainer, item.icon);
+                };
+                
+                iconContainer.appendChild(img);
+              } catch (e) {
+                // 4. URL解析失败（如链接错误）直接显示备用图标
+                showFallbackIcon(iconContainer, item.icon);
+              }
+            }
+            
+            card.innerHTML = `
+              <div class="card-content">
+                <h3 class="card-title">${item.name}</h3>
+                <p class="card-main-desc">${item.mainDesc}</p>
+                <p class="card-sub-desc">${item.subDesc}</p>
+                <a href="${item.url}" target="_blank" class="card-link" title="访问${item.name}" aria-label="访问${item.name}"></a>
+              </div>
+            `;
+            
+            // 将图标容器插入到卡片内容的最前面
+            card.querySelector('.card-content').prepend(iconContainer);
+            cardsContainer.appendChild(card);
+          });
+        }
+
+        // 显示备用图标的辅助函数
+        function showFallbackIcon(container, emoji) {
+          container.innerHTML = emoji 
+            ? `<div class="card-icon">${emoji}</div>`
+            : '<div class="card-icon">🌐</div>';
+        }
+      
+      // 分类筛选
+      function filterByCategory(e) {
+        const category = e.target.dataset.category;
+        
+        document.querySelectorAll('.category-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        e.target.classList.add('active');
+        
+        if (category === 'all') {
+          renderCards(linksData);
+        } else {
+          const filteredData = linksData.filter(item => item.category === category);
+          renderCards(filteredData);
+        }
+      }
+      
+      // 搜索功能
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const activeCategory = document.querySelector('.category-btn.active').dataset.category;
+        
+        let filteredData = linksData;
+        
+        if (activeCategory !== 'all') {
+          filteredData = linksData.filter(item => item.category === activeCategory);
+        }
+        
+        filteredData = filteredData.filter(item => 
+          item.name.toLowerCase().includes(searchTerm) || 
+          item.mainDesc.toLowerCase().includes(searchTerm) ||
+          item.subDesc.toLowerCase().includes(searchTerm)
+        );
+        
+        renderCards(filteredData);
+      });
+      
+      // 初始化
+      renderCategoryButtons();
+      renderCards(linksData);
+    });
+  </script>
+</body>
+</html>

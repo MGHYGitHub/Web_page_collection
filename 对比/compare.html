@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>文件对比工具</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    textarea { font-family: monospace; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 4px; white-space: nowrap; }
+    .diff-a { background-color: #d1fae5; } /* 绿色 */
+    .diff-b { background-color: #fee2e2; } /* 红色 */
+    .sticky-header th { position: sticky; top: 0; background: #f3f4f6; z-index: 2; }
+    .sticky-col { position: sticky; left: 0; background: #f9fafb; z-index: 1; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-xl p-6">
+    <h1 class="text-3xl font-bold mb-6 text-blue-600">📄 文件对比工具</h1>
+
+    <div class="mb-4 flex space-x-4">
+      <button onclick="showTab('textTab')" class="bg-blue-500 text-white px-4 py-2 rounded">文本/代码</button>
+      <button onclick="showTab('excelTab')" class="bg-green-500 text-white px-4 py-2 rounded">Excel/CSV</button>
+      <button onclick="showTab('folderTab')" class="bg-gray-500 text-white px-4 py-2 rounded">文件夹对比</button>
+    </div>
+
+    <!-- 文本对比 -->
+    <div id="textTab" class="tab">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <textarea id="textA" rows="15" placeholder="第一个文件内容" class="w-full p-2 border rounded"></textarea>
+        <textarea id="textB" rows="15" placeholder="第二个文件内容" class="w-full p-2 border rounded"></textarea>
+      </div>
+      <button onclick="compareText()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">开始对比</button>
+      <div id="resultText" class="mt-4 bg-gray-100 p-4 rounded border text-sm"></div>
+    </div>
+
+    <!-- Excel 对比 -->
+    <div id="excelTab" class="tab hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <input type="file" id="excelA" accept=".xlsx,.csv" />
+        </div>
+        <div>
+          <input type="file" id="excelB" accept=".xlsx,.csv" />
+        </div>
+      </div>
+      <div class="mt-2 flex items-center space-x-4">
+        <label class="inline-flex items-center">
+          <input type="checkbox" id="onlyDiffRows" class="mr-2"> 仅显示差异行
+        </label>
+      </div>
+      <button onclick="compareExcel()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded">上传并对比</button>
+      <div id="diffSummary" class="mt-4 text-sm text-gray-700"></div>
+      <div id="resultExcel" class="mt-4 overflow-auto border rounded max-h-[600px]"></div>
+    </div>
+
+    <!-- 文件夹对比 -->
+    <div id="folderTab" class="tab hidden">
+      <p class="text-gray-600">⚠️ 文件夹对比功能需配合 Electron 应用或后端接口实现。</p>
+    </div>
+  </div>
+
+  <script>
+    function showTab(id) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function compareText() {
+      const a = document.getElementById('textA').value.split('\n');
+      const b = document.getElementById('textB').value.split('\n');
+      const maxLen = Math.max(a.length, b.length);
+      let result = '';
+      let diffCount = 0;
+      for (let i = 0; i < maxLen; i++) {
+        const lineA = a[i] || '';
+        const lineB = b[i] || '';
+        if (lineA !== lineB) {
+          diffCount++;
+          result += `<div class='mb-2'><strong>第 ${i + 1} 行不同:</strong><br/><span class='text-green-700'>A: ${lineA}</span><br/><span class='text-red-700'>B: ${lineB}</span></div>`;
+        }
+      }
+      if (diffCount === 0) {
+        result = '<span class="text-green-600">两个文件完全一致。</span>';
+      }
+      document.getElementById('resultText').innerHTML = result;
+    }
+
+    function readExcel(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        callback(json);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function compareExcel() {
+      const fileA = document.getElementById('excelA').files[0];
+      const fileB = document.getElementById('excelB').files[0];
+      const onlyDiff = document.getElementById('onlyDiffRows').checked;
+      if (!fileA || !fileB) {
+        alert("请上传两个文件");
+        return;
+      }
+
+      readExcel(fileA, dataA => {
+        readExcel(fileB, dataB => {
+          const maxRows = Math.max(dataA.length, dataB.length);
+          const maxCols = Math.max(
+            ...dataA.map(r => r.length).concat(dataB.map(r => r.length))
+          );
+          let htmlA = '<table class="sticky-header text-sm"><thead><tr><th class="sticky-col">行号</th>';
+          let htmlB = '<table class="sticky-header text-sm"><thead><tr><th class="sticky-col">行号</th>';
+          for (let c = 0; c < maxCols; c++) {
+            htmlA += `<th>${c + 1}</th>`;
+            htmlB += `<th>${c + 1}</th>`;
+          }
+          htmlA += '</tr></thead><tbody>';
+          htmlB += '</tr></thead><tbody>';
+
+          let diffCount = 0;
+
+          for (let r = 0; r < maxRows; r++) {
+            const rowA = dataA[r] || [];
+            const rowB = dataB[r] || [];
+            let rowDiff = false;
+
+            let rowHtmlA = `<tr><td class="sticky-col">${r + 1}</td>`;
+            let rowHtmlB = `<tr><td class="sticky-col">${r + 1}</td>`;
+            for (let c = 0; c < maxCols; c++) {
+              const cellA = rowA[c] ?? '';
+              const cellB = rowB[c] ?? '';
+              const isDiff = cellA !== cellB;
+              if (isDiff) rowDiff = true;
+              rowHtmlA += `<td class="${isDiff ? 'diff-a' : ''}">${cellA}</td>`;
+              rowHtmlB += `<td class="${isDiff ? 'diff-b' : ''}">${cellB}</td>`;
+            }
+            rowHtmlA += '</tr>';
+            rowHtmlB += '</tr>';
+            if (!onlyDiff || rowDiff) {
+              htmlA += rowHtmlA;
+              htmlB += rowHtmlB;
+              if (rowDiff) diffCount++;
+            }
+          }
+
+          htmlA += '</tbody></table>';
+          htmlB += '</tbody></table>';
+
+          document.getElementById('diffSummary').innerHTML = `共对比 ${maxRows} 行，发现 ${diffCount} 行差异。`;
+          document.getElementById('resultExcel').innerHTML = `<div class="flex space-x-4 overflow-auto">${htmlA}${htmlB}</div>`;
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>无服务端聊天室</title>
+  <style>
+    :root {
+      --primary-color: #00a6ff;
+      --primary-light: #33b8ff;
+      --primary-dark: #0085cc;
+      --secondary-color: #6e9887;
+      --bg-color: #f5f7fa;
+      --sidebar-bg: #ffffff;
+      --chat-bg: #f8f9fa;
+      --msg-me: #00a6ff;
+      --msg-other: #ffffff;
+      --border-color: #e1e5eb;
+      --text-color: #2c3e50;
+      --text-light: #7f8c8d;
+      --online-indicator: #2ecc71;
+      --offline-indicator: #e74c3c;
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+      --shadow-light: 0 4px 20px rgba(0, 0, 0, 0.08);
+      --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 1200px;
+      height: 90vh;
+      max-height: 800px;
+      background: var(--sidebar-bg);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      transition: all 0.3s ease;
+    }
+
+    #sidebar {
+      width: 280px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--sidebar-bg);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 20px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .user-status {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--online-indicator);
+      box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    #userNameDisplay {
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--text-color);
+    }
+
+    .user-status-text {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    #users-container {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    #users-container h3 {
+      font-size: 14px;
+      color: var(--text-light);
+      margin-bottom: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #users {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+      list-style: none;
+    }
+
+    #users::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #users::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #users::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 2px;
+    }
+
+    #users li {
+      padding: 12px 16px;
+      margin-bottom: 4px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    #users li:hover {
+      background: rgba(0, 166, 255, 0.08);
+    }
+
+    #users li.active {
+      background: rgba(0, 166, 255, 0.12);
+    }
+
+    .user-item-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .user-item-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-item-name {
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-color);
+    }
+
+    .user-item-status {
+      font-size: 12px;
+      color: var(--text-light);
+    }
+
+    .user-item-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .sidebar-footer {
+      padding: 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--sidebar-bg);
+    }
+
+    .chatroom-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chatroom-selector label {
+      font-size: 12px;
+      color: var(--text-light);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    #chatroomSelect {
+      padding: 12px;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      background: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #chatroomSelect:focus {
+      border-color: var(--primary-light);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 166, 255, 0.1);
+    }
+
+    #currentFolder {
+      font-size: 12px;
+      color: var(--text-light);
+      text-align: center;
+      padding: 8px;
+      background: rgba(0, 166, 255, 0.06);
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    #chatArea {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--chat-bg);
+    }
+
+    .chat-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--sidebar-bg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-title {
+      font-weight: 600;
+      font-size: 18px;
+      color: var(--text-color);
+    }
+
+    .chat-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .chat-status {
+      font-size: 13px;
+      color: var(--online-indicator);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+
+    .chat-status::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--online-indicator);
+      display: inline-block;
+    }
+
+    .chat-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .chat-action-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    #chat {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: var(--chat-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #chat::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chat::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #chat::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 3px;
+    }
+
+    .msg {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      position: relative;
+      animation: fadeIn 0.3s ease;
+      box-shadow: var(--card-shadow);
+    }
+
+    @keyframes fadeIn {
+      from { 
+        opacity: 0; 
+        transform: translateY(10px) scale(0.98); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+      }
+    }
+
+    .me {
+      background: var(--msg-me);
+      align-self: flex-end;
+      color: white;
+      border-bottom-right-radius: 6px;
+    }
+
+    .other {
+      background: var(--msg-other);
+      align-self: flex-start;
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: 6px;
+    }
+
+    .msg-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .msg-user {
+      font-weight: 600;
+    }
+
+    .msg-time {
+      color: var(--text-light);
+      font-size: 11px;
+    }
+
+    .me .msg-time {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .msg-text {
+      margin-bottom: 4px;
+      word-break: break-word;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    /* 图片消息样式 */
+    .msg-image {
+      max-width: 300px;
+      max-height: 300px;
+      border-radius: 12px;
+      margin-top: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .msg-image:hover {
+      transform: scale(1.02);
+    }
+
+    .image-caption {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    .me .image-caption {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* 图片预览模态框 */
+    .image-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .image-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+      position: relative;
+    }
+
+    .modal-image {
+      max-width: 100%;
+      max-height: 90vh;
+      border-radius: 8px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      color: white;
+      font-size: 30px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 40px;
+      height: 40px;
+    }
+
+    /* 输入区域样式 */
+    #inputArea {
+      display: flex;
+      padding: 20px;
+      border-top: 1px solid var(--border-color);
+      background: var(--sidebar-bg);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #msg {
+      flex: 1;
+      padding: 14px 18px;
+      border: 2px solid var(--border-color);
+      border-radius: 24px;
+      outline: none;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      background: var(--sidebar-bg);
+    }
+
+    #msg:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(0, 166, 255, 0.1);
+    }
+
+    #imageUpload {
+      display: none;
+    }
+
+    .upload-btn {
+      padding: 12px;
+      border: none;
+      background: var(--primary-color);
+      color: white;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+    }
+
+    .upload-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .upload-btn i {
+      font-size: 20px;
+    }
+
+    #send {
+      padding: 14px 24px;
+      border: none;
+      background: var(--primary-color);
+      color: white;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    #send:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    #send.sending {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* 图片预览区域 */
+    .image-preview {
+      position: absolute;
+      bottom: 80px;
+      left: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 100;
+    }
+
+    .image-preview.show {
+      display: block;
+    }
+
+    .preview-image {
+      max-width: 150px;
+      max-height: 150px;
+      border-radius: 8px;
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .preview-cancel {
+      padding: 6px 12px;
+      border: 1px solid var(--border-color);
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .preview-send {
+      padding: 6px 12px;
+      border: none;
+      background: var(--primary-color);
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .notification {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 16px 24px;
+      background: rgba(44, 62, 80, 0.95);
+      color: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 1000;
+      font-size: 14px;
+    }
+
+    .notification.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-light);
+      font-size: 15px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-light);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state-text {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .empty-state-subtext {
+      font-size: 13px;
+      opacity: 0.7;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .chat-container {
+        height: 95vh;
+        max-height: none;
+        border-radius: 12px;
+      }
+      
+      #sidebar {
+        width: 70px;
+      }
+      
+      .sidebar-header {
+        padding: 16px;
+        justify-content: center;
+      }
+      
+      .user-details,
+      #users-container h3,
+      #users li span,
+      #currentFolder,
+      .chatroom-selector label {
+        display: none;
+      }
+      
+      #chatroomSelect {
+        font-size: 12px;
+        padding: 8px;
+      }
+      
+      .msg {
+        max-width: 85%;
+      }
+      
+      .msg-image {
+        max-width: 200px;
+      }
+      
+      .chat-header {
+        padding: 16px 20px;
+      }
+      
+      .chat-title {
+        font-size: 16px;
+      }
+      
+      .upload-btn {
+        width: 40px;
+        height: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar"></div>
+          <div class="user-details">
+            <div id="userNameDisplay"></div>
+            <div class="user-status-text">在线</div>
+          </div>
+        </div>
+        <div class="user-status"></div>
+      </div>
+      
+      <div id="users-container">
+        <h3>在线用户</h3>
+        <ul id="users"></ul>
+      </div>
+      
+      <div class="sidebar-footer">
+        <div class="chatroom-selector">
+          <label for="chatroomSelect">选择聊天室</label>
+          <select id="chatroomSelect">
+            <option value="">请选择聊天室...</option>
+            <option value="聊天室1">聊天室1</option>
+            <!-- <option value="聊天室2">聊天室2</option>
+            <option value="聊天室3">聊天室3</option>
+            <option value="聊天室4">聊天室4</option>
+            <option value="聊天室5">聊天室5</option> -->
+          </select>
+        </div>
+        <div id="currentFolder">
+          当前聊天室: 未选择
+        </div>
+      </div>
+    </div>
+    
+    <div id="chatArea">
+      <div class="chat-header">
+        <div class="chat-info">
+          <h2 class="chat-title">群聊</h2>
+          <div class="chat-status">
+            <span id="connectionStatus">未连接</span>
+          </div>
+        </div>
+        <div class="chat-meta">
+          <div class="chat-actions">
+            <button class="chat-action-btn">⋮</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="chat">
+        <div class="empty-state">
+          <div class="empty-state-icon">💬</div>
+          <div class="empty-state-text">请选择聊天室开始聊天</div>
+          <div class="empty-state-subtext">从左侧选择或创建一个聊天室</div>
+        </div>
+      </div>
+      
+      <div id="inputArea">
+        <div class="input-wrapper">
+          <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+          <button class="upload-btn" id="uploadBtn" title="上传图片">📷</button>
+          <input id="msg" placeholder="请先选择聊天室..." autocomplete="off" disabled>
+        </div>
+        <button id="send" disabled>发送</button>
+      </div>
+      
+      <div class="image-preview" id="imagePreview">
+        <img class="preview-image" id="previewImage" src="">
+        <div class="preview-actions">
+          <button class="preview-cancel" id="cancelUpload">取消</button>
+          <button class="preview-send" id="sendImage">发送图片</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图片预览模态框 -->
+  <div class="image-modal" id="imageModal">
+    <div class="modal-content">
+      <img class="modal-image" id="modalImage" src="">
+      <button class="modal-close" id="closeModal">×</button>
+    </div>
+  </div>
+
+  <div class="notification" id="notification"></div>
+
+<script>
+let chatFileHandle = null;
+let usersFileHandle = null;
+let userName = "";
+let userAvatarText = "";
+let isActive = true;
+let lastRenderedCount = 0;
+let typingTimer = null;
+let lastTypingTime = 0;
+let isSending = false;
+let chatDataCache = null;
+let usersDataCache = null;
+let lastUpdateTime = 0;
+let currentDirHandle = null;
+let pollInterval = null;
+let currentImageData = null; // 存储当前选择的图片数据
+
+// 初始化用户
+function initUser() {
+  const defaultName = "用户" + Math.floor(Math.random() * 10000);
+  userName = prompt("请输入您的用户名", defaultName) || defaultName;
+  userAvatarText = userName.charAt(0).toUpperCase();
+  document.getElementById('userNameDisplay').textContent = userName;
+  document.getElementById('userAvatar').textContent = userAvatarText;
+}
+
+// 请求通知权限
+if (Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
+// 初始化聊天室选择器
+function initChatroomSelector() {
+  const chatroomSelect = document.getElementById('chatroomSelect');
+  
+  chatroomSelect.addEventListener('change', async function() {
+    const selectedChatroom = this.value;
+    if (selectedChatroom) {
+      await connectToChatroom(selectedChatroom);
+    }
+  });
+}
+
+// 初始化图片功能
+function initImageFeatures() {
+  const uploadBtn = document.getElementById('uploadBtn');
+  const imageUpload = document.getElementById('imageUpload');
+  const cancelUpload = document.getElementById('cancelUpload');
+  const sendImageBtn = document.getElementById('sendImage');
+  const imagePreview = document.getElementById('imagePreview');
+  const closeModal = document.getElementById('closeModal');
+  const imageModal = document.getElementById('imageModal');
+
+  // 上传按钮点击事件
+  uploadBtn.addEventListener('click', () => {
+    imageUpload.click();
+  });
+
+  // 图片选择事件
+  imageUpload.addEventListener('change', handleImageSelect);
+
+  // 取消上传
+  cancelUpload.addEventListener('click', () => {
+    imagePreview.classList.remove('show');
+    currentImageData = null;
+    imageUpload.value = '';
+  });
+
+  // 发送图片
+  sendImageBtn.addEventListener('click', sendImageMessage);
+
+  // 关闭模态框
+  closeModal.addEventListener('click', () => {
+    imageModal.classList.remove('show');
+  });
+
+  // 点击模态框背景关闭
+  imageModal.addEventListener('click', (e) => {
+    if (e.target === imageModal) {
+      imageModal.classList.remove('show');
+    }
+  });
+}
+
+// 处理图片选择
+function handleImageSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // 检查文件类型
+  if (!file.type.startsWith('image/')) {
+    showNotification('请选择图片文件');
+    return;
+  }
+
+  // 检查文件大小（限制为10MB）
+  if (file.size > 10 * 1024 * 1024) {
+    showNotification('图片大小不能超过10MB');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    currentImageData = {
+      data: e.target.result,
+      type: file.type,
+      name: file.name
+    };
+
+    // 显示预览
+    const previewImage = document.getElementById('previewImage');
+    previewImage.src = currentImageData.data;
+    document.getElementById('imagePreview').classList.add('show');
+  };
+
+  reader.readAsDataURL(file);
+}
+
+// 发送图片消息
+async function sendImageMessage() {
+  if (!currentImageData || !chatFileHandle) return;
+
+  isSending = true;
+  const sendButton = document.getElementById('send');
+  sendButton.classList.add('sending');
+  document.getElementById('msg').disabled = true;
+
+  try {
+    const tempMsgId = "temp-" + Date.now();
+    const chat = document.getElementById('chat');
+    
+    // 创建临时图片消息
+    const tempMsgHtml = `
+      <div class="msg me" data-id="${tempMsgId}">
+        <div class="msg-header">
+          <span class="msg-user">${userName}</span>
+          <span class="msg-time">${new Date().toLocaleTimeString()}</span>
+        </div>
+        <div class="msg-text">图片消息</div>
+        <img class="msg-image" src="${currentImageData.data}" alt="图片消息" onclick="previewImage('${currentImageData.data}')">
+        <div class="image-caption">点击查看大图</div>
+      </div>
+    `;
+    
+    chat.innerHTML += tempMsgHtml;
+    chat.scrollTop = chat.scrollHeight;
+
+    // 保存到文件
+    let data = await readJSON(chatFileHandle);
+    let msg = {
+      id: Date.now(),
+      user: userName,
+      text: "图片消息",
+      image: currentImageData.data, // 存储Base64编码的图片数据
+      time: new Date().toLocaleTimeString(),
+      type: 'image' // 消息类型标识
+    };
+
+    data.messages.push(msg);
+    await writeJSON(chatFileHandle, data);
+
+    // 移除临时消息
+    const tempMsg = document.querySelector(`[data-id="${tempMsgId}"]`);
+    if (tempMsg) {
+      tempMsg.remove();
+    }
+
+    // 重置图片状态
+    document.getElementById('imagePreview').classList.remove('show');
+    document.getElementById('imageUpload').value = '';
+    currentImageData = null;
+
+  } catch (error) {
+    console.error("发送图片消息错误:", error);
+    showNotification("发送图片失败，请重试");
+  } finally {
+    isSending = false;
+    sendButton.classList.remove('sending');
+    document.getElementById('msg').disabled = false;
+  }
+}
+
+// 图片预览功能
+function previewImage(imageData) {
+  const modal = document.getElementById('imageModal');
+  const modalImage = document.getElementById('modalImage');
+  
+  modalImage.src = imageData;
+  modal.classList.add('show');
+}
+
+// 连接到选定的聊天室
+async function connectToChatroom(chatroomName) {
+  try {
+    showNotification(`正在连接 ${chatroomName}...`);
+    
+    // 先停止之前的轮询
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+    
+    // 请求目录权限
+    const dirHandle = await window.showDirectoryPicker({
+      id: 'chatroomDirectory',
+      mode: 'readwrite',
+      startIn: 'documents'
+    });
+    
+    // 创建或获取聊天室文件夹
+    currentDirHandle = await dirHandle.getDirectoryHandle(chatroomName, { create: true });
+    
+    // 创建或获取聊天文件
+    chatFileHandle = await currentDirHandle.getFileHandle("chat.json", { create: true });
+    usersFileHandle = await currentDirHandle.getFileHandle("users.json", { create: true });
+    
+    // 启用输入框和发送按钮
+    document.getElementById('msg').disabled = false;
+    document.getElementById('send').disabled = false;
+    document.getElementById('msg').placeholder = "输入消息...";
+    
+    // 初始化文件
+    await initFiles();
+    
+    // 开始轮询和心跳
+    startPolling();
+    userHeartbeat();
+    
+    // 更新UI显示当前聊天室
+    document.getElementById('currentFolder').textContent = `当前聊天室: ${chatroomName}`;
+    document.getElementById('connectionStatus').textContent = "已连接";
+    document.getElementById('connectionStatus').style.color = "var(--online-indicator)";
+    
+    showNotification(`已连接到 ${chatroomName}！`);
+    
+  } catch (error) {
+    console.error("连接聊天室错误:", error);
+    showNotification("连接失败: " + error.message);
+    
+    // 重置选择
+    document.getElementById('chatroomSelect').value = "";
+    document.getElementById('msg').disabled = true;
+    document.getElementById('send').disabled = true;
+  }
+}
+
+// 初始化文件
+async function initFiles() {
+  try {
+    const chatFile = await chatFileHandle.getFile();
+    const chatText = await chatFile.text();
+    if (!chatText.trim() || !isValidJSON(chatText)) {
+      await writeJSON(chatFileHandle, { messages: [] });
+    }
+  } catch (error) {
+    await writeJSON(chatFileHandle, { messages: [] });
+  }
+  
+  try {
+    const usersFile = await usersFileHandle.getFile();
+    const usersText = await usersFile.text();
+    if (!usersText.trim() || !isValidJSON(usersText)) {
+      await writeJSON(usersFileHandle, { users: [] });
+    }
+  } catch (error) {
+    await writeJSON(usersFileHandle, { users: [] });
+  }
+}
+
+// 检查是否为有效的JSON
+function isValidJSON(text) {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// 工具函数 - 带缓存的读取
+async function readJSON(fileHandle, useCache = false) {
+  try {
+    if (useCache && chatDataCache && Date.now() - lastUpdateTime < 2000) {
+      return fileHandle === chatFileHandle ? chatDataCache : usersDataCache;
+    }
+    
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    
+    if (!text.trim()) {
+      return fileHandle === chatFileHandle ? { messages: [] } : { users: [] };
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error("JSON解析错误:", parseError);
+      data = fileHandle === chatFileHandle ? { messages: [] } : { users: [] };
+    }
+    
+    if (fileHandle === chatFileHandle && !data.messages) {
+      data = { messages: [] };
+    } else if (fileHandle === usersFileHandle && !data.users) {
+      data = { users: [] };
+    }
+    
+    if (fileHandle === chatFileHandle) {
+      chatDataCache = data;
+    } else {
+      usersDataCache = data;
+    }
+    lastUpdateTime = Date.now();
+    
+    return data;
+  } catch (error) {
+    console.error("读取文件错误:", error);
+    return fileHandle === chatFileHandle ? { messages: [] } : { users: [] };
+  }
+}
+
+// 修改writeJSON函数，将JSON压缩成一行
+async function writeJSON(fileHandle, data) {
+  try {
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data));
+    await writable.close();
+    
+    if (fileHandle === chatFileHandle) {
+      chatDataCache = data;
+    } else {
+      usersDataCache = data;
+    }
+    lastUpdateTime = Date.now();
+  } catch (error) {
+    console.error("写入文件错误:", error);
+    showNotification("保存失败，请检查文件夹权限");
+  }
+}
+
+// 开始轮询
+function startPolling() {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+  }
+  
+  pollInterval = setInterval(async () => {
+    if (chatFileHandle && usersFileHandle) {
+      try {
+        let chatData = await readJSON(chatFileHandle, true);
+        let usersData = await readJSON(usersFileHandle, true);
+        
+        if (chatData.messages.length > lastRenderedCount) {
+          let newMsgs = chatData.messages.slice(lastRenderedCount);
+          newMsgs.forEach(m => {
+            if (m.user !== userName && !isActive) {
+              const messageText = m.type === 'image' ? '[图片]' : m.text;
+              new Notification("新消息", { body: `${m.user}: ${messageText}` });
+              showNotification(`新消息来自 ${m.user}`);
+            }
+          });
+        }
+        
+        renderMessages(chatData.messages);
+        renderUsers(usersData.users);
+      } catch (error) {
+        console.error("轮询错误:", error);
+      }
+    }
+  }, 1500);
+}
+
+// 发送文本消息
+async function sendMessage() {
+  if (!chatFileHandle || isSending) {
+    return;
+  }
+  
+  const input = document.getElementById("msg");
+  const text = input.value.trim();
+  
+  if (!text) return;
+  
+  isSending = true;
+  const sendButton = document.getElementById("send");
+  sendButton.classList.add("sending");
+  input.disabled = true;
+  
+  try {
+    const tempMsgId = "temp-" + Date.now();
+    const chat = document.getElementById("chat");
+    const tempMsgHtml = `
+      <div class="msg me" data-id="${tempMsgId}">
+        <div class="msg-header">
+          <span class="msg-user">${userName}</span>
+          <span class="msg-time">${new Date().toLocaleTimeString()}</span>
+        </div>
+        <div class="msg-text">${text}</div>
+      </div>
+    `;
+    
+    chat.innerHTML += tempMsgHtml;
+    chat.scrollTop = chat.scrollHeight;
+    
+    let data = await readJSON(chatFileHandle);
+    let msg = {
+      id: Date.now(),
+      user: userName,
+      text: text,
+      time: new Date().toLocaleTimeString(),
+      type: 'text'
+    };
+    
+    data.messages.push(msg);
+    await writeJSON(chatFileHandle, data);
+    
+    const tempMsg = document.querySelector(`[data-id="${tempMsgId}"]`);
+    if (tempMsg) {
+      tempMsg.remove();
+    }
+    
+    input.value = "";
+  } catch (error) {
+    console.error("发送消息错误:", error);
+    showNotification("发送失败，请重试");
+  } finally {
+    isSending = false;
+    sendButton.classList.remove("sending");
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+// 渲染消息 - 优化性能
+async function renderMessages(messages) {
+  const chat = document.getElementById("chat");
+  const emptyState = document.querySelector('.empty-state');
+  
+  if (emptyState) {
+    emptyState.style.display = 'none';
+  }
+  
+  if (messages.length <= lastRenderedCount) return;
+  
+  const newMessages = messages.slice(lastRenderedCount);
+  let html = '';
+  
+  newMessages.forEach(m => {
+    const isMe = m.user === userName;
+    
+    if (m.type === 'image') {
+      // 图片消息
+      html += `
+        <div class="msg ${isMe ? 'me' : 'other'}" data-id="${m.id}">
+          <div class="msg-header">
+            <span class="msg-user">${m.user}</span>
+            <span class="msg-time">${m.time}</span>
+          </div>
+          <div class="msg-text">${m.text}</div>
+          <img class="msg-image" src="${m.image}" alt="图片消息" onclick="previewImage('${m.image}')">
+          <div class="image-caption">点击查看大图</div>
+        </div>
+      `;
+    } else {
+      // 文本消息
+      html += `
+        <div class="msg ${isMe ? 'me' : 'other'}" data-id="${m.id}">
+          <div class="msg-header">
+            <span class="msg-user">${m.user}</span>
+            <span class="msg-time">${m.time}</span>
+          </div>
+          <div class="msg-text">${m.text}</div>
+        </div>
+      `;
+    }
+  });
+  
+  const fragment = document.createDocumentFragment();
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  while (tempDiv.firstChild) {
+    fragment.appendChild(tempDiv.firstChild);
+  }
+  
+  chat.appendChild(fragment);
+  chat.scrollTop = chat.scrollHeight;
+  lastRenderedCount = messages.length;
+}
+
+// 渲染用户
+async function renderUsers(users) {
+  const usersList = document.getElementById("users");
+  const currentTime = Date.now();
+  
+  usersList.innerHTML = users
+    .sort((a, b) => {
+      if (a.name === userName) return -1;
+      if (b.name === userName) return 1;
+      if (currentTime - a.lastActive < 30000 && currentTime - b.lastActive >= 30000) return -1;
+      if (currentTime - a.lastActive >= 30000 && currentTime - b.lastActive < 30000) return 1;
+      return a.name.localeCompare(b.name);
+    })
+    .map(u => {
+      const isOnline = currentTime - u.lastActive < 30000;
+      const isMe = u.name === userName;
+      const avatarText = u.name.charAt(0).toUpperCase();
+      
+      const onlineColor = getComputedStyle(document.documentElement).getPropertyValue('--online-indicator').trim();
+      const offlineColor = getComputedStyle(document.documentElement).getPropertyValue('--offline-indicator').trim();
+      const statusColor = isOnline ? onlineColor : offlineColor;
+      
+      return `
+        <li class="${isMe ? 'active' : ''}">
+          <div class="user-item-avatar">${avatarText}</div>
+          <div class="user-item-info">
+            <div class="user-item-name">${u.name} ${isMe ? '(我)' : ''}</div>
+            <div class="user-item-status">${isOnline ? '在线' : '离线'}</div>
+          </div>
+          <div class="user-item-indicator" style="background-color: ${statusColor};"></div>
+        </li>
+      `;
+    }).join("");
+}
+
+// 心跳维持
+async function userHeartbeat() {
+  if (!usersFileHandle) return;
+  
+  try {
+    let data = await readJSON(usersFileHandle, true);
+    let now = Date.now();
+    
+    data.users = data.users.filter(u => now - u.lastActive < 10*60*1000);
+    
+    let me = data.users.find(u => u.name === userName);
+    if (me) {
+      me.lastActive = now;
+    } else {
+      data.users.push({ name: userName, lastActive: now });
+    }
+    
+    await writeJSON(usersFileHandle, data);
+  } catch (error) {
+    console.error("心跳更新错误:", error);
+  }
+}
+
+// 显示通知
+function showNotification(message) {
+  const notification = document.getElementById('notification');
+  notification.textContent = message;
+  notification.classList.add('show');
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+  }, 3000);
+}
+
+// 窗口焦点状态
+window.onfocus = () => { 
+  isActive = true; 
+  document.title = "无服务端聊天室";
+};
+
+window.onblur = () => { 
+  isActive = false; 
+};
+
+// 初始化
+initUser();
+initChatroomSelector();
+initImageFeatures();
+
+// 绑定发送事件
+document.getElementById("send").onclick = sendMessage;
+document.getElementById("msg").addEventListener("keypress", (e) => {
+  if (e.key === "Enter" && !isSending) {
+    sendMessage();
+  }
+});
+
+// 页面加载完成后设置心跳定时器
+window.addEventListener('load', () => {
+  setInterval(userHeartbeat, 30000);
+});
+
+// 全局函数供HTML调用
+window.previewImage = previewImage;
+</script>
+</body>
+</html>

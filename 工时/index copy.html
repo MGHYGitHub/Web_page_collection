@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>加班记录工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: rgba(255, 255, 255, 0.7);
+            --glass-color: rgba(255, 255, 255, 0.4);
+            --border-color: rgba(0, 123, 255, 0.3);
+            --text-color: #003366;
+            --accent: #3399ff;
+            --font: 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font);
+            background: linear-gradient(135deg, #e0f7ff, #f5fcff);
+            color: var(--text-color);
+            padding: 1rem;
+        }
+
+        .glass {
+            background: var(--glass-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.1);
+        }
+
+        h2,
+        h3 {
+            margin-top: 0;
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .stat-box {
+            flex: 1 1 200px;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.15);
+        }
+
+        .calendar-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .calendar-controls button {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .calendar-controls select {
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .day {
+            padding: 0.5rem;
+            min-height: 60px;
+            /* 确保日期和小时数有足够空间 */
+            text-align: center;
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid #cce5ff;
+        }
+
+        .day.holiday {
+            background-color: #ffcccc;
+        }
+
+        .day.weekend {
+            background-color: #ffe5b4;
+        }
+
+        .day.adjusted {
+            background-color: #ccffcc;
+        }
+
+        .day.leave {
+            background-color: #b3e5ff;
+        }
+
+        .day-info {
+            font-size: 0.7rem;
+            position: absolute;
+            bottom: 3px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            word-break: keep-all;
+            /* 防止数字换行 */
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+            color: #003366;
+        }
+
+        .modal-content input {
+            width: 80%;
+            padding: 0.5rem;
+            margin-top: 1rem;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            color: #003366;
+            background: white;
+        }
+
+        th,
+        td {
+            border: 1px solid #aaccee;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .btn-clear,
+        .btn-export,
+        .btn-import,
+        .btn-set-salary,
+        .btn-batch {
+            /* 添加.btn-batch到选择器中 */
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            margin-right: 0.5rem;
+            font-family: var(--font);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        /* 悬停效果 */
+        .btn-clear:hover,
+        .btn-export:hover,
+        .btn-import:hover,
+        .btn-set-salary:hover,
+        .btn-batch:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 批量按钮的特殊颜色 */
+        .btn-batch {
+            background: #4CAF50;
+            /* 绿色表示添加/设置操作 */
+        }
+
+        /* 清除按钮的特殊颜色 */
+        .btn-clear {
+            background: #f44336;
+            /* 红色表示清除/删除操作 */
+        }
+
+        .footnote {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        /* 移除全屏遮罩样式 */
+        #batchModal {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            /* 不再使用全屏遮罩背景 */
+        }
+
+        /* 批量设置弹窗样式 */
+        .batch-modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 350px;
+            max-width: 90vw;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            /* 添加边框更好区分 */
+            border: 1px solid #ddd;
+        }
+
+        .batch-instruction {
+            background: #f0f8ff;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .batch-actions button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .batch-actions button:first-child {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .batch-actions button:nth-child(2) {
+            background: #f44336;
+            color: white;
+        }
+
+        .batch-actions button:last-child {
+            background: #ccc;
+        }
+
+        .selected-dates {
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px dashed #ddd;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .day.selected {
+            box-shadow: 0 0 0 2px #4CAF50;
+            transform: scale(0.98);
+            transition: all 0.2s ease;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="salaryCard"
+        style="display: flex; gap: 10px; align-items: center; padding: 10px; margin-bottom: 10px; background: #f8f8f8; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1);">
+        <label for="salaryInput">标准工资：</label>
+        <input type="number" id="salaryInput" value="4600" style="width: 80px;" />
+        <span id="dailyWage">日薪：¥0.00</span>
+        <span id="hourlyWage">时薪：¥0.00</span>
+    </div>
+
+
+    <div class="glass">
+        <h2>加班记录统计</h2>
+        <div class="stats">
+            <div class="stat-box">
+                <strong>总加班时长:</strong> <span id="totalOvertime">0 小时</span>
+                <div class="footnote">实际加班：<span id="netOvertime">0 小时</span></div>
+            </div>
+            <div class="stat-box">
+                <strong>总请假时长:</strong> <span id="totalLeave">0 小时 (0 天)</span>
+                <div class="footnote">请假扣款：<span id="leaveDeduction">¥0.00</span></div>
+            </div>
+            <div class="stat-box">
+                <strong>加班工资:</strong> <span id="overtimePay">¥0.00</span>
+                <div class="footnote">A(<span id="payA">¥0</span>) B(<span id="payB">¥0</span>) C(<span
+                        id="payC">¥0</span>)</div>
+            </div>
+            <div class="stat-box">
+                <strong>实发工资:</strong> <span id="realPay">¥0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass">
+        <h3>万年历</h3>
+        <div class="calendar-controls">
+            <button id="prevMonth">← 上月</button>
+            <select id="yearSelect"></select>
+            <select id="monthSelect"></select>
+            <button id="nextMonth">下月 →</button>
+        </div>
+        <div class="calendar" id="calendar"></div>
+    </div>
+
+    <div class="glass">
+        <h3>详细加班记录</h3>
+        <div class="table-container">
+            <table id="recordsTable">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>类型</th>
+                        <th>加班/请假时长</th>
+                        <th>倍数</th>
+                        <th>金额</th>
+                    </tr>
+                </thead>
+                <tbody id="detailTable"></tbody> <!-- 确保这个ID存在 -->
+            </table>
+        </div>
+        <div class="button-group">
+            <button class="btn-clear" onclick="clearAllData()">清除全部数据</button>
+            <button class="btn-export" onclick="exportToExcel()">导出 Excel</button>
+            <input type="file" id="importFile" style="display:none" onchange="importFromExcel(event)" />
+            <button class="btn-import" onclick="document.getElementById('importFile').click()">导入 Excel</button>
+            <button class="btn-batch" onclick="openBatchModal()">批量设置加班</button>
+        </div>
+    </div>
+
+    <div id="modal" class="modal" onclick="cancelModal(event)">
+        <div class="modal-content">
+            <h3 id="modalDate"></h3>
+            <div>加班类型：<span id="modalType"></span></div>
+            <input type="number" id="overtimeInput" placeholder="请输入加班(正)/请假(负)时长" />
+            <div class="footnote">Enter 确定，点击空白处取消</div>
+        </div>
+    </div>
+    <div id="batchModal" style="display:none;">
+        <div class="batch-modal-content">
+            <button class="close-btn" onclick="closeBatchModal()">×</button>
+            <h3>批量设置加班</h3>
+            <div class="batch-instruction">
+                <p>1. 点击日历选择多个日期</p>
+                <p>2. 输入加班时长（正数：加班，负数：请假，0：清除）</p>
+            </div>
+            <input type="number" id="batchHoursInput" placeholder="输入加班/请假时长">
+            <div class="batch-actions">
+                <button onclick="applyBatchChanges()">应用</button>
+                <button onclick="clearSelectedDates()">清除选择</button>
+                <button onclick="closeBatchModal()">取消</button>
+            </div>
+            <div class="selected-dates" id="selectedDatesList"></div>
+        </div>
+    </div>
+    <script>
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let salary = parseFloat(localStorage.getItem("baseSalary")) || 4600;
+        document.getElementById("salaryInput").value = salary;
+        const holidays = ["2025-01-01", "2025-02-01", "2025-02-02", "2025-04-05", "2025-05-01", "2025-10-01", "2025-10-02"];
+        const adjustDays = ["2025-02-08", "2025-04-12", "2025-09-29"];
+        let records = JSON.parse(localStorage.getItem("records") || "{}");
+        let selectedDate = "";
+        let selectedDates = new Set();
+        let isBatchMode = false;
+        document.addEventListener('DOMContentLoaded', function () {
+            // 添加批量设置按钮
+            const lastGlass = document.querySelector('.glass:last-child');
+            if (lastGlass) {
+                lastGlass.insertAdjacentHTML('beforeend',
+                    '<button class="btn-batch" onclick="openBatchModal()" style="background:#4CAF50;color:white;margin-top:0.5rem;margin-right:0.5rem;">批量设置加班</button>'
+                );
+            }
+
+            // 1. 先初始化选择器
+            populateSelectors();
+
+            // 2. 渲染日历
+            renderCalendar();
+
+            // 3. 更新统计数据
+            updateStats(); // 这会自动调用renderDetailTable()
+
+            // 4. 初始化日历点击事件
+            initCalendarSelection();
+
+            // 调试：检查元素是否存在
+            console.log("表格元素检查:", {
+                table: document.getElementById("recordsTable"),
+                tbody: document.getElementById("detailTable")
+            });
+        });
+
+        // 批量设置功能
+        function openBatchModal() {
+            isBatchMode = true;
+            document.getElementById('batchModal').style.display = 'block';
+            document.getElementById('batchHoursInput').focus();
+            // 不再需要设置全屏遮罩
+        }
+
+        function closeBatchModal() {
+            isBatchMode = false;
+            document.getElementById('batchModal').style.display = 'none';
+            clearSelectedDates();
+        }
+
+        function cancelBatchModal(e) {
+            if (e.target.id === 'batchModal') {
+                closeBatchModal();
+            }
+        }
+
+        function clearSelectedDates() {
+            document.querySelectorAll('.day.selected').forEach(day => {
+                day.classList.remove('selected');
+            });
+            selectedDates.clear();
+            updateSelectedDatesList();
+        }
+
+        function updateSelectedDatesList() {
+            const list = document.getElementById('selectedDatesList');
+            if (list) {
+                list.innerHTML = Array.from(selectedDates)
+                    .map(date => `<div>${date}</div>`)
+                    .join('') || '<div style="color:#999">未选择日期</div>';
+            }
+        }
+
+        function applyBatchChanges() {
+            const hours = parseFloat(document.getElementById('batchHoursInput').value);
+            if (isNaN(hours)) return;
+
+            selectedDates.forEach(date => {
+                if (hours === 0) {
+                    delete records[date];
+                } else {
+                    const isHoliday = holidays.includes(date);
+                    const isWeekend = [0, 6].includes(new Date(date).getDay());
+                    const isAdjust = adjustDays.includes(date);
+                    const leave = hours < 0;
+                    const multiplier = leave ? 1.5 : isHoliday ? 3 : isWeekend ? 2 : 1.5;
+
+                    records[date] = {
+                        hours: hours,
+                        leave: leave,
+                        multiplier: multiplier,
+                        pay: hours * multiplier * hourly()
+                    };
+                }
+            });
+
+            localStorage.setItem('records', JSON.stringify(records));
+            renderCalendar();
+            clearSelectedDates();
+            document.getElementById('batchHoursInput').value = '';
+        }
+
+        // 日历点击处理
+        function initCalendarSelection() {
+            const calendar = document.getElementById('calendar');
+            if (calendar) {
+                calendar.addEventListener('click', (e) => {
+                    if (isBatchMode) {
+                        // 批量模式下允许选择日期
+                        const dayEl = e.target.closest('.day');
+                        if (dayEl) {
+                            const date = dayEl.dataset.date;
+                            if (selectedDates.has(date)) {
+                                selectedDates.delete(date);
+                                dayEl.classList.remove('selected');
+                            } else {
+                                selectedDates.add(date);
+                                dayEl.classList.add('selected');
+                            }
+                            updateSelectedDatesList();
+                        }
+                    }
+                    // 普通点击事件不受影响
+                });
+            }
+        }
+
+        // 修改renderCalendar函数，移除单独的onclick绑定
+        function renderCalendar(year = currentYear, month = currentMonth) {
+            currentYear = year;
+            currentMonth = month;
+            const calendar = document.getElementById("calendar");
+            calendar.innerHTML = "";
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const todayStr = new Date().toISOString().slice(0, 10);
+            for (let i = 0; i < firstDay; i++) calendar.innerHTML += '<div></div>';
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                const dayEl = document.createElement("div");
+                dayEl.className = "day";
+                if (holidays.includes(dateStr)) dayEl.classList.add("holiday");
+                else if ([0, 6].includes(new Date(dateStr).getDay())) dayEl.classList.add("weekend");
+                if (adjustDays.includes(dateStr)) dayEl.classList.add("adjusted");
+                if (records[dateStr]?.leave) dayEl.classList.add("leave");
+                dayEl.dataset.date = dateStr;
+                dayEl.innerHTML = `<div>${day}</div><div class="day-info">${records[dateStr]?.hours && records[dateStr].hours !== 0 ? records[dateStr].hours : ""
+                    }</div>`;
+                calendar.appendChild(dayEl);
+            }
+            document.getElementById("yearSelect").value = year;
+            document.getElementById("monthSelect").value = month;
+            updateStats();
+            renderDetailTable();
+        }
+
+        // 增强initCalendarSelection函数
+        function initCalendarSelection() {
+            const calendar = document.getElementById('calendar');
+            if (calendar) {
+                // 先移除旧的监听器，避免重复绑定
+                calendar.removeEventListener('click', handleCalendarClick);
+                calendar.addEventListener('click', handleCalendarClick);
+            }
+        }
+
+        // 单独提取日历点击处理函数
+        function handleCalendarClick(e) {
+            const dayEl = e.target.closest('.day');
+            if (!dayEl) return;
+
+            const date = dayEl.dataset.date;
+
+            if (isBatchMode) {
+                // 批量选择模式
+                if (selectedDates.has(date)) {
+                    selectedDates.delete(date);
+                    dayEl.classList.remove('selected');
+                } else {
+                    selectedDates.add(date);
+                    dayEl.classList.add('selected');
+                }
+                updateSelectedDatesList();
+            } else {
+                // 普通单日设置模式
+                openModal(date);
+            }
+        }
+        function populateSelectors() {
+            const ySel = document.getElementById("yearSelect");
+            const mSel = document.getElementById("monthSelect");
+            for (let y = 2020; y <= 2030; y++) ySel.innerHTML += `<option value="${y}">${y}</option>`;
+            for (let m = 0; m < 12; m++) mSel.innerHTML += `<option value="${m}">${m + 1}月</option>`;
+            ySel.onchange = () => renderCalendar(+ySel.value, +mSel.value);
+            mSel.onchange = () => renderCalendar(+ySel.value, +mSel.value);
+            document.getElementById("prevMonth").onclick = () => {
+                let y = currentYear, m = currentMonth - 1;
+                if (m < 0) { m = 11; y--; }
+                renderCalendar(y, m);
+            };
+            document.getElementById("nextMonth").onclick = () => {
+                let y = currentYear, m = currentMonth + 1;
+                if (m > 11) { m = 0; y++; }
+                renderCalendar(y, m);
+            };
+        }
+
+        function openModal(dateStr) {
+            selectedDate = dateStr;
+            document.getElementById("modalDate").innerText = dateStr;
+            document.getElementById("modalType").innerText = holidays.includes(dateStr)
+                ? "节假日(C)" : adjustDays.includes(dateStr)
+                    ? "调休工作日(A)" : [0, 6].includes(new Date(dateStr).getDay())
+                        ? "周末(B)" : "工作日(A)";
+            document.getElementById("modal").style.display = "flex";
+            // 显示负数（请假）
+            document.getElementById("overtimeInput").value = records[dateStr]?.hours || "";
+            document.getElementById("overtimeInput").focus();
+        }
+
+        function cancelModal(e) {
+            if (e.target.id === "modal") document.getElementById("modal").style.display = "none";
+        }
+
+        // 在 `keydown` 事件处理中调整扣款计算
+        document.getElementById("overtimeInput").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) {
+                    if (val === 0) {
+                        // 输入 0 则清除该日记录
+                        delete records[selectedDate];
+                    } else {
+                        const isHoliday = holidays.includes(selectedDate);
+                        const isWeekend = [0, 6].includes(new Date(selectedDate).getDay());
+                        const isAdjust = adjustDays.includes(selectedDate);
+                        const leave = val < 0;
+                        const multiplier = leave ? 1.5 : isHoliday ? 3 : isWeekend ? 2 : 1.5;
+                        records[selectedDate] = {
+                            hours: val,
+                            leave,
+                            multiplier,
+                            pay: +(val * multiplier * hourly()).toFixed(2),
+                        };
+                    }
+                    localStorage.setItem("records", JSON.stringify(records));
+                    document.getElementById("modal").style.display = "none";
+                    renderCalendar();
+                }
+            }
+        });
+
+        // 初始化时调用
+        initCalendarSelection();
+        function updateStats() {
+            let total = 0, leave = 0, payA = 0, payB = 0, payC = 0;
+            for (const [date, r] of Object.entries(records)) {
+                // 动态计算 pay（基于当前 salary）
+                const currentPay = r.hours * r.multiplier * hourly();
+                if (r.leave) {
+                    leave += Math.abs(r.hours);
+                } else {
+                    total += r.hours;
+                    if (r.multiplier === 1.5) payA += currentPay;
+                    else if (r.multiplier === 2) payB += currentPay;
+                    else if (r.multiplier === 3) payC += currentPay;
+                }
+            }
+            const totalPay = payA + payB + payC;
+            const leaveDeduct = +(leave * hourly()).toFixed(2);
+            const real = +(salary + totalPay - leaveDeduct).toFixed(2);
+
+            // 更新统计显示
+            document.getElementById("totalOvertime").innerText = `${total} 小时`;
+            document.getElementById("netOvertime").innerText = `${(total - leave).toFixed(1)} 小时`;
+            document.getElementById("totalLeave").innerText = `${leave} 小时 (${(leave / 8).toFixed(1)} 天)`;
+            document.getElementById("leaveDeduction").innerText = `¥${leaveDeduct.toFixed(2)}`;
+            document.getElementById("overtimePay").innerText = `¥${totalPay.toFixed(2)}`;
+            document.getElementById("payA").innerText = `¥${payA.toFixed(0)}`;
+            document.getElementById("payB").innerText = `¥${payB.toFixed(0)}`;
+            document.getElementById("payC").innerText = `¥${payC.toFixed(0)}`;
+            document.getElementById("realPay").innerText = `¥${real.toFixed(2)}`;
+            document.getElementById("dailyWage").innerText = `日薪：¥${(salary / 21.75).toFixed(2)}`;
+            document.getElementById("hourlyWage").innerText = `时薪：¥${hourly().toFixed(2)}`;
+
+            // 重新渲染详细表格（确保金额更新）
+            renderDetailTable();
+        }
+
+        function renderDetailTable() {
+            try {
+                const tbody = document.getElementById("detailTable");
+                if (!tbody) {
+                    console.error("错误：找不到ID为'detailTable'的表格tbody元素");
+                    return;
+                }
+
+                tbody.innerHTML = ""; // 清空现有内容
+
+                // 处理空数据情况
+                if (!records || Object.keys(records).length === 0) {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                <td colspan="5" style="text-align:center;color:#999;padding:1rem;">
+                    暂无加班记录，请添加记录
+                </td>
+            `;
+                    tbody.appendChild(tr);
+                    return;
+                }
+
+                // 渲染数据行
+                const sortedRecords = Object.entries(records)
+                    .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB));
+
+                sortedRecords.forEach(([date, record]) => {
+                    if (record.hours === 0) return;
+
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                <td>${date}</td>
+                <td>${record.leave ? "请假" : "加班"}</td>
+                <td>${record.hours}小时</td>
+                <td>${record.multiplier}倍</td>
+                <td>¥${(record.hours * record.multiplier * hourly()).toFixed(2)}</td>
+            `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (error) {
+                console.error("渲染详细表格时出错:", error);
+                // 可以在这里添加用户可见的错误提示
+            }
+        }
+
+        function clearAllData() {
+            if (confirm("确认清除所有记录？")) {
+                localStorage.removeItem("records");
+                records = {};
+                renderCalendar();
+            }
+        }
+
+        function exportToExcel() {
+            try {
+                // 1. 创建工作簿
+                const wb = XLSX.utils.book_new();
+
+                // 2. 准备数据 - 包含所有记录（包括0小时的记录）
+                const data = [
+                    ["日期", "类型", "时长(小时)", "倍数", "金额(元)", "是否请假"],  // 表头
+                    ...Object.entries(records)
+                        .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
+                        .map(([date, r]) => [
+                            date,
+                            r.leave ? "请假" : "加班",
+                            r.hours,
+                            r.multiplier,
+                            r.hours * r.multiplier * hourly(),
+                            r.leave ? "是" : "否"
+                        ])
+                ];
+
+                // 3. 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(data);
+
+                // 4. 设置列宽（可选）
+                ws['!cols'] = [
+                    { wch: 12 },  // 日期列宽
+                    { wch: 8 },   // 类型
+                    { wch: 10 },  // 时长
+                    { wch: 6 },   // 倍数
+                    { wch: 12 },  // 金额
+                    { wch: 8 }    // 是否请假
+                ];
+
+                // 5. 添加工作表到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, "加班记录");
+
+                // 6. 添加统计信息到第二个工作表
+                const statsData = [
+                    ["统计项", "值"],
+                    ["总加班时长", document.getElementById("totalOvertime").textContent],
+                    ["总请假时长", document.getElementById("totalLeave").textContent],
+                    ["加班工资", document.getElementById("overtimePay").textContent],
+                    ["请假扣款", document.getElementById("leaveDeduction").textContent],
+                    ["实发工资", document.getElementById("realPay").textContent],
+                    ["标准工资", salary],
+                    ["导出时间", new Date().toLocaleString()]
+                ];
+                const statsWs = XLSX.utils.aoa_to_sheet(statsData);
+                XLSX.utils.book_append_sheet(wb, statsWs, "统计汇总");
+
+                // 7. 导出文件
+                XLSX.writeFile(wb, `加班记录_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+            } catch (error) {
+                console.error("导出Excel失败:", error);
+                alert("导出Excel时出错: " + error.message);
+            }
+        }
+
+        function importFromExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                // 假设第一行为表头，第二行开始数据
+                records = {};
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (!row || row.length < 5) continue;
+                    const date = row[0];
+                    const type = row[1];
+                    const hours = parseFloat(row[2]);
+                    const multiplier = parseFloat(row[3]);
+                    const pay = parseFloat(row[4]);
+
+                    if (!date || isNaN(hours) || isNaN(multiplier) || isNaN(pay)) continue;
+
+                    records[date] = {
+                        hours: hours,
+                        leave: type === "请假",
+                        multiplier: multiplier,
+                        pay: pay,
+                    };
+                }
+                localStorage.setItem("records", JSON.stringify(records));
+                renderCalendar(currentYear, currentMonth);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+
+        document.getElementById("salaryInput").addEventListener("input", e => {
+            salary = parseFloat(e.target.value) || 0;
+            localStorage.setItem("baseSalary", salary);
+            updateStats(); // 立即更新所有计算
+        });
+
+
+        function hourly() {
+            // 时薪 = 月薪 / 21.75（月平均工作日） / 8（小时）
+            return salary / 21.75 / 8;
+        }
+
+
+        function updateSalaryDisplay() {
+            document.getElementById("dailyWage").innerText = `日薪：¥${(salary / 21.75).toFixed(2)}`;
+            document.getElementById("hourlyWage").innerText = `时薪：¥${hourly().toFixed(2)}`;
+        }
+
+        // 实时监听工资输入框
+        document.getElementById("salaryInput").addEventListener("change", e => {
+            salary = parseFloat(e.target.value) || 4600;
+            localStorage.setItem("baseSalary", salary);
+            updateStats();
+        });
+
+
+
+        populateSelectors();
+        renderCalendar();
+        updateStats();
+    </script>
+</body>
+
+</html>

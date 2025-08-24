@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工资计算器</title>
+    <link rel="icon" type="image/x-icon" href="../icons/gz.ico">
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <style>
+        /* 页面样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(145deg, #f3f3f3, #e2e2e2);
+        }
+
+        /* 模糊玻璃效果的容器 */
+        .calculator-container {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            width: 350px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-size: 16px;
+            color: #333;
+        }
+
+        /* 输入框样式，高亮效果 */
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            border: none;
+            outline: none;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.3);
+            color: #333;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="text"]:focus {
+            background-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 计算按钮圆润效果 */
+        .button {
+            width: 100%;
+            padding: 12px;
+            background-color: #6c63ff;
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #5547e2;
+        }
+
+        /* 高亮显示工资结果 */
+        .result {
+            text-align: center;
+            font-size: 20px;
+            color: #ff5722;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        /* 公告样式 */
+        .notice {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #ff5722;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator-container">
+        <!-- 在计算器底部添加公告信息 -->
+        <!-- <div class="notice">
+            <p>PS: 派遣工专用<br>本程序仅供参考使用<br>作者: 廖工</p>
+            <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span>
+        </div> -->
+        <h1>工资计算器</h1>
+
+        <!-- 标准工资输入框 -->
+        <div class="form-group">
+            <label for="baseSalary">标准工资</label>
+            <input type="text" id="baseSalary" value="4600" placeholder="4600">
+        </div>
+
+        <!-- G1 加班时数输入框 -->
+        <div class="form-group">
+            <label for="g1Hours">G1 加班时数(1.5倍)</label>
+            <input type="text" id="g1Hours" placeholder="0">
+        </div>
+
+        <!-- G2 加班时数输入框 -->
+        <div class="form-group">
+            <label for="g2Hours">G2 加班时数(2倍)</label>
+            <input type="text" id="g2Hours" placeholder="0">
+        </div>
+
+        <!-- G3 加班时数输入框 -->
+        <div class="form-group">
+            <label for="g3Hours">G3 加班时数(3倍)</label>
+            <input type="text" id="g3Hours" placeholder="0">
+        </div>
+
+        <!-- 计算按钮 -->
+        <button class="button" onclick="calculateSalary()">开始计算</button>
+
+        <!-- 实时工资显示 -->
+        <div class="result" id="totalSalary">实时工资: 0.00</div>
+    </div>
+
+
+
+
+    <script>
+        function calculateSalary() {
+            const baseSalary = parseFloat(document.getElementById('baseSalary').value) || 0;
+            const g1Hours = parseFloat(document.getElementById('g1Hours').value) || 0;
+            const g2Hours = parseFloat(document.getElementById('g2Hours').value) || 0;
+            const g3Hours = parseFloat(document.getElementById('g3Hours').value) || 0;
+
+            // 加班费率
+            const g1Rate = 39.65517;
+            const g2Rate = 52.87356;
+            const g3Rate = 79.31035;
+
+            // 计算加班工资
+            const g1OvertimePay = g1Rate * g1Hours;
+            const g2OvertimePay = g2Rate * g2Hours;
+            const g3OvertimePay = g3Rate * g3Hours;
+
+            // 计算总工资
+            const totalSalary = baseSalary + g1OvertimePay + g2OvertimePay + g3OvertimePay;
+
+            // 更新实时工资显示
+            document.getElementById('totalSalary').textContent = `实时工资: ${totalSalary.toFixed(2)}`;
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <title>蓝膜 Mapping 工具</title>
+  <script src="./xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #c3d1ff, #f5f7fa);
+    }
+
+    .glass-container {
+      backdrop-filter: blur(15px);
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      border-radius: 16px;
+      padding: 30px;
+      width: 90%;
+      max-width: 1200px;
+      color: #333;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #222;
+    }
+
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    #controls button,
+    #controls input[type="file"] {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      background: #5c6bc0;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #controls button:hover {
+      background: #3f51b5;
+    }
+
+    #matrix {
+      display: grid;
+      gap: 2px;
+      user-select: none;
+      justify-content: center;
+    }
+
+    .cell {
+      width: 30px;
+      height: 30px;
+      text-align: center;
+      line-height: 30px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      background-color: rgba(255, 255, 255, 0.5);
+      transition: background 0.2s;
+      width: var(--cell-size);
+      height: var(--cell-size);
+      line-height: var(--cell-size);
+    }
+
+    :root {
+      --cell-size: 30px;
+    }
+
+    .bin-1 {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .bin-2 {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .selected {
+      outline: 2px solid #2196f3;
+    }
+
+    #context-menu {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      padding: 10px;
+      display: none;
+      z-index: 1000;
+      min-width: 160px;
+      pointer-events: auto;
+    }
+
+
+    .menu-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background 0.2s;
+    }
+
+    .menu-item:hover {
+      background-color: #e0e0e0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="glass-container">
+    <h2>蓝膜矩阵 Mapping 工具</h2>
+    <div id="summary" style="text-align:center; margin-bottom: 15px; font-size:16px; font-weight: bold;">
+      有料：0， 无料：0，总数：0
+    </div>
+    <div id="controls">
+      <input type="file" id="upload" accept=".xlsx, .xls, .csv" />
+      <button onclick="setBin(1)">设置为有料（1）</button>
+      <button onclick="setBin(2)">设置为无料（2）</button>
+      <button onclick="updateCellSize(5)">放大</button>
+      <button onclick="updateCellSize(-5)">缩小</button>
+      <button onclick="searchCell()">搜索定位</button>
+      <button onclick="downloadTemplate()">下载Mapping模板Excel文件</button>
+      <button onclick="exportToExcel()">导出为 Excel</button>
+      <button id="lock-toggle" onclick="toggleLock()">🔓 可编辑</button>
+    </div>
+    <div id="matrix"></div>
+  </div>
+
+
+
+
+  <script>
+    // 核心数据
+    let matrixData = {}; // {"row-col": bin}
+    let validPositions = new Set();
+
+    // 选择状态
+    let selectedCells = new Set();
+    let isSelecting = false;
+    let startCell = null;
+
+    // UI控制
+    let maxRow = 0, maxCol = 0;
+    let cellSize = 30;
+    let isLocked = false;
+
+    document.getElementById('upload').addEventListener('change', handleFile);
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+        matrixData = {};
+        validPositions.clear(); // 清空之前的有效位置集合
+        maxRow = 0;
+        maxCol = 0;
+
+        json.forEach(row => {
+          const r = parseInt(row["Bar_Y"]);
+          const c = parseInt(row["Chip No"]);
+          const bin = parseInt(row["Bin"]);
+          if (!isNaN(r) && !isNaN(c)) {
+            const key = `${r}-${c}`;
+            matrixData[key] = bin;
+            validPositions.add(key); // 记录有效区域
+            if (r > maxRow) maxRow = r;
+            if (c > maxCol) maxCol = c;
+          }
+        });
+
+        renderMatrix();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+
+
+    function renderMatrix() {
+      const container = document.getElementById('matrix');
+      container.innerHTML = '';
+      container.style.gridTemplateColumns = `repeat(${maxCol + 1}, ${cellSize}px)`;
+      selectedCells.clear();
+
+      for (let r = 0; r <= maxRow; r++) {
+        for (let c = 0; c <= maxCol; c++) {
+          const key = `${r}-${c}`;
+          const bin = matrixData[key] || 0;
+          const cell = document.createElement('div');
+          cell.className = `cell bin-${bin}`;
+          cell.dataset.key = key;
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+
+          if (validPositions.has(key)) {
+            cell.classList.add(`bin-${bin}`);
+            cell.innerHTML = `
+              <div style="font-size:10px; line-height:1;">${r}-${c}</div>
+              <div style="font-size:14px; font-weight:bold;">${bin || ''}</div>
+            `;
+          } else {
+            cell.innerText = '';
+          }
+
+          updateSummary(); // 渲染完矩阵后更新统计
+
+          function updateSummary() {
+            let bin1 = 0;
+            let bin2 = 0;
+            let total = 0;
+
+            validPositions.forEach(key => {
+              const bin = matrixData[key];
+              if (bin === 1) bin1++;
+              else if (bin === 2) bin2++;
+              total++;
+            });
+
+            document.getElementById('summary').textContent =
+              `有料：${bin1}， 无料：${bin2}， 总数：${total}`;
+          }
+
+          container.appendChild(cell);
+
+          // 左键框选逻辑
+          cell.addEventListener('mousedown', e => {
+            if (e.button === 0) {
+              isSelecting = true;
+              startCell = { row: r, col: c };
+              selectedCells.clear();
+              updateSelection(startCell, startCell);
+            }
+          });
+
+          cell.addEventListener('mouseenter', e => {
+            if (isSelecting && startCell) {
+              const endCell = { row: r, col: c };
+              updateSelection(startCell, endCell);
+            }
+          });
+
+        }
+      }
+    }
+
+
+    function updateSelection(start, end) {
+      const container = document.getElementById('matrix');
+      selectedCells.clear();
+      container.querySelectorAll('.cell').forEach(cell => {
+        const r = parseInt(cell.dataset.row);
+        const c = parseInt(cell.dataset.col);
+        if (r >= Math.min(start.row, end.row) && r <= Math.max(start.row, end.row) &&
+          c >= Math.min(start.col, end.col) && c <= Math.max(start.col, end.col)) {
+          selectedCells.add(`${r}-${c}`);
+        }
+      });
+      updateCellStyles();
+    }
+
+    function updateCellStyles() {
+      document.querySelectorAll('.cell').forEach(cell => {
+        const key = cell.dataset.key;
+        const bin = matrixData[key] || 0;
+        cell.className = `cell bin-${bin}`;
+        if (selectedCells.has(key)) cell.classList.add('selected');
+        if (!validPositions.has(key)) return; // 跳过无效位置
+      });
+    }
+
+    // 缩放视图
+    function updateCellSize(delta) {
+      cellSize = Math.max(10, cellSize + delta);
+      document.getElementById('matrix').style.gridTemplateColumns = `repeat(${maxCol + 1}, ${cellSize}px)`;
+      document.querySelectorAll('.cell').forEach(cell => {
+      });
+    }
+
+    // 搜索定位
+    function searchCell() {
+      const input = prompt("请输入坐标（格式：行-列，例如 0-3）：");
+      if (!/^\d+-\d+$/.test(input)) {
+        alert("格式错误，请输入形如 '0-3' 的坐标。");
+        return;
+      }
+
+      if (input && matrixData[input]) {
+        const cell = document.querySelector(`.cell[data-key='${input}']`);
+        if (cell) {
+          selectedCells.clear();
+          selectedCells.add(input);
+          updateCellStyles();
+          cell.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          alert("未找到对应坐标。");
+        }
+      }
+    }
+
+    // 修改导出函数：加入固定表头数据
+    function exportToExcel() {
+      const headers = [
+        "CUSTOMER PRODUCT ID ", "COL QTY BAR", "ROW QTY BAR", "DIE ON BAR STD",
+        "BAR No", "Lot ID", "Wafer ID ", "Carrier ID", "Bar_X",
+        "Bar_Y", "Chip No", "Die ID", "Bin"
+      ];
+
+      const fixedFields = [
+        "OC3610-TX1 V200-Chip-CH4", 4, 24, 23,
+        0, "A120J62#01-2", "A120J62#01-2", "A120J62#01-2CC02", 0
+      ];
+
+      const dieIdList = Array.from({ length: 1311 }, (_, i) => "FD" + String(i + 1).padStart(2, '0'));
+
+      const data = [headers];
+      let dieIndex = 0;
+
+      for (let r = 0; r <= maxRow; r++) {
+        for (let c = 0; c <= maxCol; c++) {
+          const key = `${r}-${c}`;
+          if (!validPositions.has(key)) continue; // 跳过无效区域
+
+          const bin = matrixData[key];
+          const dieId = dieIdList[dieIndex++] || ''; // 安全处理，防止越界
+          const row = [...fixedFields, r, c, dieId, bin];
+          data.push(row);
+        }
+      }
+
+      const worksheet = XLSX.utils.aoa_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Mapping");
+      XLSX.writeFile(workbook, `mapping_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`);
+    }
+    // 初始化时优先从localStorage加载
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem('mappingConfig');
+      if (saved) {
+        try {
+          const config = JSON.parse(saved);
+          matrixData = config.matrixData || {};
+          maxRow = config.maxRow || 0;
+          maxCol = config.maxCol || 0;
+          validPositions = new Set(config.validPositions || []);
+          renderMatrix();
+          console.log("已从本地存储加载配置");
+          return true;
+        } catch {
+          console.warn("本地存储数据格式错误，忽略");
+        }
+      }
+      return false;
+    }
+
+
+    // 保存到localStorage
+    function saveToLocalStorage() {
+      const config = {
+        matrixData,
+        maxRow,
+        maxCol,
+        validPositions: Array.from(validPositions), // 保存有效坐标
+      };
+      localStorage.setItem('mappingConfig', JSON.stringify(config));
+    }
+
+    // 模板加载按钮调用
+    function loadTemplate() {
+      matrixData = templateData.matrixData;
+      maxRow = templateData.maxRow;
+      maxCol = templateData.maxCol;
+      renderMatrix();
+      saveToLocalStorage();  // 同时保存模板到localStorage    
+      alert("已加载模板数据");
+    }
+
+    // 页面加载时尝试从localStorage加载，失败则用空数据
+    window.onload = () => {
+      document.addEventListener('mouseup', () => isSelecting = false);
+      if (!loadFromLocalStorage()) {
+        maxRow = 9;
+        maxCol = 9;
+        for (let r = 0; r <= maxRow; r++) {
+          for (let c = 0; c <= maxCol; c++) {
+            validPositions.add(`${r}-${c}`);
+          }
+        }
+        renderMatrix();
+        saveToLocalStorage(); // 保存初始有效区域
+      }
+
+
+    };
+    function downloadTemplate() {
+      const a = document.createElement('a');
+      a.href = "xxxxx";
+      a.download = "TIA.xlsx";
+      a.click();
+    }
+    function toggleLock() {
+      isLocked = !isLocked;
+
+      const lockButton = document.querySelector('#lock-toggle');
+      if (isLocked) {
+        lockButton.textContent = '🔒 已锁定';
+        alert("已锁定编辑");
+      } else {
+        lockButton.textContent = '🔓 可编辑';
+        alert("已解锁编辑");
+      }
+    }
+
+    function setBin(binValue) {
+      if (isLocked) {
+        alert("已锁定，无法修改。");
+        return;
+      }
+
+      selectedCells.forEach(key => {
+        matrixData[key] = binValue;
+      });
+      renderMatrix();
+      saveToLocalStorage();
+      updateSummary();
+    }
+
+
+
+
+  </script>
+
+</body>
+
+</html>

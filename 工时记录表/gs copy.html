@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工资与加班管理系统</title>
+    <link rel="icon" type="image/x-icon" href="../icons/gs.ico">
+    <link rel="stylesheet" href="./css/bootstrap.min.css">
+    <link rel="stylesheet" href="./css/bootstrap-icons.css">
+    <script src="./js/bootstrap.bundle.min.js"></script>
+    <script src="./js/xlsx.full.min.js"></script>
+    <script src="./js/FileSaver.min.js"></script>
+    <script src="./js/chart.js"></script>
+    <script src="./js/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --hover-color: #f1f3ff;
+            --weekend-color: #fff0f0;
+            /* --holiday-color: #ffebee; */
+            --workday-color: #f0fff4;
+            --selected-color: #e6f7ff;
+            --today-border: #4361ee;
+            --table-stripe: #f8f9ff;
+            /* --leave-color: #ffebee; */
+            --success-color: #4cc9f0;
+            --warning-color: #f8961e;
+            --danger-color: #f72585;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --transition: all 0.25s cubic-bezier(0.645, 0.045, 0.355, 1);
+            --holiday-color: #ffcdd2;
+            /* 浅红色背景 */
+            --holiday-border: #f44336;
+            /* 鲜红色边框 */
+
+            --leave-color: #bbdefb;
+            /* 浅蓝色背景 */
+            --leave-border: #2196f3;
+            /* 鲜蓝色边框 */
+            --leave-text-color: #0d47a1;
+            /* 深蓝色文字 */
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --border-color: #333;
+            --primary-color: #4895ef;
+            --secondary-color: #4361ee;
+            --hover-color: #2a2a2a;
+            --weekend-color: #2a1e1e;
+            --workday-color: #1e2a1e;
+            --selected-color: #1a3a5a;
+            --today-border: #4895ef;
+            --table-stripe: #252525;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            --text-color: #f0f0f0;
+            /* 更亮的文字颜色 */
+
+            --holiday-color: #5d1f1f;
+            /* 深红色背景 */
+            --holiday-border: #ff5252;
+            /* 亮红色边框 */
+
+            --leave-color: #1a237e;
+            /* 深蓝色背景 */
+            --leave-border: #448aff;
+            /* 亮蓝色边框 */
+            --leave-text-color: #bbdefb;
+            /* 浅蓝色文字 */
+
+            /* 增强表格和卡片文字对比度 */
+            .table,
+            .card,
+            .form-control {
+                color: var(--text-color);
+            }
+
+            /* 输入框和选择框样式 */
+            .form-control,
+            .form-select {
+                background-color: #2a2a2a;
+                border-color: #444;
+                color: #fff;
+            }
+
+            /* 表格样式 */
+            .table {
+                --bs-table-bg: #1e1e1e;
+                --bs-table-striped-bg: #252525;
+                --bs-table-hover-bg: #2a2a2a;
+            }
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: var(--transition);
+            line-height: 1.6;
+        }
+
+        /* ========== 卡片样式 ========== */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+            margin-bottom: 20px;
+        }
+
+        .card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+            font-weight: 600;
+        }
+
+        /* ========== 工资配置 ========== */
+        .salary-config {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .salary-display {
+            background: linear-gradient(135deg, var(--card-bg) 0%, rgba(67, 97, 238, 0.05) 100%);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            text-align: center;
+            height: 100%;
+            border: 1px solid var(--border-color);
+        }
+
+        .salary-label {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .salary-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            line-height: 1.2;
+        }
+
+        .salary-value small {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .input-group-text {
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+            border-color: var(--border-color);
+        }
+
+        #save-salary {
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* ========== 日历样式 ========== */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .calendar-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            min-width: 220px;
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            padding: 12px 5px;
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+            border-radius: var(--border-radius);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .calendar-day {
+            height: 90px;
+            padding: 8px;
+            overflow: hidden;
+            position: relative;
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .calendar-day:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: var(--hover-color);
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 5px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        /* ========== 特殊日期样式 ========== */
+        .holiday {
+            background-color: var(--holiday-color);
+            border-left: 4px solid var(--danger-color);
+            border-left: 4px solid var(--holiday-border);
+            /* 使用专用边框色 */
+        }
+
+        .weekend {
+            background-color: var(--weekend-color);
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .workday {
+            background-color: var(--workday-color);
+            border-left: 4px solid var(--success-color);
+        }
+
+        .today .day-number {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 2px 6px rgba(67, 97, 238, 0.3);
+        }
+
+        .other-month {
+            opacity: 0.5;
+            position: relative;
+        }
+
+        .selected-day {
+            background-color: var(--selected-color) !important;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+        }
+
+        .leave-day {
+            background-color: var(--leave-color);
+            border-left: 4px solid var(--danger-color);
+            border-left: 4px solid var(--leave-border);
+            /* 使用专用边框色 */
+        }
+
+        /* 替换图例中的请假颜色 */
+        .legend-item:nth-child(5) .legend-color {
+            background-color: var(--leave-color);
+            border-left: 3px solid var(--leave-border);
+        }
+
+        /* ========== 加班/请假显示 ========== */
+        .overtime-display {
+            background: rgba(67, 97, 238, 0.15);
+            /* 加深背景色 */
+            font-size: 0.75rem;
+            color: var(--primary-color);
+            text-align: center;
+            width: 100%;
+            border-radius: 4px;
+            padding: 2px;
+            margin-top: auto;
+            font-weight: 500;
+        }
+
+        .leave-display {
+            color: var(--leave-text-color);
+            background: rgba(33, 150, 243, 0.15);
+            /* 使用蓝色系半透明背景 */
+            font-weight: 600;
+            /* 加粗文字 */
+            font-size: 0.75rem;
+            text-align: center;
+            width: 100%;
+            border-radius: 4px;
+            padding: 2px;
+            margin-top: auto;
+        }
+
+        /* 添加对特殊日期的hover效果 */
+        .holiday:hover {
+            background-color: color-mix(in srgb, var(--holiday-color) 80%, white 20%);
+        }
+
+        .leave-day:hover {
+            background-color: color-mix(in srgb, var(--leave-color) 80%, white 20%);
+        }
+
+        /* ========== 详情面板 ========== */
+        .day-details {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        /* ========== 统计卡片 ========== */
+        .stats-card {
+            padding: 20px;
+        }
+
+        .stats-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        .stats-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stats-warning {
+            color: var(--warning-color);
+        }
+
+        .stats-ok {
+            color: var(--success-color);
+        }
+
+        /* ========== 按钮和表单 ========== */
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+
+        /* ========== 响应式调整 ========== */
+        @media (max-width: 768px) {
+            .calendar-grid {
+                gap: 4px;
+            }
+
+            .calendar-day {
+                height: 70px;
+                padding: 4px;
+            }
+
+            .day-number {
+                width: 24px;
+                height: 24px;
+                font-size: 0.9rem;
+            }
+
+            .salary-config .col-md-5,
+            .salary-config .col-md-3 {
+                margin-bottom: 15px;
+            }
+        }
+
+        /* ========== 动画效果 ========== */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .day-details,
+        .stats-card,
+        .calendar-day {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        /* 图例容器 */
+        .legend-container {
+            width: 100%;
+            overflow-x: auto;
+            margin: 15px 0;
+            padding-bottom: 5px;
+            -webkit-overflow-scrolling: touch;
+            /* 平滑滚动 */
+        }
+
+        .legend-scroll {
+            display: inline-block;
+            min-width: 100%;
+            white-space: nowrap;
+        }
+
+        /* 图例样式 */
+        .legend {
+            display: inline-flex;
+            gap: 15px;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: rgba(0, 0, 0, 0.03);
+            transition: var(--transition);
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+        }
+
+
+
+        .legend-item .day-number {
+            width: 20px;
+            height: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 5px;
+        }
+
+        .rate-value {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .legend {
+                gap: 10px;
+                padding: 8px 10px;
+            }
+
+            .legend-item {
+                font-size: 0.8rem;
+                padding: 3px 6px;
+            }
+        }
+
+        /* 今天标记 */
+        .today-marker {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        /* 拖放区域高亮样式 */
+        body.dragover {
+            background-color: rgba(67, 97, 238, 0.1);
+            outline: 2px dashed var(--primary-color);
+            outline-offset: -10px;
+        }
+
+        /* 导入按钮样式 */
+        #import-data {
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 浅色模式 */
+        .other-month:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.05);
+            z-index: 1;
+            border-radius: var(--border-radius);
+        }
+
+        /* 深色模式 */
+        [data-theme="dark"] .other-month:after {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* 保留特殊日期的边框颜色 */
+        .other-month.holiday,
+        .other-month.weekend,
+        .other-month.workday {
+            opacity: 0.7;
+        }
+
+        /* 表格样式 */
+        #hours-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: separate;
+            border-spacing: 0;
+            --bs-table-striped-bg: transparent;
+            --bs-table-hover-bg: transparent;
+        }
+
+        #hours-table thead th {
+            background-color: var(--primary-color);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #hours-table tbody tr:nth-child(odd) {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        [data-theme="dark"] #hours-table tbody tr:nth-child(odd) {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        #hours-table tbody tr:hover {
+            background-color: var(--hover-color) !important;
+        }
+
+        #hours-table td,
+        #hours-table th {
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        #hours-table tbody tr:first-child td {
+            border-top: 2px solid var(--border-color);
+        }
+
+        #hours-table tbody tr:last-child td {
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        /* 调整Bootstrap斑马纹颜色 */
+        #hours-table.table-striped>tbody>tr:nth-of-type(odd)>* {
+            --bs-table-accent-bg: rgba(67, 97, 238, 0.05);
+            color: var(--text-color);
+        }
+
+        [data-theme="dark"] #hours-table.table-striped>tbody>tr:nth-of-type(odd)>* {
+            --bs-table-accent-bg: rgba(67, 97, 238, 0.1);
+        }
+
+        #hours-table.table-striped>tbody>tr:hover>* {
+            --bs-table-accent-bg: var(--hover-color);
+            color: var(--text-color);
+        }
+
+        /* 小字样式优化 */
+        .small-text {
+            font-size: 0.55em;
+            /* 更小的字号 */
+            color: #ad6f6f;
+            /* 深灰色 */
+            padding-left: 1px;
+            /* 缩进 */
+            line-height: 1.5;
+            /* 增加行距 */
+            margin-top: 4px;
+            /* 与主标题的间距 */
+        }
+
+        /* 补贴/扣款样式 */
+        #extra-deduction-btn {
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 弹窗表格样式 */
+        #deduction-records {
+            font-size: 0.85rem;
+        }
+
+        #deduction-records th {
+            white-space: nowrap;
+        }
+
+        .deduction-positive {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+
+        .deduction-negative {
+            color: var(--danger-color);
+            font-weight: 500;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+
+            #deduction-records td,
+            #deduction-records th {
+                padding: 8px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* 在您的CSS中添加以下样式 */
+        .table-header {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .deduction-header {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+
+        .deduction-subheader {
+            background-color: #f1f3f5;
+        }
+
+        .deduction-positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .deduction-negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .title-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* 批量选择模式下的日期样式 */
+        .batch-mode .calendar-day {
+            cursor: pointer;
+        }
+
+        .batch-mode .calendar-day.selected-for-batch {
+            background-color: rgba(13, 110, 253, 0.2);
+            border: 2px solid #0d6efd;
+        }
+
+        /* 批量操作面板 */
+        .batch-controls {
+            transition: all 0.3s ease;
+        }
+
+        /* 图表容器样式 */
+        .chart-container {
+            min-height: 400px;
+            margin-bottom: 20px;
+            margin: 0 auto;
+            /* 水平居中 */
+            text-align: center;
+            /* 兼容旧浏览器 */
+        }
+
+        #dataChart {
+            display: inline-block !important;
+            /* 覆盖Chart.js的内联样式 */
+        }
+
+        /* 图表切换按钮样式 */
+        .btn-group-sm .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                width: 100% !important;
+                height: 300px !important;
+            }
+        }
+
+        /* 图表卡片特效 */
+        .chart-card {
+            border: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            position: relative;
+            height: 450px;
+            margin: 0 -10px;
+        }
+
+        /* 图例按钮 */
+        .legend-toggle .btn {
+            transition: all 0.2s;
+            min-width: 80px;
+            border-width: 2px;
+        }
+
+        .legend-toggle .btn:not(.active) {
+            opacity: 0.6;
+            filter: grayscale(0.8);
+        }
+
+        /* 暗色模式适配 */
+        [data-theme="dark"] .chart-container {
+            background: rgba(30, 30, 40, 0.5);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+
+            .legend-toggle .btn {
+                min-width: 70px;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* 图表容器样式 */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            background: var(--chart-bg, #f8f9fa);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* 图表控制按钮样式 */
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .chart-type-btn {
+            padding: 6px 12px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .chart-type-btn.active {
+            background: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+
+        /* 图例开关样式 */
+        .legend-toggle {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .legend-toggle button {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            border: 1px solid transparent;
+            opacity: 0.7;
+        }
+
+        .legend-toggle button.active {
+            opacity: 1;
+            border-color: currentColor;
+        }
+
+        /* 深色模式适配 */
+        [data-theme="dark"] .chart-container {
+            --chart-bg: #2c3034;
+        }
+
+        [data-theme="dark"] .chart-type-btn {
+            background: #495057;
+            color: #f8f9fa;
+            border-color: #6c757d;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 标题 -->
+    <h1 class="text-center mb-4">工资与加班管理系统</h1>
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+        <!-- 批量操作按钮 -->
+        <button class="btn btn-outline-primary" id="toggle-batch-mode">
+            <i class="bi bi-check2-square"></i> 批量设置加班
+        </button>
+
+        <!-- 补贴/扣款按钮 -->
+        <button class="btn btn-outline-info" id="extra-deduction-btn">
+            <i class="bi bi-calculator"></i> 补贴/扣款
+        </button>
+
+        <!-- 主题切换按钮 -->
+        <button class="btn btn-outline-secondary theme-toggle ms-auto" id="theme-toggle">
+            <i class="bi bi-moon-fill"></i> 深色模式
+        </button>
+    </div>
+
+    <!-- 批量操作面板 -->
+    <div class="batch-controls mb-3 d-none">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">批量操作</h5>
+                <div class="d-flex flex-wrap align-items-end gap-3">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label class="form-label">加班类型</label>
+                        <select class="form-select" id="batch-overtime-type">
+                            <option value="A">工作日加班 (1.5倍)</option>
+                            <option value="B">周末/调休日加班 (2倍)</option>
+                            <option value="C">节假日加班 (3倍)</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label class="form-label">加班时长(小时)</label>
+                        <input type="number" class="form-control" id="batch-overtime-hours" min="0" step="0.5"
+                            value="1">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" id="batch-apply">应用</button>
+                        <button class="btn btn-danger" id="batch-clear">清除</button>
+                        <button class="btn btn-outline-secondary" id="batch-cancel">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="alert alert-info mt-2">
+            已选择 <span id="batch-selected-count">0</span> 个日期
+        </div>
+    </div>
+
+    <!-- 工资配置区域（修正后） -->
+    <div class="salary-config card mb-4" id="salaryConfigPanel">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">工资配置</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <!-- 标准工资输入 -->
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text">标准工资</span>
+                        <input type="number" class="form-control" id="base-salary" value="4600">
+                        <span class="input-group-text">元</span>
+                        <button id="save-salary" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> 保存
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 日工资显示 -->
+                <div class="col-md-3">
+                    <div class="salary-display">
+                        <div class="salary-label">日工资</div>
+                        <div class="salary-value" id="daily-salary">211.49 <small>元</small></div>
+                    </div>
+                </div>
+
+                <!-- 时工资显示 -->
+                <div class="col-md-3">
+                    <div class="salary-display">
+                        <div class="salary-label">时工资</div>
+                        <div class="salary-value" id="hourly-salary">26.44 <small>元</small></div>
+                    </div>
+                </div>
+
+                <!-- 费率说明 -->
+                <div class="col-md-12 mt-2">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 加班费率：工作日1.5倍(×1.5) | 周末2倍(×2) | 节假日3倍(×3)
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 日历容器（修正后） -->
+    <div class="calendar-grid" id="calendarContainer">
+        <!-- 日历内容将通过JS动态填充 -->
+    </div>
+    <!-- 统计卡片 -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-title">本月总加班</div>
+                <div class="stats-value" id="monthly-overtime">0小时</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-title">本月总请假</div>
+                <div class="stats-value" id="monthly-leave">0小时 (0天)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-title">本月加班费</div>
+                <div class="stats-value" id="monthly-overtime-pay">0元</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-title">预计实发工资</div>
+                <div class="stats-value" id="estimated-salary">4600元</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="calendar-header">
+        <button class="btn btn-outline-primary month-change" id="prev-month"><i class="bi bi-chevron-left"></i>
+            上个月</button>
+        <div class="d-flex align-items-center">
+            <select class="form-select me-2" id="year-selector" style="width: 100px;">
+                <!-- 年份选项将通过JS动态填充 -->
+            </select>
+            <select class="form-select me-2" id="month-selector" style="width: 90px;">
+                <option value="1">1月</option>
+                <option value="2">2月</option>
+                <option value="3">3月</option>
+                <option value="4">4月</option>
+                <option value="5">5月</option>
+                <option value="6">6月</option>
+                <option value="7">7月</option>
+                <option value="8">8月</option>
+                <option value="9">9月</option>
+                <option value="10">10月</option>
+                <option value="11">11月</option>
+                <option value="12">12月</option>
+            </select>
+        </div>
+        <button class="btn btn-outline-primary month-change" id="next-month">下个月 <i
+                class="bi bi-chevron-right"></i></button>
+    </div>
+
+    <div class="calendar-grid" id="calendar-header">
+        <div class="calendar-day-header">周日</div>
+        <div class="calendar-day-header">周一</div>
+        <div class="calendar-day-header">周二</div>
+        <div class="calendar-day-header">周三</div>
+        <div class="calendar-day-header">周四</div>
+        <div class="calendar-day-header">周五</div>
+        <div class="calendar-day-header">周六</div>
+    </div>
+
+    <div class="calendar-grid" id="calendar-days"></div>
+
+    <div class="legend-container">
+        <div class="legend-scroll">
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color"></div>
+                    <span>工作日 (<span class="rate-value" data-rate="A">39.66</span>元/时)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color"
+                        style="background-color: var(--weekend-color); border-left: 3px solid var(--warning-color);">
+                    </div>
+                    <span>周末 (<span class="rate-value" data-rate="B">52.87</span>元/时)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color"
+                        style="background-color: var(--holiday-color); border-left: 3px solid var(--danger-color);">
+                    </div>
+                    <span>节假日 (<span class="rate-value" data-rate="C">79.31</span>元/时)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color"
+                        style="background-color: var(--workday-color); border-left: 3px solid var(--success-color);">
+                    </div>
+                    <span>调休工作日 (<span class="rate-value" data-rate="B">52.87</span>元/时)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--leave-color);"></div>
+                    <span>请假</span>
+                </div>
+                <div class="legend-item">
+                    <div class="day-number today-marker" style="background-color: var(--primary-color); color: white;">
+                    </div>
+                    <span>今天</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="day-details hidden" id="day-details">
+        <h4 id="detail-date">2025年1月1日</h4>
+        <div class="mb-3">
+            <label for="hours-input" class="form-label">工作时数 (正数为加班，负数为请假):</label>
+            <input type="text" class="form-control" id="hours-input" placeholder="例如: 2 或 -8">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">加班/请假类型:</label>
+            <div class="form-control-plaintext" id="hours-type">节假日加班 (3倍)</div>
+        </div>
+        <button class="btn btn-primary" id="save-hours">保存</button>
+        <button class="btn btn-outline-secondary ms-2" id="clear-hours">清除</button>
+        <div class="mt-2" id="hours-message"></div>
+    </div>
+
+    <div class="mt-4">
+        <button class="btn btn-success" id="export-excel"><i class="bi bi-file-earmark-excel"></i> 导出Excel</button>
+        <button class="btn btn-outline-secondary ms-2" id="import-data"><i class="bi bi-upload"></i> 导入数据</button>
+        <button class="btn btn-danger ms-2" id="clear-all-data"><i class="bi bi-trash"></i> 清除所有记录</button>
+    </div>
+
+    <div class="mt-4">
+        <h4>工作记录汇总</h4>
+        <div class="d-flex justify-content-between mb-3">
+            <div>
+                <button class="btn btn-outline-primary" id="prev-month-records">
+                    <i class="bi bi-chevron-left"></i> 上个月
+                </button>
+                <button class="btn btn-outline-primary mx-2" id="current-month-records">
+                    本月
+                </button>
+                <button class="btn btn-outline-primary" id="next-month-records">
+                    下个月 <i class="bi bi-chevron-right"></i>
+                </button>
+                <button class="btn btn-outline-secondary ms-2" id="all-records">
+                    全部记录
+                </button>
+            </div>
+            <div>
+                <select class="form-select d-inline-block w-auto" id="year-select">
+                    <!-- 年份选项将通过JS动态填充 -->
+                </select>
+                <select class="form-select d-inline-block w-auto ms-2" id="month-select">
+                    <option value="1">1月</option>
+                    <option value="2">2月</option>
+                    <option value="3">3月</option>
+                    <option value="4">4月</option>
+                    <option value="5">5月</option>
+                    <option value="6">6月</option>
+                    <option value="7">7月</option>
+                    <option value="8">8月</option>
+                    <option value="9">9月</option>
+                    <option value="10">10月</option>
+                    <option value="11">11月</option>
+                    <option value="12">12月</option>
+                </select>
+                <button class="btn btn-primary ms-2" id="go-to-date">跳转</button>
+            </div>
+        </div>
+        <table class="table table-bordered table-striped" id="hours-table">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>星期</th>
+                    <th>类型</th>
+                    <th>工作时数</th>
+                    <th>费率</th>
+                    <th>金额</th>
+                </tr>
+            </thead>
+            <tbody id="hours-body">
+                <!-- 数据将通过JS动态填充 -->
+            </tbody>
+        </table>
+        <div class="modal fade" id="extraDeductionModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">其他补贴/扣款记录</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="extra-deduction-form">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">类型</label>
+                                    <select class="form-select" id="deduction-type" required>
+                                        <option value="">-- 请选择 --</option>
+                                        <option value="subsidy">补贴</option>
+                                        <option value="deduction">扣款</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">金额 (元)</label>
+                                    <input type="number" class="form-control" id="deduction-amount" step="0.01"
+                                        required>
+                                </div>
+                            </div>
+
+                            <select class="form-select" id="deduction-category">
+                                <option value="">-- 自定义分类 --</option>
+                                <option value="房租">房租</option>
+                                <option value="水电费">水电费</option>
+                                <option value="电话费">电话费</option>
+                                <option value="扣税">扣税</option>
+                                <option value="奖金">奖金</option>
+                                <option value="餐补">餐补</option>
+                                <option value="交通补贴">交通补贴</option>
+                            </select>
+
+                            <div class="mb-3">
+                                <label class="form-label">自定义分类名称</label>
+                                <input type="text" class="form-control" id="custom-category"
+                                    placeholder="如: 社保扣款、项目奖金等">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">备注说明</label>
+                                <textarea class="form-control" id="deduction-notes" rows="3"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">日期</label>
+                                <input type="date" class="form-control" id="deduction-date" required>
+                            </div>
+                        </form>
+
+                        <!-- 记录显示区域 -->
+                        <div class="mt-4">
+                            <h6>本月其他记录</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm" id="deduction-records">
+                                    <thead>
+                                        <tr>
+                                            <th>日期</th>
+                                            <th>类型</th>
+                                            <th>分类</th>
+                                            <th>金额</th>
+                                            <th>备注</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="deduction-records-body">
+                                        <!-- 记录将通过JS动态填充 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" id="save-deduction">保存记录</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 在适当位置添加这个div，比如在统计卡片下方 -->
+    <div class="card mt-4 shadow-lg">
+        <div class="card-header bg-gradient-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart-fill me-2"></i>数据可视化
+                    <small class="text-white-50 ms-2" id="chart-subtitle">本月数据</small>
+                </h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-gear"></i> 图表配置
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <div class="chart-controls">
+                            <div class="btn-group chart-type-toggle">
+                                <button class="btn btn-sm btn-outline-secondary chart-type-btn active"
+                                    data-type="bar">柱形图</button>
+                                <button class="btn btn-sm btn-outline-secondary chart-type-btn"
+                                    data-type="line">折线图</button>
+                            </div>
+                            <div class="btn-group data-group-toggle ms-2">
+                                <button class="btn btn-sm btn-outline-secondary data-group-btn active"
+                                    data-group="day">按日</button>
+                                <button class="btn btn-sm btn-outline-secondary data-group-btn"
+                                    data-group="week">按周</button>
+                            </div>
+                        </div>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="position: relative; height: 400px; width: 100%;">
+                <canvas id="dataChart"></canvas>
+            </div>
+            <!-- <div class="mt-3 text-center">
+                <div class="btn-group btn-group-sm legend-toggle">
+                    <button class="btn btn-outline-primary active" data-dataset="0"><i
+                            class="bi bi-square-fill text-primary"></i> 加班</button>
+                    <button class="btn btn-outline-danger active" data-dataset="1"><i
+                            class="bi bi-square-fill text-danger"></i> 请假</button>
+                    <button class="btn btn-outline-success active" data-dataset="2"><i
+                            class="bi bi-square-fill text-success"></i> 补贴</button>
+                </div>
+            </div> -->
+        </div>
+    </div>
+
+    <script src="./js/app.js"></script>
+</body>
+
+</html>

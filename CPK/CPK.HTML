@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>增强版CPK计算器 - 带数据清理</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #4CAF50;
+            background-color: #f0fff0;
+        }
+
+        .upload-area p {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .upload-area i {
+            font-size: 48px;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background-color: #2196F3;
+        }
+
+        button.warning {
+            background-color: #ff9800;
+        }
+
+        button.danger {
+            background-color: #f44336;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .result-section {
+            margin-top: 30px;
+        }
+
+        .result-table {
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .instructions {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+        }
+
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .warning {
+            font-weight: bold;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 900px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: black;
+        }
+
+        .data-filter {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #fff8e1;
+            border-radius: 4px;
+        }
+
+        .filter-options {
+            margin: 10px 0;
+        }
+
+        .filter-option {
+            margin-right: 15px;
+            display: inline-block;
+        }
+
+        .outlier {
+            background-color: #ffebee;
+        }
+
+        .zero-value {
+            background-color: #fff3e0;
+        }
+
+        .negative-value {
+            background-color: #e3f2fd;
+        }
+
+        .selected-to-remove {
+            background-color: #ffcdd2 !important;
+        }
+
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 10px 16px;
+            transition: 0.3s;
+            color: #333;
+            margin-right: 0;
+            border-radius: 0;
+        }
+
+        .tab button:hover {
+            background-color: #ddd;
+        }
+
+        .tab button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .tabcontent {
+            display: none;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            background-color: white;
+        }
+
+        .stats-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h4 {
+            margin-top: 0;
+            color: #555;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>增强版CPK计算器 - 带数据清理功能</h1>
+
+        <div class="instructions">
+            <p><strong>使用说明：</strong></p>
+            <ol>
+                <li>准备Excel文件，表头格式为：<code>描述(参考值±公差)</code>，例如：<code>TIA_Y(100±20)</code></li>
+                <li>点击"选择文件"或拖放Excel文件到上传区域</li>
+                <li>检查并清理异常数据（支持三种清理方式）</li>
+                <li>计算CPK值并导出分析报告</li>
+            </ol>
+        </div>
+
+        <div class="upload-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
+            <i>📁</i>
+            <p>点击选择Excel文件或拖放文件到此处</p>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+        </div>
+
+        <div id="fileInfo"></div>
+
+        <div id="dataProcessingSection" style="display: none;">
+            <h2>数据处理</h2>
+
+            <div class="data-filter">
+                <h3>数据清理选项</h3>
+                <div class="filter-options">
+                    <div class="filter-option">
+                        <button onclick="openOutlierModal()" class="secondary">可视化选择剔除</button>
+                    </div>
+                    <div class="filter-option">
+                        <button onclick="autoRemoveOutliers()" class="warning">自动剔除异常值</button>
+                    </div>
+                    <div class="filter-option">
+                        <button onclick="removeAllOutsideLimits()" class="danger">剔除全部非上下限的值</button>
+                    </div>
+                </div>
+                <p><small>提示：异常值包括0、负值、超出±3σ范围的值</small></p>
+            </div>
+
+            <div class="tab">
+                <button class="tablinks active" onclick="openTab(event, 'originalData')">原始数据</button>
+                <button class="tablinks" onclick="openTab(event, 'cleanedData')">清理后数据</button>
+                <button class="tablinks" onclick="openTab(event, 'statsView')">统计视图</button>
+            </div>
+
+            <div id="originalData" class="tabcontent" style="display: block;">
+                <h3>原始数据 (含异常值标记)</h3>
+                <div class="result-table">
+                    <table id="dataPreview">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="cleanedData" class="tabcontent">
+                <h3>清理后数据</h3>
+                <div class="result-table">
+                    <table id="cleanedDataPreview">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="statsView" class="tabcontent">
+                <h3>数据统计</h3>
+                <div class="stats-summary" id="statsSummary"></div>
+                <div class="result-table">
+                    <table id="statsTable">
+                        <thead>
+                            <tr>
+                                <th>项目</th>
+                                <th>原始数据量</th>
+                                <th>异常值数量</th>
+                                <th>清理后数据量</th>
+                                <th>异常值比例</th>
+                                <th>最小值</th>
+                                <th>最大值</th>
+                                <th>平均值</th>
+                                <th>标准差</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <button onclick="calculateCPK()" id="calculateBtn">计算CPK</button>
+                <button onclick="exportResults()" id="exportBtn" disabled>导出结果</button>
+                <button onclick="clearData()" id="clearBtn">清除数据</button>
+            </div>
+        </div>
+
+        <div class="result-section" id="cpkResultSection" style="display: none;">
+            <h2>CPK分析结果</h2>
+            <div class="result-table">
+                <table id="cpkResults">
+                    <thead>
+                        <tr>
+                            <th>项目</th>
+                            <th>参考值</th>
+                            <th>上限</th>
+                            <th>下限</th>
+                            <th>数据量</th>
+                            <th>平均值</th>
+                            <th>标准差</th>
+                            <th>CP</th>
+                            <th>CPK</th>
+                            <th>过程能力评估</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 异常值选择模态框 -->
+    <div id="outlierModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>选择要剔除的异常值</h2>
+            <div id="modalFilterOptions">
+                <label><input type="checkbox" id="filterNegatives" checked> 包含负值</label>
+                <label><input type="checkbox" id="filterZeros" checked> 包含0值</label>
+                <label><input type="checkbox" id="filterOutliers" checked> 包含超出±3σ的值</label>
+                <button onclick="filterOutliers()" class="secondary">应用筛选</button>
+            </div>
+            <div class="form-group">
+                <label>单位：</label>
+                <select id="unitSelect" onchange="updateUnit()">
+                    <option value="um" selected>μm (微米)</option>
+                    <option value="mm">mm (毫米)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>异常值定义：</label>
+                <select id="outlierDefinition" onchange="toggleOutlierOptions()">
+                    <option value="sigma">±σ倍数</option>
+                    <option value="absolute">绝对值范围</option>
+                </select>
+                <div id="sigmaOptions">
+                    ±<input type="number" id="sigmaValue" min="1" max="10" step="0.5" value="3">σ
+                </div>
+                <div id="absoluteOptions" style="display:none;">
+                    <input type="number" id="absMin" placeholder="最小值">
+                    ~
+                    <input type="number" id="absMax" placeholder="最大值">
+                </div>
+            </div>
+            <div class="result-table" style="max-height: 400px;">
+                <table id="outlierTable">
+                    <thead>
+                        <tr>
+                            <th>选择</th>
+                            <th>行号</th>
+                            <th>项目</th>
+                            <th>值</th>
+                            <th>参考值</th>
+                            <th>上限</th>
+                            <th>下限</th>
+                            <th>类型</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div style="margin-top: 15px;">
+                <button onclick="confirmRemoveSelected()" class="secondary">剔除选中项</button>
+                <button onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rawData = [];
+        let cleanedData = [];
+        let specs = {};
+        let cpkResults = [];
+        let stats = {};
+        let outliers = [];
+        let currentUnit = 'um'; // 默认单位
+
+        // 设置拖放功能
+        const dropArea = document.getElementById('dropArea');
+
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = '#4CAF50';
+            dropArea.style.backgroundColor = '#f0fff0';
+        });
+
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.style.borderColor = '#ccc';
+            dropArea.style.backgroundColor = '';
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = '#ccc';
+            dropArea.style.backgroundColor = '';
+
+            if (e.dataTransfer.files.length) {
+                handleFileSelect({ target: { files: e.dataTransfer.files } });
+            }
+        });
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileInfo').innerHTML = `<p class="success">已选择文件: ${file.name}</p>`;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                // 获取第一个工作表
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                // 转换为JSON
+                rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                cleanedData = JSON.parse(JSON.stringify(rawData));
+
+                // 解析规格
+                parseSpecs(rawData[0]);
+
+                // 分析数据
+                analyzeData();
+
+                // 显示数据处理区域
+                document.getElementById('dataProcessingSection').style.display = 'block';
+
+                // 预览数据
+                previewData();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 解析表头规格
+        function parseSpecs(headers) {
+            specs = {};
+            // 支持负值的正则表达式
+            const specPattern = /^(.+?)\((-?\d+\.?\d*)\s*±\s*(\d+\.?\d*)\)$/;
+
+            headers.forEach((header, index) => {
+                if (typeof header !== 'string') return;
+
+                const match = header.match(specPattern);
+                if (match) {
+                    const target = parseFloat(match[2]);  // 可能为负值
+                    const tolerance = parseFloat(match[3]);
+                    specs[index] = {
+                        name: match[1],
+                        target: target,
+                        tolerance: tolerance,
+                        usl: target + tolerance,  // 上限
+                        lsl: target - tolerance   // 下限
+                    };
+                    console.log(`解析列 ${match[1]}: 目标值=${target}, 公差=${tolerance}, 范围=[${target - tolerance}, ${target + tolerance}]`);
+                }
+            });
+        }
+
+        // 分析数据并识别异常值
+        function analyzeData() {
+            stats = {};
+            outliers = [];
+
+            // 对每个有规格的列进行分析
+            Object.keys(specs).forEach(col => {
+                col = parseInt(col);
+                const spec = specs[col];
+                const values = [];
+
+                // 首先收集所有有效数据并计算基本统计量
+                for (let i = 1; i < rawData.length; i++) {
+                    const val = parseFloat(rawData[i][col]);
+                    if (!isNaN(val)) {
+                        values.push(val);
+                    }
+                }
+
+                if (values.length === 0) {
+                    stats[col] = {
+                        name: spec.name,
+                        originalCount: 0,
+                        cleanedCount: 0,
+                        outlierCount: 0,
+                        min: NaN,
+                        max: NaN,
+                        avg: NaN,
+                        std: NaN,
+                        usl: spec.usl,
+                        lsl: spec.lsl
+                    };
+                    return;
+                }
+
+                // 计算统计量
+                const sum = values.reduce((a, b) => a + b, 0);
+                const avg = sum / values.length;
+                const squaredDiffs = values.map(x => Math.pow(x - avg, 2));
+                const variance = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+                const std = Math.sqrt(variance);
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+
+                // 保存统计信息
+                stats[col] = {
+                    name: spec.name,
+                    originalCount: values.length,
+                    cleanedCount: values.length,
+                    outlierCount: 0,
+                    min: min,
+                    max: max,
+                    avg: avg,
+                    std: std,
+                    usl: spec.usl,
+                    lsl: spec.lsl
+                };
+
+                // 现在可以安全地调用 getOutlierRange
+                const range = getOutlierRange(col);
+
+                // 识别异常值
+                const columnOutliers = [];
+                for (let i = 1; i < rawData.length; i++) {
+                    const val = parseFloat(rawData[i][col]);
+                    if (isNaN(val)) continue;
+
+                    let type = '';
+                    if (val === 0) {
+                        type = '零值';
+                    } else if (val < range.lower || val > range.upper) {
+                        type = '离群值';
+                    } else if (val < spec.lsl || val > spec.usl) {
+                        type = '超限值';
+                    }
+
+                    if (type) {
+                        columnOutliers.push({
+                            row: i,
+                            col: col,
+                            value: val,
+                            type: type
+                        });
+                    }
+                }
+
+                outliers.push(...columnOutliers);
+                stats[col].outlierCount = columnOutliers.length;
+                stats[col].cleanedCount = values.length - columnOutliers.length;
+            });
+
+            updateStatsView();
+        }
+
+        function getOutlierRange(col) {
+            const method = document.getElementById('outlierDefinition').value;
+            const stat = stats[col];
+
+            // 确保统计信息已计算
+            if (!stat || isNaN(stat.avg) || isNaN(stat.std)) {
+                return {
+                    lower: -Infinity,
+                    upper: Infinity
+                };
+            }
+
+            if (method === 'sigma') {
+                const sigmaMultiplier = parseFloat(document.getElementById('sigmaValue').value) || 3;
+                return {
+                    lower: stat.avg - sigmaMultiplier * stat.std,
+                    upper: stat.avg + sigmaMultiplier * stat.std
+                };
+            } else {
+                const absMin = parseFloat(document.getElementById('absMin').value) || -Infinity;
+                const absMax = parseFloat(document.getElementById('absMax').value) || Infinity;
+                return {
+                    lower: absMin,
+                    upper: absMax
+                };
+            }
+        }
+
+        // 预览数据
+        function previewData() {
+            const previewTable = document.getElementById('dataPreview');
+            const thead = previewTable.querySelector('thead');
+            const tbody = previewTable.querySelector('tbody');
+
+            // 清空表格
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (rawData.length === 0) return;
+
+            // 添加表头
+            const headerRow = document.createElement('tr');
+            rawData[0].forEach((header, index) => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                if (specs[index]) {
+                    th.style.backgroundColor = '#e8f5e9';
+                }
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // 添加数据行（最多显示50行）
+            const displayRows = Math.min(50, rawData.length - 1);
+            for (let i = 1; i <= displayRows; i++) {
+                const row = document.createElement('tr');
+                rawData[i].forEach((cell, j) => {
+                    const td = document.createElement('td');
+                    const val = parseFloat(cell);
+
+                    if (!isNaN(val)) {
+                        // 检查是否是异常值
+                        const isOutlier = outliers.some(o => o.row === i && o.col === j);
+                        if (isOutlier) {
+                            const outlier = outliers.find(o => o.row === i && o.col === j);
+                            if (outlier.type === '零值') {
+                                td.classList.add('zero-value');
+                            } else if (outlier.type === '负值') {
+                                td.classList.add('negative-value');
+                            } else {
+                                td.classList.add('outlier');
+                            }
+                        }
+                    }
+
+                    td.textContent = cell;
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            }
+
+            if (rawData.length > 50) {
+                const infoRow = document.createElement('tr');
+                const infoCell = document.createElement('td');
+                infoCell.colSpan = rawData[0].length;
+                infoCell.textContent = `...仅显示前50行，共${rawData.length - 1}行数据...`;
+                infoCell.style.textAlign = 'center';
+                infoCell.style.fontStyle = 'italic';
+                infoRow.appendChild(infoCell);
+                tbody.appendChild(infoRow);
+            }
+
+            // 更新清理后数据预览
+            updateCleanedDataPreview();
+        }
+
+        // 更新清理后数据预览
+        function updateCleanedDataPreview() {
+            const previewTable = document.getElementById('cleanedDataPreview');
+            const thead = previewTable.querySelector('thead');
+            const tbody = previewTable.querySelector('tbody');
+
+            // 清空表格
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (cleanedData.length === 0) return;
+
+            // 添加表头
+            const headerRow = document.createElement('tr');
+            cleanedData[0].forEach((header, index) => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                if (specs[index]) {
+                    th.style.backgroundColor = '#e8f5e9';
+                }
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // 添加数据行（最多显示50行）
+            const displayRows = Math.min(50, cleanedData.length - 1);
+            for (let i = 1; i <= displayRows; i++) {
+                const row = document.createElement('tr');
+                cleanedData[i].forEach((cell, j) => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            }
+
+            if (cleanedData.length > 50) {
+                const infoRow = document.createElement('tr');
+                const infoCell = document.createElement('td');
+                infoCell.colSpan = cleanedData[0].length;
+                infoCell.textContent = `...仅显示前50行，共${cleanedData.length - 1}行数据...`;
+                infoCell.style.textAlign = 'center';
+                infoCell.style.fontStyle = 'italic';
+                infoRow.appendChild(infoCell);
+                tbody.appendChild(infoRow);
+            }
+        }
+
+        // 更新统计视图
+        function updateStatsView() {
+            const statsTable = document.getElementById('statsTable').querySelector('tbody');
+            const statsSummary = document.getElementById('statsSummary');
+
+            // 清空表格
+            statsTable.innerHTML = '';
+            statsSummary.innerHTML = '';
+
+            // 添加统计卡片
+            let totalOutliers = 0;
+            let totalOriginal = 0;
+
+            Object.keys(stats).forEach(col => {
+                totalOriginal += stats[col].originalCount;
+                totalOutliers += stats[col].outlierCount;
+            });
+
+            const outlierPercentage = totalOriginal > 0 ? (totalOutliers / totalOriginal * 100).toFixed(1) : 0;
+
+            statsSummary.innerHTML = `
+                <div class="stat-card">
+                    <h4>总数据点</h4>
+                    <div class="stat-value">${totalOriginal}</div>
+                    <p>原始数据量</p>
+                </div>
+                <div class="stat-card">
+                    <h4>异常值</h4>
+                    <div class="stat-value">${totalOutliers}</div>
+                    <p>占总数据 ${outlierPercentage}%</p>
+                </div>
+                <div class="stat-card">
+                    <h4>有效数据</h4>
+                    <div class="stat-value">${totalOriginal - totalOutliers}</div>
+                    <p>清理后数据量</p>
+                </div>
+            `;
+
+            // 添加详细统计
+            Object.keys(stats).forEach(col => {
+                col = parseInt(col);
+                const stat = stats[col];
+                const row = document.createElement('tr');
+
+                const addCell = (value, decimals = 2) => {
+                    const td = document.createElement('td');
+                    if (typeof value === 'number' && !isNaN(value)) {
+                        td.textContent = value.toFixed(decimals);
+                    } else {
+                        td.textContent = value;
+                    }
+                    row.appendChild(td);
+                };
+
+                addCell(stat.name);
+                addCell(stat.originalCount, 0);
+                addCell(stat.outlierCount, 0);
+                addCell(stat.cleanedCount, 0);
+                addCell(stat.originalCount > 0 ? (stat.outlierCount / stat.originalCount * 100).toFixed(1) + '%' : '0%');
+                addCell(stat.min);
+                addCell(stat.max);
+                addCell(stat.avg);
+                addCell(stat.std);
+
+                statsTable.appendChild(row);
+            });
+        }
+
+        // 打开异常值选择模态框
+        function openOutlierModal() {
+            const modal = document.getElementById('outlierModal');
+            const tableBody = document.getElementById('outlierTable').querySelector('tbody');
+
+            tableBody.innerHTML = '';
+
+            // 添加异常值到表格
+            outliers.forEach(outlier => {
+                const row = document.createElement('tr');
+                const spec = specs[outlier.col];
+
+                // 高亮显示不同类型的异常值
+                if (outlier.type === '零值') {
+                    row.classList.add('zero-value');
+                } else if (outlier.type === '负值') {
+                    row.classList.add('negative-value');
+                } else {
+                    row.classList.add('outlier');
+                }
+
+                row.innerHTML = `
+                    <td><input type="checkbox" checked></td>
+                    <td>${outlier.row}</td>
+                    <td>${spec.name}</td>
+                    <td>${outlier.value}</td>
+                    <td>${spec.target}</td>
+                    <td>${spec.usl}</td>
+                    <td>${spec.lsl}</td>
+                    <td>${outlier.type}</td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+
+            modal.style.display = 'block';
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('outlierModal').style.display = 'none';
+        }
+
+        // 筛选异常值
+        function filterOutliers() {
+            const showNegatives = document.getElementById('filterNegatives').checked;
+            const showZeros = document.getElementById('filterZeros').checked;
+            const showOutliers = document.getElementById('filterOutliers').checked;
+
+            const rows = document.getElementById('outlierTable').querySelectorAll('tbody tr');
+
+            rows.forEach(row => {
+                const type = row.cells[7].textContent;
+                let shouldShow = false;
+
+                if (type === '负值' && showNegatives) shouldShow = true;
+                if (type === '零值' && showZeros) shouldShow = true;
+                if ((type === '离群值' || type === '超限值') && showOutliers) shouldShow = true;
+
+                row.style.display = shouldShow ? '' : 'none';
+            });
+        }
+
+        // 确认剔除选中的异常值
+        function confirmRemoveSelected() {
+            const rows = document.getElementById('outlierTable').querySelectorAll('tbody tr');
+            const rowsToRemove = [];
+
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const checkbox = row.querySelector('input[type="checkbox"]');
+                    if (checkbox.checked) {
+                        const rowNum = parseInt(row.cells[1].textContent);
+                        const colNum = outliers.find(o => o.row === rowNum).col;
+                        rowsToRemove.push({ row: rowNum, col: colNum });
+                    }
+                }
+            });
+
+            removeOutliers(rowsToRemove);
+            closeModal();
+        }
+
+        // 自动剔除异常值
+        function autoRemoveOutliers() {
+            if (confirm('确定要自动剔除所有异常值（负值、零值、超出±3σ的值）吗？')) {
+                removeOutliers(outliers);
+            }
+        }
+
+        // 剔除全部非上下限的值
+        function removeAllOutsideLimits() {
+            if (confirm('确定要剔除所有超出规格上下限的值吗？此操作无法撤销。')) {
+                const outliersToRemove = [];
+
+                Object.keys(specs).forEach(col => {
+                    col = parseInt(col);
+                    const spec = specs[col];
+
+                    for (let i = 1; i < cleanedData.length; i++) {
+                        const val = parseFloat(cleanedData[i][col]);
+                        if (isNaN(val)) continue;
+
+                        if (val < spec.lsl || val > spec.usl) {
+                            outliersToRemove.push({ row: i, col: col });
+                        }
+                    }
+                });
+
+                removeOutliers(outliersToRemove);
+            }
+        }
+
+        // 执行剔除操作
+        function removeOutliers(outliersToRemove) {
+            // 创建行删除标记（因为从数组中删除行会影响行号）
+            const rowsToDelete = new Set();
+            outliersToRemove.forEach(o => rowsToDelete.add(o.row));
+
+            // 从cleanedData中删除行（从后往前删除以避免索引问题）
+            const rowsToDeleteSorted = Array.from(rowsToDelete).sort((a, b) => b - a);
+            rowsToDeleteSorted.forEach(row => {
+                cleanedData.splice(row, 1);
+            });
+
+            // 重新分析数据
+            analyzeData();
+
+            // 更新数据预览
+            previewData();
+
+            // 显示消息
+            alert(`已剔除 ${outliersToRemove.length} 个异常值，影响 ${rowsToDelete.size} 行数据。`);
+        }
+
+        // 计算CPK
+        function calculateCPK() {
+            if (cleanedData.length < 2) {
+                alert('没有可计算的数据！');
+                return;
+            }
+
+            if (Object.keys(specs).length === 0) {
+                alert('未检测到符合规格的列！请确保表头格式为"描述(参考值±公差)"');
+                return;
+            }
+
+            cpkResults = [];
+
+            // 对每个有规格的列进行计算
+            Object.keys(specs).forEach(col => {
+                col = parseInt(col);
+                const spec = specs[col];
+                const values = [];
+
+                // 收集数据（跳过非数字值）
+                for (let i = 1; i < cleanedData.length; i++) {
+                    const val = parseFloat(cleanedData[i][col]);
+                    if (!isNaN(val)) {
+                        values.push(val);
+                    }
+                }
+
+                if (values.length === 0) {
+                    cpkResults.push({
+                        name: spec.name,
+                        target: spec.target,
+                        usl: spec.usl,
+                        lsl: spec.lsl,
+                        count: 0,
+                        avg: NaN,
+                        std: NaN,
+                        cp: NaN,
+                        cpk: NaN,
+                        assessment: '无有效数据'
+                    });
+                    return;
+                }
+
+                // 计算统计量
+                const sum = values.reduce((a, b) => a + b, 0);
+                const avg = sum / values.length;
+                const squaredDiffs = values.map(x => Math.pow(x - avg, 2));
+                const variance = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+                const std = Math.sqrt(variance);
+
+                // 计算CP和CPK
+                const cp = (spec.usl - spec.lsl) / (6 * std);
+                const cpu = (spec.usl - avg) / (3 * std);
+                const cpl = (avg - spec.lsl) / (3 * std);
+                const cpk = Math.min(cpu, cpl);
+
+                // 评估过程能力
+                let assessment;
+                if (cpk >= 1.67) {
+                    assessment = '优秀';
+                } else if (cpk >= 1.33) {
+                    assessment = '良好';
+                } else if (cpk >= 1.0) {
+                    assessment = '一般';
+                } else if (cpk >= 0.67) {
+                    assessment = '不足';
+                } else {
+                    assessment = '严重不足';
+                }
+
+                cpkResults.push({
+                    name: spec.name,
+                    target: spec.target,
+                    usl: spec.usl,
+                    lsl: spec.lsl,
+                    count: values.length,
+                    avg: avg,
+                    std: std,
+                    cp: cp,
+                    cpk: cpk,
+                    assessment: assessment
+                });
+            });
+
+            displayCPKResults();
+            document.getElementById('exportBtn').disabled = false;
+            document.getElementById('cpkResultSection').style.display = 'block';
+        }
+
+        // 显示CPK结果
+        function displayCPKResults() {
+            const resultsTable = document.getElementById('cpkResults').querySelector('tbody');
+            resultsTable.innerHTML = '';
+
+            cpkResults.forEach(result => {
+                const row = document.createElement('tr');
+
+                const addCell = (value, decimals = 2) => {
+                    const td = document.createElement('td');
+                    if (typeof value === 'number' && !isNaN(value)) {
+                        td.textContent = value.toFixed(decimals);
+                    } else {
+                        td.textContent = value;
+                    }
+                    row.appendChild(td);
+                };
+
+                addCell(result.name);
+                addCell(result.target);
+                addCell(result.usl);
+                addCell(result.lsl);
+                addCell(result.count, 0);
+                addCell(result.avg);
+                addCell(result.std);
+                addCell(result.cp);
+                addCell(result.cpk);
+
+                const assessmentCell = document.createElement('td');
+                assessmentCell.textContent = result.assessment;
+
+                // 根据评估结果设置颜色
+                switch (result.assessment) {
+                    case '优秀':
+                        assessmentCell.style.color = '#2E7D32';
+                        assessmentCell.style.fontWeight = 'bold';
+                        break;
+                    case '良好':
+                        assessmentCell.style.color = '#689F38';
+                        break;
+                    case '一般':
+                        assessmentCell.style.color = '#FBC02D';
+                        break;
+                    case '不足':
+                        assessmentCell.style.color = '#EF6C00';
+                        break;
+                    case '严重不足':
+                        assessmentCell.style.color = '#C62828';
+                        assessmentCell.style.fontWeight = 'bold';
+                        break;
+                }
+
+                row.appendChild(assessmentCell);
+                resultsTable.appendChild(row);
+            });
+        }
+
+        // 导出结果
+        function exportResults() {
+            if (cpkResults.length === 0) {
+                alert('没有结果可导出！');
+                return;
+            }
+
+            try {
+                // 创建工作簿
+                const wb = XLSX.utils.book_new();
+                
+                // 1. 添加CPK结果表
+                const cpkData = [
+                    ['项目', '参考值', '上限', '下限', '数据量', '平均值', '标准差', 'CP', 'CPK', '过程能力评估'],
+                    ...cpkResults.map(result => [
+                        result.name,
+                        result.target,
+                        result.usl,
+                        result.lsl,
+                        result.count,
+                        result.avg,
+                        result.std,
+                        result.cp,
+                        result.cpk,
+                        result.assessment
+                    ])
+                ];
+                const cpkWs = XLSX.utils.aoa_to_sheet(cpkData);
+                XLSX.utils.book_append_sheet(wb, cpkWs, "CPK分析结果");
+
+                // 2. 添加清理后的数据表
+                const dataWs = XLSX.utils.aoa_to_sheet(cleanedData);
+                XLSX.utils.book_append_sheet(wb, dataWs, "测量数据");
+
+                // 导出Excel文件
+                XLSX.writeFile(wb, "CPK分析报告.xlsx");
+                
+            } catch (error) {
+                console.error('导出失败:', error);
+                alert('导出失败: ' + error.message);
+            }
+        }
+
+        // 清除数据
+        function clearData() {
+            rawData = [];
+            cleanedData = [];
+            specs = {};
+            cpkResults = [];
+            stats = {};
+            outliers = [];
+
+            document.getElementById('dataPreview').querySelector('thead').innerHTML = '';
+            document.getElementById('dataPreview').querySelector('tbody').innerHTML = '';
+            document.getElementById('cleanedDataPreview').querySelector('thead').innerHTML = '';
+            document.getElementById('cleanedDataPreview').querySelector('tbody').innerHTML = '';
+            document.getElementById('cpkResults').querySelector('tbody').innerHTML = '';
+            document.getElementById('statsTable').querySelector('tbody').innerHTML = '';
+            document.getElementById('statsSummary').innerHTML = '';
+            document.getElementById('fileInfo').innerHTML = '';
+
+            document.getElementById('dataProcessingSection').style.display = 'none';
+            document.getElementById('cpkResultSection').style.display = 'none';
+            document.getElementById('exportBtn').disabled = true;
+        }
+
+        // 标签页切换
+        function openTab(evt, tabName) {
+            const tabcontent = document.getElementsByClassName("tabcontent");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            const tablinks = document.getElementsByClassName("tablinks");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        function toggleOutlierOptions() {
+            const method = document.getElementById('outlierDefinition').value;
+            document.getElementById('sigmaOptions').style.display = method === 'sigma' ? 'block' : 'none';
+            document.getElementById('absoluteOptions').style.display = method === 'absolute' ? 'block' : 'none';
+        }
+
+        function updateUnit() {
+            currentUnit = document.getElementById('unitSelect').value;
+            // 重新显示数据（单位转换）
+            if (rawData.length > 0) {
+                previewData();
+                updateCleanedDataPreview();
+            }
+        }
+    </script>
+</body>
+
+</html>
