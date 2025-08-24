@@ -3,9 +3,9 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>加班记录工具</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         :root {
             --bg-color: rgba(255, 255, 255, 0.7);
@@ -365,8 +365,8 @@
         } */
 
         .allowance-option {
-            display: flex;
-            margin-bottom: 15px;
+            flex-direction: column;
+            align-items: flex-start;
         }
 
         .allowance-option label {
@@ -580,6 +580,110 @@
         /* 移除原来的小蓝点样式 */
         .day.today>div:first-child::after {
             display: none;
+        }
+
+        /* 在style标签中添加以下媒体查询 */
+        @media screen and (max-width: 768px) {
+
+            .modal-content,
+            .batch-modal-content,
+            .allowance-modal-content {
+                width: 90vw;
+                max-width: 90vw;
+                padding: 15px;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .stat-box {
+                flex: 1 1 auto;
+                padding: 0.75rem;
+            }
+
+            .calendar-controls {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .calendar-controls button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .calendar-controls select {
+                padding: 0.4rem;
+                font-size: 0.9rem;
+            }
+
+            .day {
+                min-height: 50px;
+                padding: 0.3rem;
+                font-size: 0.8rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn-clear,
+            .btn-export,
+            .btn-import,
+            .btn-set-salary,
+            .btn-batch,
+            .btn-allowance {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th,
+            td {
+                padding: 0.3rem;
+            }
+
+            .batch-modal-content,
+            .allowance-modal-content {
+                width: 95vw;
+                padding: 15px;
+            }
+
+            #salaryCard {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            #rateDetails {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            #rateDetails span {
+                padding: 3px 6px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .day {
+                min-height: 40px;
+                font-size: 0.7rem;
+            }
+
+            .day-info {
+                font-size: 0.6rem;
+            }
+
+            .overtime-badge {
+                font-size: 0.6rem;
+                padding: 1px 3px;
+            }
         }
     </style>
 </head>
@@ -1027,14 +1131,39 @@
             renderDetailTable();
         }
 
-        // 增强initCalendarSelection函数
+        // 在initCalendarSelection函数中添加触摸事件支持
         function initCalendarSelection() {
             const calendar = document.getElementById('calendar');
             if (calendar) {
-                // 先移除旧的监听器，避免重复绑定
+                // 移除旧的监听器，避免重复绑定
                 calendar.removeEventListener('click', handleCalendarClick);
+                calendar.removeEventListener('touchstart', handleCalendarTouch);
+
+                // 添加新的事件监听
                 calendar.addEventListener('click', handleCalendarClick);
+                calendar.addEventListener('touchstart', handleCalendarTouch, { passive: true });
             }
+        }
+
+        // 添加触摸事件处理函数
+        function handleCalendarTouch(e) {
+            // 防止默认行为（如滚动）
+            e.preventDefault();
+
+            // 获取触摸点
+            const touch = e.touches[0];
+
+            // 模拟点击事件
+            const simulatedEvent = new MouseEvent('click', {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+
+            // 触发点击事件
+            e.target.dispatchEvent(simulatedEvent);
         }
 
         // 单独提取日历点击处理函数
@@ -1408,7 +1537,7 @@
                 const overtimeData = [
                     ["日期", "类型", "时长(小时)", "倍数", "金额(元)", "是否请假"],
                     ...Object.entries(currentMonthRecords)
-                        .filter(([_, r]) => r.hours !== 0) // 过滤掉0小时记录
+                        .filter(([_, r]) => r.hours !== 0)
                         .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
                         .map(([date, r]) => [
                             date,
@@ -1422,7 +1551,7 @@
                 const wsOvertime = XLSX.utils.aoa_to_sheet(overtimeData);
                 XLSX.utils.book_append_sheet(wb, wsOvertime, "加班记录");
 
-                // 2. 补贴扣款表（修改为更清晰的结构）
+                // 2. 补贴扣款表
                 const allowanceData = [
                     ["日期", "类型", "分类", "金额", "备注"],
                     ...(monthlyAllowances[currentMonthKey] || []).map(item => [
@@ -1451,7 +1580,11 @@
                 const wsStats = XLSX.utils.aoa_to_sheet(statsData);
                 XLSX.utils.book_append_sheet(wb, wsStats, "统计汇总");
 
-                XLSX.writeFile(wb, `加班记录_${currentMonthKey}.xlsx`);
+                // 生成指定格式的文件名：YYYY-MM-DD-HHmm
+                const now = new Date();
+                const fileName = `加班记录_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.xlsx`;
+
+                XLSX.writeFile(wb, fileName);
 
             } catch (error) {
                 console.error("导出失败:", error);
