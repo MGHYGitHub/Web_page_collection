@@ -3,9 +3,9 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>加班记录工具</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         :root {
             --bg-color: rgba(255, 255, 255, 0.7);
@@ -82,22 +82,42 @@
             font-size: 1rem;
         }
 
+        /* 调整日历网格布局 */
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 5px;
         }
 
+        /* 调整日期单元格样式 */
         .day {
             padding: 0.5rem;
             min-height: 60px;
-            /* 确保日期和小时数有足够空间 */
             text-align: center;
             border-radius: 10px;
             position: relative;
             cursor: pointer;
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid #cce5ff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* 星期标题行样式 */
+        .weekday-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px 0;
+            background: rgba(0, 123, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 4px;
+            color: var(--text-color);
+        }
+
+        .day>div:first-child {
+            font-size: 1.1em;
+            font-weight: bold;
         }
 
         .day.holiday {
@@ -312,6 +332,359 @@
             gap: 0.5rem;
             margin-top: 1rem;
         }
+
+
+        .btn-allowance {
+            background: #9C27B0;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            margin-right: 0.5rem;
+            font-family: var(--font);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-allowance:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* .allowance-modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 350px;
+            max-width: 90vw;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid #ddd;
+        } */
+
+        .allowance-option {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .allowance-option label {
+            margin-right: 10px;
+            min-width: 60px;
+        }
+
+        .allowance-category {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .allowance-amount {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .allowance-notes {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .allowance-date {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+
+
+        .allowance-modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 500px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid #ddd;
+            position: relative;
+        }
+
+        .allowance-records {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .records-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .record-item {
+            display: grid;
+            grid-template-columns: 100px 100px 1fr 80px 60px;
+            gap: 10px;
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+        }
+
+        .record-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .record-details {
+            flex: 1;
+        }
+
+        .record-date {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .record-category {
+            font-weight: bold;
+        }
+
+        .record-notes {
+            color: #666;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .record-amount {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .record-actions button {
+            background: none;
+            border: none;
+            color: #f44336;
+            cursor: pointer;
+            padding: 2px 5px;
+            font-size: 0.9em;
+        }
+
+        .record-subsidy {
+            color: #4CAF50;
+        }
+
+        .record-deduction {
+            color: #f44336;
+        }
+
+        /* 补贴正数样式 */
+        .allowance-positive {
+            color: #4CAF50;
+            /* 绿色 */
+            font-weight: bold;
+        }
+
+        /* 补贴负数样式 */
+        .allowance-negative {
+            color: #f44336;
+            /* 红色 */
+            font-weight: bold;
+        }
+
+        .day.special-workday {
+            background-color: #ffeb3b;
+            border: 1px dashed #ff9800;
+        }
+
+        .day.today>div:first-child::after {
+            content: "";
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 50%;
+        }
+
+        /* 添加加班类型和时长的显示样式 */
+        /* 保持加班时长显示的样式 */
+        .overtime-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: rgba(0, 123, 255, 0.1);
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            font-size: 0.7rem;
+            margin-top: 2px;
+        }
+
+        /* 不同类型设置不同颜色 */
+        .badge-A {
+            color: #2e7d32;
+            border-color: #2e7d32;
+            background-color: rgba(46, 125, 50, 0.1);
+        }
+
+        .badge-B {
+            color: #1565c0;
+            border-color: #1565c0;
+            background-color: rgba(21, 101, 192, 0.1);
+        }
+
+        .badge-C {
+            color: #6a1b9a;
+            border-color: #6a1b9a;
+            background-color: rgba(106, 27, 154, 0.1);
+        }
+
+        .badge-leave {
+            color: #c62828;
+            border-color: #c62828;
+            background-color: rgba(198, 40, 40, 0.1);
+        }
+
+        #rateTips {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 123, 255, 0.2);
+        }
+
+        #rateDetails span {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(0, 123, 255, 0.05);
+        }
+
+        /* 日期数字基础样式 */
+        .day-number {
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* 今天日期的特殊样式 - 居中高亮圆形 */
+        .today-highlight {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            color: white;
+            margin: 0 auto;
+        }
+
+        /* 移除原来的小蓝点样式 */
+        .day.today>div:first-child::after {
+            display: none;
+        }
+
+        /* 在style标签中添加以下媒体查询 */
+        @media screen and (max-width: 768px) {
+
+            .modal-content,
+            .batch-modal-content,
+            .allowance-modal-content {
+                width: 90vw;
+                max-width: 90vw;
+                padding: 15px;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .stat-box {
+                flex: 1 1 auto;
+                padding: 0.75rem;
+            }
+
+            .calendar-controls {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .calendar-controls button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .calendar-controls select {
+                padding: 0.4rem;
+                font-size: 0.9rem;
+            }
+
+            .day {
+                min-height: 50px;
+                padding: 0.3rem;
+                font-size: 0.8rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn-clear,
+            .btn-export,
+            .btn-import,
+            .btn-set-salary,
+            .btn-batch,
+            .btn-allowance {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th,
+            td {
+                padding: 0.3rem;
+            }
+
+            .batch-modal-content,
+            .allowance-modal-content {
+                width: 95vw;
+                padding: 15px;
+            }
+
+            #salaryCard {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            #rateDetails {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            #rateDetails span {
+                padding: 3px 6px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .day {
+                min-height: 40px;
+                font-size: 0.7rem;
+            }
+
+            .day-info {
+                font-size: 0.6rem;
+            }
+
+            .overtime-badge {
+                font-size: 0.6rem;
+                padding: 1px 3px;
+            }
+        }
     </style>
 </head>
 
@@ -322,6 +695,17 @@
         <input type="number" id="salaryInput" value="4600" style="width: 80px;" />
         <span id="dailyWage">日薪：¥0.00</span>
         <span id="hourlyWage">时薪：¥0.00</span>
+    </div>
+
+    <!-- 添加加班费率提示 -->
+    <div id="rateTips" class="glass" style="margin-bottom: 10px; padding: 8px 12px;">
+        <!-- <div style="margin-bottom: 5px;">加班费率：工作日1.5倍(×1.5) | 周末2倍(×2) | 节假日3倍(×3)</div> -->
+        <div id="rateDetails" style="display: flex; gap: 15px; font-size: 0.9em;">
+            <span>工作日 (<span id="weekdayRate">0.00元/时</span>)</span>
+            <span>周末 (<span id="weekendRate">0.00元/时</span>)</span>
+            <span>节假日 (<span id="holidayRate">0.00元/时</span>)</span>
+            <span>调休工作日 (<span id="adjustedRate">0.00元/时</span>)</span>
+        </div>
     </div>
 
 
@@ -339,10 +723,12 @@
             <div class="stat-box">
                 <strong>加班工资:</strong> <span id="overtimePay">¥0.00</span>
                 <div class="footnote">A(<span id="payA">¥0</span>) B(<span id="payB">¥0</span>) C(<span
-                        id="payC">¥0</span>)</div>
+                        id="payC">¥0</span>) 特(<span id="paySpecial">¥0</span>)</div>
+
             </div>
             <div class="stat-box">
                 <strong>实发工资:</strong> <span id="realPay">¥0.00</span>
+                <div class="footnote"><span id="allowanceLabel">补贴</span>: <span id="totalAllowance">¥0.00</span></div>
             </div>
         </div>
     </div>
@@ -360,6 +746,14 @@
 
     <div class="glass">
         <h3>详细加班记录</h3>
+        <div class="button-group">
+            <button class="btn-clear" onclick="clearAllData()">清除全部数据</button>
+            <button class="btn-export" onclick="exportToExcel()">导出 Excel</button>
+            <input type="file" id="importFile" style="display:none" onchange="importFromExcel(event)" />
+            <button class="btn-import" onclick="document.getElementById('importFile').click()">导入 Excel</button>
+            <button class="btn-batch" onclick="openBatchModal()">批量设置加班</button>
+            <button class="btn-allowance" onclick="openAllowanceModal()">补贴/扣款</button>
+        </div>
         <div class="table-container">
             <table id="recordsTable">
                 <thead>
@@ -373,13 +767,6 @@
                 </thead>
                 <tbody id="detailTable"></tbody> <!-- 确保这个ID存在 -->
             </table>
-        </div>
-        <div class="button-group">
-            <button class="btn-clear" onclick="clearAllData()">清除全部数据</button>
-            <button class="btn-export" onclick="exportToExcel()">导出 Excel</button>
-            <input type="file" id="importFile" style="display:none" onchange="importFromExcel(event)" />
-            <button class="btn-import" onclick="document.getElementById('importFile').click()">导入 Excel</button>
-            <button class="btn-batch" onclick="openBatchModal()">批量设置加班</button>
         </div>
     </div>
 
@@ -408,25 +795,99 @@
             <div class="selected-dates" id="selectedDatesList"></div>
         </div>
     </div>
+    <div id="allowanceModal" class="modal" style="display:none;" onclick="closeAllowanceModal(event)">
+        <div class="allowance-modal-content" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="closeAllowanceModal()">×</button>
+            <h3>补贴/扣款记录</h3>
+
+            <div class="allowance-option">
+                <label>类型:</label>
+                <div>
+                    <input type="radio" id="allowanceType1" name="allowanceType" value="subsidy" checked>
+                    <label for="allowanceType1">补贴</label>
+                    <input type="radio" id="allowanceType2" name="allowanceType" value="deduction">
+                    <label for="allowanceType2">扣款</label>
+                </div>
+            </div>
+
+            <select id="allowanceCategory" class="allowance-category">
+                <option value="">-- 选择分类 --</option>
+                <option value="交通补贴">交通补贴</option>
+                <option value="餐补">餐补</option>
+                <option value="水电费">水电费</option>
+                <option value="绩效">绩效</option>
+                <option value="公积金">公积金</option>
+                <option value="社保">社保</option>
+                <option value="其他">其他</option>
+                <option value="custom">自定义分类</option>
+            </select>
+            <input type="text" id="newCategory" placeholder="请输入分类名称" style="display:none;">
+
+            <input type="number" id="allowanceAmount" class="allowance-amount" placeholder="金额">
+
+            <input type="text" id="allowanceNotes" class="allowance-notes" placeholder="备注">
+
+            <input type="date" id="allowanceDate" class="allowance-date">
+
+            <div class="batch-actions">
+                <button onclick="saveAllowance()">保存</button>
+                <button onclick="closeAllowanceModal()">取消</button>
+            </div>
+
+            <!-- 添加记录列表区域 -->
+            <div class="allowance-records">
+                <h4>历史记录</h4>
+                <div id="allowanceRecordsList" class="records-list">
+                    <!-- 记录将通过JS动态添加 -->
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
+        // 工资计算函数
+        function daily() {
+            return salary / 21.75; // 月薪/21.75天
+        }
+        function hourly() {
+            return daily() / 8; // 日薪/8小时
+        }
+
+        let monthlyAllowances = JSON.parse(localStorage.getItem("monthlyAllowances")) || {};
+        let records = JSON.parse(localStorage.getItem("records")) || {};
+        // 初始化时改为按月份存储
         let currentYear = new Date().getFullYear();
+        let debounceTimer;
         let currentMonth = new Date().getMonth();
         let salary = parseFloat(localStorage.getItem("baseSalary")) || 4600;
         document.getElementById("salaryInput").value = salary;
-        const holidays = ["2025-01-01", "2025-02-01", "2025-02-02", "2025-04-05", "2025-05-01", "2025-10-01", "2025-10-02"];
-        const adjustDays = ["2025-02-08", "2025-04-12", "2025-09-29"];
-        let records = JSON.parse(localStorage.getItem("records") || "{}");
+        const holidays = [
+            '2025-01-01', // 元旦
+            '2025-01-28', '2025-01-29', '2025-01-30', '2025-01-31',  // 春节
+            '2025-04-04',  // 清明节
+            '2025-05-01', '2025-05-02', '2025-05-31',  // 劳动节
+            '2025-10-01', '2025-10-02', '2025-10-03', '2025-10-04', '2025-10-05', '2025-10-06' // 国庆节
+        ];
+        const adjustDays = [
+            '2025-01-26', '2025-02-08',  // 春节调休
+            '2025-04-27',  // 劳动节调休
+            '2025-09-28', '2025-10-11'  // 国庆调休
+        ];
+        // 特殊调休日(双倍加班费)
+        const specialWorkdays = [
+            '2025-02-03', '2025-02-04', '2025-05-05', '2025-06-02', '2025-09-28', '2025-10-07', '2025-10-08'
+        ];
+        let monthlyRecords = JSON.parse(localStorage.getItem("monthlyRecords")) || {};
         let selectedDate = "";
         let selectedDates = new Set();
         let isBatchMode = false;
         document.addEventListener('DOMContentLoaded', function () {
             // 添加批量设置按钮
-            const lastGlass = document.querySelector('.glass:last-child');
-            if (lastGlass) {
-                lastGlass.insertAdjacentHTML('beforeend',
-                    '<button class="btn-batch" onclick="openBatchModal()" style="background:#4CAF50;color:white;margin-top:0.5rem;margin-right:0.5rem;">批量设置加班</button>'
-                );
-            }
+            // const lastGlass = document.querySelector('.glass:last-child');
+            // if (lastGlass) {
+            //     lastGlass.insertAdjacentHTML('beforeend',
+            //         '<button class="btn-batch" onclick="openBatchModal()" style="background:#4CAF50;color:white;margin-top:0.5rem;margin-right:0.5rem;">批量设置加班</button>'
+            //     );
+            // }
 
             // 1. 先初始化选择器
             populateSelectors();
@@ -486,19 +947,53 @@
 
         function applyBatchChanges() {
             const hours = parseFloat(document.getElementById('batchHoursInput').value);
-            if (isNaN(hours)) return;
+
+            const isLeave = hours < 0;  // 明确定义
+            if (isNaN(hours)) {
+                alert("请输入有效的数字");
+                return;
+            }
+
+            const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+
+            if (!monthlyRecords[currentMonthKey]) {
+                monthlyRecords[currentMonthKey] = {};
+            }
 
             selectedDates.forEach(date => {
                 if (hours === 0) {
                     delete records[date];
+                    delete monthlyRecords[currentMonthKey][date];
                 } else {
                     const isHoliday = holidays.includes(date);
                     const isWeekend = [0, 6].includes(new Date(date).getDay());
                     const isAdjust = adjustDays.includes(date);
+                    const isSpecial = specialWorkdays.includes(date);
                     const leave = hours < 0;
-                    const multiplier = leave ? 1.5 : isHoliday ? 3 : isWeekend ? 2 : 1.5;
 
+                    // 修改后的倍率计算逻辑
+                    const multiplier = leave ? 1.5 :
+                        isHoliday ? 3 :
+                            isAdjust ? 1.5 : // 补班日1.5倍
+                                isSpecial ? 2 :
+                                    isWeekend ? 2 :
+                                        1.5; // 普通工作日1.5倍
+
+                    // 在 applyBatchChanges() 函数中修改为：
                     records[date] = {
+                        hours: Math.abs(hours), // 存储绝对值
+                        leave: leave,
+                        multiplier: leave ? 1.5 : (   // 请假1.5倍，否则按正常加班规则计算
+                            holidays.includes(date) ? 3 :
+                                specialWorkdays.includes(date) ? 2 :
+                                    [0, 6].includes(new Date(date).getDay()) ? 2 : 1.5
+                        ),
+                        pay: leave ?
+                            -(Math.abs(hours) * hourly() * 1.5) :
+                            (hours * multiplier * hourly())
+                    };
+
+                    monthlyRecords[currentMonthKey][date] = {
                         hours: hours,
                         leave: leave,
                         multiplier: multiplier,
@@ -507,7 +1002,8 @@
                 }
             });
 
-            localStorage.setItem('records', JSON.stringify(records));
+            localStorage.setItem("records", JSON.stringify(records));
+            localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
             renderCalendar();
             clearSelectedDates();
             document.getElementById('batchHoursInput').value = '';
@@ -516,6 +1012,10 @@
         // 日历点击处理
         function initCalendarSelection() {
             const calendar = document.getElementById('calendar');
+            if (calendar) {
+                calendar.addEventListener('click', handleCalendarClick);
+                calendar.addEventListener('touchstart', handleCalendarClick, { passive: true });
+            }
             if (calendar) {
                 calendar.addEventListener('click', (e) => {
                     if (isBatchMode) {
@@ -539,42 +1039,131 @@
         }
 
         // 修改renderCalendar函数，移除单独的onclick绑定
+        // 修改后的 renderCalendar 函数
         function renderCalendar(year = currentYear, month = currentMonth) {
+            const currentMonthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+            const currentMonthRecords = monthlyRecords[currentMonthKey] || {};
             currentYear = year;
             currentMonth = month;
             const calendar = document.getElementById("calendar");
             calendar.innerHTML = "";
+
+            // 添加星期标题行
+            const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+            weekdays.forEach(day => {
+                const dayHeader = document.createElement("div");
+                dayHeader.className = "weekday-header";
+                dayHeader.textContent = day;
+                calendar.appendChild(dayHeader);
+            });
+
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const todayStr = new Date().toISOString().slice(0, 10);
-            for (let i = 0; i < firstDay; i++) calendar.innerHTML += '<div></div>';
+
+            // 添加空白格子
+            for (let i = 0; i < firstDay; i++) {
+                calendar.appendChild(document.createElement("div"));
+            }
+
+            // 添加日期格子
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                 const dayEl = document.createElement("div");
                 dayEl.className = "day";
-                if (holidays.includes(dateStr)) dayEl.classList.add("holiday");
-                else if ([0, 6].includes(new Date(dateStr).getDay())) dayEl.classList.add("weekend");
-                if (adjustDays.includes(dateStr)) dayEl.classList.add("adjusted");
-                if (records[dateStr]?.leave) dayEl.classList.add("leave");
                 dayEl.dataset.date = dateStr;
-                dayEl.innerHTML = `<div>${day}</div><div class="day-info">${records[dateStr]?.hours && records[dateStr].hours !== 0 ? records[dateStr].hours : ""
-                    }</div>`;
+
+                // 设置日期样式
+                if (holidays.includes(dateStr)) {
+                    dayEl.classList.add("holiday");
+                } else if ([0, 6].includes(new Date(dateStr).getDay())) {
+                    dayEl.classList.add("weekend");
+                }
+                if (adjustDays.includes(dateStr)) {
+                    dayEl.classList.add("adjusted");
+                }
+                if (specialWorkdays.includes(dateStr)) {
+                    dayEl.classList.add("special-workday");
+                }
+                if (currentMonthRecords[dateStr]?.leave) {
+                    dayEl.classList.add("leave");
+                }
+
+                // 添加日期数字
+                const dayNumber = document.createElement("div");
+                dayNumber.className = "day-number";
+                dayNumber.textContent = day;
+
+                // 如果是今天，添加高亮样式
+                if (dateStr === todayStr) {
+                    dayNumber.classList.add("today-highlight");
+                }
+
+                dayEl.appendChild(dayNumber);
+
+                // 添加加班标记（如果有记录）
+                const record = currentMonthRecords[dateStr];
+                if (record?.hours && record.hours !== 0) {
+                    const typeClass = record.leave ? "badge-leave" :
+                        holidays.includes(dateStr) ? "badge-C" :
+                            specialWorkdays.includes(dateStr) ? "badge-B" :
+                                [0, 6].includes(new Date(dateStr).getDay()) ? "badge-B" :
+                                    "badge-A";
+
+                    const typeText = record.leave ? "请假" :
+                        holidays.includes(dateStr) ? "C" :
+                            specialWorkdays.includes(dateStr) ? "B" :
+                                [0, 6].includes(new Date(dateStr).getDay()) ? "B" :
+                                    "A";
+
+                    const badge = document.createElement("div");
+                    badge.className = `overtime-badge ${typeClass}`;
+                    badge.textContent = `${typeText}-${Math.abs(record.hours)}h`;
+                    dayEl.appendChild(badge);
+                }
+
                 calendar.appendChild(dayEl);
             }
+
             document.getElementById("yearSelect").value = year;
             document.getElementById("monthSelect").value = month;
             updateStats();
             renderDetailTable();
         }
 
-        // 增强initCalendarSelection函数
+        // 在initCalendarSelection函数中添加触摸事件支持
         function initCalendarSelection() {
             const calendar = document.getElementById('calendar');
             if (calendar) {
-                // 先移除旧的监听器，避免重复绑定
+                // 移除旧的监听器，避免重复绑定
                 calendar.removeEventListener('click', handleCalendarClick);
+                calendar.removeEventListener('touchstart', handleCalendarTouch);
+
+                // 添加新的事件监听
                 calendar.addEventListener('click', handleCalendarClick);
+                calendar.addEventListener('touchstart', handleCalendarTouch, { passive: true });
             }
+        }
+
+        // 添加触摸事件处理函数
+        function handleCalendarTouch(e) {
+            // 防止默认行为（如滚动）
+            e.preventDefault();
+
+            // 获取触摸点
+            const touch = e.touches[0];
+
+            // 模拟点击事件
+            const simulatedEvent = new MouseEvent('click', {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+
+            // 触发点击事件
+            e.target.dispatchEvent(simulatedEvent);
         }
 
         // 单独提取日历点击处理函数
@@ -583,6 +1172,7 @@
             if (!dayEl) return;
 
             const date = dayEl.dataset.date;
+            selectedDate = date; // 确保设置全局变量
 
             if (isBatchMode) {
                 // 批量选择模式
@@ -599,56 +1189,93 @@
                 openModal(date);
             }
         }
+
         function populateSelectors() {
             const ySel = document.getElementById("yearSelect");
             const mSel = document.getElementById("monthSelect");
-            for (let y = 2020; y <= 2030; y++) ySel.innerHTML += `<option value="${y}">${y}</option>`;
-            for (let m = 0; m < 12; m++) mSel.innerHTML += `<option value="${m}">${m + 1}月</option>`;
+
+            // 清空现有选项避免重复
+            ySel.innerHTML = '';
+            mSel.innerHTML = '';
+
+            for (let y = 2020; y <= 2030; y++) {
+                ySel.innerHTML += `<option value="${y}">${y}</option>`;
+            }
+            for (let m = 0; m < 12; m++) {
+                mSel.innerHTML += `<option value="${m}">${m + 1}月</option>`;
+            }
+
+            ySel.value = currentYear;
+            mSel.value = currentMonth;
+
             ySel.onchange = () => renderCalendar(+ySel.value, +mSel.value);
             mSel.onchange = () => renderCalendar(+ySel.value, +mSel.value);
+
             document.getElementById("prevMonth").onclick = () => {
                 let y = currentYear, m = currentMonth - 1;
                 if (m < 0) { m = 11; y--; }
                 renderCalendar(y, m);
             };
+
             document.getElementById("nextMonth").onclick = () => {
                 let y = currentYear, m = currentMonth + 1;
                 if (m > 11) { m = 0; y++; }
                 renderCalendar(y, m);
             };
         }
+        function jumpToCurrentMonth() {
+            const now = new Date();
+            renderCalendar(now.getFullYear(), now.getMonth());
+        }
 
         function openModal(dateStr) {
             selectedDate = dateStr;
             document.getElementById("modalDate").innerText = dateStr;
-            document.getElementById("modalType").innerText = holidays.includes(dateStr)
-                ? "节假日(C)" : adjustDays.includes(dateStr)
-                    ? "调休工作日(A)" : [0, 6].includes(new Date(dateStr).getDay())
-                        ? "周末(B)" : "工作日(A)";
+            document.getElementById("modalType").innerText =
+                holidays.includes(dateStr) ? "节假日(C类)" :
+                    adjustDays.includes(dateStr) ? "调休工作日(A类)" : // 先判断补班日
+                        specialWorkdays.includes(dateStr) ? "调休日(B类)" :
+                            [0, 6].includes(new Date(dateStr).getDay()) ? "周末(B类)" :
+                                "工作日(A类)";
             document.getElementById("modal").style.display = "flex";
-            // 显示负数（请假）
-            document.getElementById("overtimeInput").value = records[dateStr]?.hours || "";
+
+            const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+            const currentRecord = monthlyRecords[currentMonthKey]?.[dateStr];
+            document.getElementById("overtimeInput").value = currentRecord?.hours || "";
             document.getElementById("overtimeInput").focus();
+            setTimeout(() => {
+                document.getElementById("overtimeInput").focus();
+                document.getElementById("overtimeInput").select();
+            }, 50);
         }
 
-        function cancelModal(e) {
-            if (e.target.id === "modal") document.getElementById("modal").style.display = "none";
-        }
-
-        // 在 `keydown` 事件处理中调整扣款计算
         document.getElementById("overtimeInput").addEventListener("keydown", e => {
             if (e.key === "Enter") {
                 const val = parseFloat(e.target.value);
                 if (!isNaN(val)) {
+                    const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+                    if (!monthlyRecords[currentMonthKey]) {
+                        monthlyRecords[currentMonthKey] = {};
+                    }
+
                     if (val === 0) {
-                        // 输入 0 则清除该日记录
+                        delete monthlyRecords[currentMonthKey][selectedDate];
                         delete records[selectedDate];
                     } else {
                         const isHoliday = holidays.includes(selectedDate);
                         const isWeekend = [0, 6].includes(new Date(selectedDate).getDay());
                         const isAdjust = adjustDays.includes(selectedDate);
-                        const leave = val < 0;
-                        const multiplier = leave ? 1.5 : isHoliday ? 3 : isWeekend ? 2 : 1.5;
+                        const isSpecial = specialWorkdays.includes(selectedDate);
+                        const leave = val < 0;  // 添加这行定义leave变量
+                        // 在 keydown 事件处理中
+                        const multiplier = leave ? 1.5 :
+                            holidays.includes(selectedDate) ? 3 :
+                                adjustDays.includes(selectedDate) ? 1.5 : // 先判断补班日
+                                    specialWorkdays.includes(selectedDate) ? 2 :
+                                        [0, 6].includes(new Date(selectedDate).getDay()) ? 2 :
+                                            1.5;
+
+                        // 同时更新全局records
                         records[selectedDate] = {
                             hours: val,
                             leave,
@@ -656,6 +1283,8 @@
                             pay: +(val * multiplier * hourly()).toFixed(2),
                         };
                     }
+
+                    localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
                     localStorage.setItem("records", JSON.stringify(records));
                     document.getElementById("modal").style.display = "none";
                     renderCalendar();
@@ -663,190 +1292,397 @@
             }
         });
 
-        // 初始化时调用
-        initCalendarSelection();
-        function updateStats() {
-            let total = 0, leave = 0, payA = 0, payB = 0, payC = 0;
-            for (const [date, r] of Object.entries(records)) {
-                // 动态计算 pay（基于当前 salary）
-                const currentPay = r.hours * r.multiplier * hourly();
-                if (r.leave) {
-                    leave += Math.abs(r.hours);
-                } else {
-                    total += r.hours;
-                    if (r.multiplier === 1.5) payA += currentPay;
-                    else if (r.multiplier === 2) payB += currentPay;
-                    else if (r.multiplier === 3) payC += currentPay;
-                }
-            }
-            const totalPay = payA + payB + payC;
-            const leaveDeduct = +(leave * hourly()).toFixed(2);
-            const real = +(salary + totalPay - leaveDeduct).toFixed(2);
 
-            // 更新统计显示
-            document.getElementById("totalOvertime").innerText = `${total} 小时`;
-            document.getElementById("netOvertime").innerText = `${(total - leave).toFixed(1)} 小时`;
-            document.getElementById("totalLeave").innerText = `${leave} 小时 (${(leave / 8).toFixed(1)} 天)`;
-            document.getElementById("leaveDeduction").innerText = `¥${leaveDeduct.toFixed(2)}`;
-            document.getElementById("overtimePay").innerText = `¥${totalPay.toFixed(2)}`;
-            document.getElementById("payA").innerText = `¥${payA.toFixed(0)}`;
-            document.getElementById("payB").innerText = `¥${payB.toFixed(0)}`;
-            document.getElementById("payC").innerText = `¥${payC.toFixed(0)}`;
-            document.getElementById("realPay").innerText = `¥${real.toFixed(2)}`;
-            document.getElementById("dailyWage").innerText = `日薪：¥${(salary / 21.75).toFixed(2)}`;
-            document.getElementById("hourlyWage").innerText = `时薪：¥${hourly().toFixed(2)}`;
-
-            // 重新渲染详细表格（确保金额更新）
-            renderDetailTable();
+        function cancelModal(e) {
+            if (e.target.id === "modal") document.getElementById("modal").style.display = "none";
         }
 
-        function renderDetailTable() {
-            try {
-                const tbody = document.getElementById("detailTable");
-                if (!tbody) {
-                    console.error("错误：找不到ID为'detailTable'的表格tbody元素");
-                    return;
+        // 在 `keydown` 事件处理中调整扣款计算
+        document.getElementById("overtimeInput").addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) {
+                    // 修复：明确定义 isLeave 变量
+                    const isLeave = val < 0;  // 添加这行定义
+
+                    const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+                    if (!monthlyRecords[currentMonthKey]) {
+                        monthlyRecords[currentMonthKey] = {};
+                    }
+
+                    if (val === 0) {
+                        delete monthlyRecords[currentMonthKey][selectedDate];
+                        delete records[selectedDate];
+                    } else {
+                        const isHoliday = holidays.includes(selectedDate);
+                        const isWeekend = [0, 6].includes(new Date(selectedDate).getDay());
+                        const isAdjust = adjustDays.includes(selectedDate);
+                        const isSpecial = specialWorkdays.includes(selectedDate);
+
+                        // 使用已定义的 isLeave 变量
+                        const multiplier = isLeave ? 1.5 :
+                            isHoliday ? 3 :
+                                isAdjust ? 1.5 :
+                                    isSpecial ? 2 :
+                                        isWeekend ? 2 :
+                                            1.5;
+
+                        monthlyRecords[currentMonthKey][selectedDate] = {
+                            hours: isLeave ? Math.abs(val) : val,
+                            leave: isLeave,
+                            multiplier: multiplier,
+                            pay: isLeave ?
+                                -(Math.abs(val) * hourly() * multiplier) :
+                                (val * multiplier * hourly())
+                        };
+
+                        records[selectedDate] = {
+                            hours: isLeave ? Math.abs(val) : val,
+                            leave: isLeave,
+                            multiplier: multiplier,
+                            pay: isLeave ?
+                                -(Math.abs(val) * hourly() * multiplier) :
+                                (val * multiplier * hourly())
+                        };
+                    }
+
+                    localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
+                    localStorage.setItem("records", JSON.stringify(records));
+                    document.getElementById("modal").style.display = "none";
+                    renderCalendar();
                 }
-
-                tbody.innerHTML = ""; // 清空现有内容
-
-                // 处理空数据情况
-                if (!records || Object.keys(records).length === 0) {
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                <td colspan="5" style="text-align:center;color:#999;padding:1rem;">
-                    暂无加班记录，请添加记录
-                </td>
-            `;
-                    tbody.appendChild(tr);
-                    return;
-                }
-
-                // 渲染数据行
-                const sortedRecords = Object.entries(records)
-                    .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB));
-
-                sortedRecords.forEach(([date, record]) => {
-                    if (record.hours === 0) return;
-
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                <td>${date}</td>
-                <td>${record.leave ? "请假" : "加班"}</td>
-                <td>${record.hours}小时</td>
-                <td>${record.multiplier}倍</td>
-                <td>¥${(record.hours * record.multiplier * hourly()).toFixed(2)}</td>
-            `;
-                    tbody.appendChild(tr);
-                });
-
-            } catch (error) {
-                console.error("渲染详细表格时出错:", error);
-                // 可以在这里添加用户可见的错误提示
             }
+        });
+
+
+        // 初始化时调用
+        initCalendarSelection();
+
+
+        function updateStats() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                try {
+                    // 添加这行代码，重新计算所有记录的金额
+                    recalculateAllRecords();
+                    const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+                    const currentMonthRecords = monthlyRecords[currentMonthKey] || {};
+                    const currentMonthAllowances = monthlyAllowances[currentMonthKey] || [];
+
+                    // 初始化统计变量
+                    let total = 0;      // 总加班时长
+                    let leave = 0;      // 总请假时长(正数)
+                    let payA = 0, payB = 0, payC = 0, paySpecial = 0;
+                    let leaveDeductionAmount = 0; // 初始化请假扣款变量
+
+                    // 计算当前月份的补贴总额
+                    let allowanceTotal = currentMonthAllowances.reduce((sum, item) => sum + item.amount, 0);
+
+                    // 计算加班和请假数据
+                    for (const [date, r] of Object.entries(currentMonthRecords)) {
+                        if (r.leave) {
+                            // 请假计算（使用存储的multiplier确保一致性）
+                            leave += Math.abs(r.hours);
+                            // 计算请假扣款 - 改为按时薪计算
+                            leaveDeductionAmount += Math.abs(r.pay); // 直接使用存储的扣款金额
+                        } else {
+                            // 加班计算
+                            total += r.hours;
+                            const currentPay = r.hours * r.multiplier * hourly();
+
+                            if (specialWorkdays.includes(date)) {
+                                paySpecial += currentPay;
+                            } else if (holidays.includes(date)) {
+                                payC += currentPay;
+                            } else if (adjustDays.includes(date)) {
+                                payA += currentPay;
+                            } else if ([0, 6].includes(new Date(date).getDay())) {
+                                payB += currentPay;
+                            } else {
+                                payA += currentPay;
+                            }
+                        }
+                    }
+                    function recalculateAllRecords() {
+                        // 遍历所有月份的记录
+                        for (const [monthKey, monthRecords] of Object.entries(monthlyRecords)) {
+                            for (const [date, record] of Object.entries(monthRecords)) {
+                                if (record) {
+                                    // 重新计算金额
+                                    record.pay = record.leave ?
+                                        -(Math.abs(record.hours) * hourly() * record.multiplier) :
+                                        (record.hours * record.multiplier * hourly());
+                                }
+                            }
+                        }
+
+                        // 保存更新后的记录
+                        localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
+                        localStorage.setItem("records", JSON.stringify(records));
+                    }
+                    // 计算实际工资（标准工资 + 加班费 + 补贴 - 请假扣款）
+                    const totalPay = payA + payB + payC + paySpecial;
+                    const realPay = salary + totalPay + allowanceTotal - leaveDeductionAmount;
+
+                    // 更新DOM元素
+                    document.getElementById("totalOvertime").innerText = total.toFixed(1);
+                    document.getElementById("netOvertime").innerText = (total - leave).toFixed(1);
+                    document.getElementById("totalLeave").innerText = leave.toFixed(1);
+                    document.getElementById("leaveDeduction").innerText = `¥${leaveDeductionAmount.toFixed(0)}`;
+                    document.getElementById("overtimePay").innerText = `¥${totalPay.toFixed(0)}`;
+                    document.getElementById("payA").innerText = `¥${payA.toFixed(0)}`;
+                    document.getElementById("payB").innerText = `¥${payB.toFixed(0)}`;
+                    document.getElementById("payC").innerText = `¥${payC.toFixed(0)}`;
+                    document.getElementById("paySpecial").innerText = `¥${paySpecial.toFixed(0)}`;
+                    document.getElementById("realPay").innerText = `¥${realPay.toFixed(0)}`;
+                    document.getElementById("totalAllowance").innerText = `¥${allowanceTotal.toFixed(0)}`;
+                    document.getElementById("dailyWage").innerText = `日薪：¥${daily().toFixed(2)}`;
+                    document.getElementById("hourlyWage").innerText = `时薪：¥${hourly().toFixed(2)}`;
+
+                    // 更新加班费率详情
+                    const baseHourly = hourly();
+                    document.getElementById("weekdayRate").innerText = `${(baseHourly * 1.5).toFixed(2)}元/时`;
+                    document.getElementById("weekendRate").innerText = `${(baseHourly * 2).toFixed(2)}元/时`;
+                    document.getElementById("holidayRate").innerText = `${(baseHourly * 3).toFixed(2)}元/时`;
+                    document.getElementById("adjustedRate").innerText = `${(baseHourly * 2).toFixed(2)}元/时`;
+
+                    // 更新补贴标签显示
+                    const allowanceLabel = document.getElementById("allowanceLabel");
+                    allowanceLabel.innerText = currentMonthAllowances.length > 0 ?
+                        `补贴(${currentMonthAllowances.length}项)` : "补贴";
+
+                    localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
+                    renderDetailTable();
+                } catch (error) {
+                    console.error("Error in updateStats:", error);
+                }
+            }, 100);
+        }
+
+
+
+        // 添加分类选择切换
+        document.getElementById('allowanceCategory').addEventListener('change', function () {
+            const newCategoryInput = document.getElementById('newCategory');
+            newCategoryInput.style.display = this.value === '' ? 'block' : 'none';
+            if (this.value !== '') newCategoryInput.value = '';
+        });
+
+        function renderDetailTable() {
+            const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+            const currentMonthRecords = monthlyRecords[currentMonthKey] || {};
+            const tbody = document.getElementById("detailTable");
+
+            if (!tbody) return;
+
+            tbody.innerHTML = "";
+
+            if (Object.keys(currentMonthRecords).length === 0) {
+                tbody.innerHTML = `<td colspan="5" style="text-align:center;color:#999;padding:1rem;">暂无加班记录，请添加记录</td>`;
+                return;
+            }
+
+            const sortedRecords = Object.entries(currentMonthRecords)
+                .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB));
+
+            sortedRecords.forEach(([date, record]) => {
+                if (!record || record.hours === 0) return;  // 添加空值检查
+
+                const typeClass = record.leave ? "badge-leave" :
+                    holidays.includes(date) ? "badge-C" :
+                        specialWorkdays.includes(date) ? "badge-B" :
+                            [0, 6].includes(new Date(date).getDay()) ? "badge-B" :
+                                "badge-A";
+
+                const typeText = record.leave ? "请假" :
+                    holidays.includes(date) ? "C类加班" :
+                        specialWorkdays.includes(date) ? "B类加班" :
+                            [0, 6].includes(new Date(date).getDay()) ? "B类加班" :
+                                "A类加班";
+
+                // 统一使用存储的pay值，确保显示一致
+                const displayPay = record.leave ?
+                    `-¥${Math.abs(record.pay).toFixed(2)}` :
+                    `¥${record.pay.toFixed(2)}`;
+
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+            <td>${date}</td>
+            <td><span class="overtime-badge ${typeClass}">${typeText}</span></td>
+            <td>${record.hours}小时</td>
+            <td>${record.multiplier}倍</td>
+            <td>${displayPay}</td>
+        `;
+                tbody.appendChild(tr);
+            });
         }
 
         function clearAllData() {
-            if (confirm("确认清除所有记录？")) {
-                localStorage.removeItem("records");
-                records = {};
+            if (confirm("确认清除当前月份所有记录？\n\n建议先导出备份数据！")) {
+                const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+                delete monthlyRecords[currentMonthKey];
+                localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
                 renderCalendar();
             }
         }
 
         function exportToExcel() {
+            const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+            const currentMonthRecords = monthlyRecords[currentMonthKey] || {};
+
             try {
-                // 1. 创建工作簿
                 const wb = XLSX.utils.book_new();
 
-                // 2. 准备数据 - 包含所有记录（包括0小时的记录）
-                const data = [
-                    ["日期", "类型", "时长(小时)", "倍数", "金额(元)", "是否请假"],  // 表头
-                    ...Object.entries(records)
+                // 1. 加班记录表
+                const overtimeData = [
+                    ["日期", "类型", "时长(小时)", "倍数", "金额(元)", "是否请假"],
+                    ...Object.entries(currentMonthRecords)
+                        .filter(([_, r]) => r.hours !== 0)
                         .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
                         .map(([date, r]) => [
                             date,
                             r.leave ? "请假" : "加班",
                             r.hours,
                             r.multiplier,
-                            r.hours * r.multiplier * hourly(),
+                            r.pay,
                             r.leave ? "是" : "否"
                         ])
                 ];
+                const wsOvertime = XLSX.utils.aoa_to_sheet(overtimeData);
+                XLSX.utils.book_append_sheet(wb, wsOvertime, "加班记录");
 
-                // 3. 创建工作表
-                const ws = XLSX.utils.aoa_to_sheet(data);
-
-                // 4. 设置列宽（可选）
-                ws['!cols'] = [
-                    { wch: 12 },  // 日期列宽
-                    { wch: 8 },   // 类型
-                    { wch: 10 },  // 时长
-                    { wch: 6 },   // 倍数
-                    { wch: 12 },  // 金额
-                    { wch: 8 }    // 是否请假
+                // 2. 补贴扣款表
+                const allowanceData = [
+                    ["日期", "类型", "分类", "金额", "备注"],
+                    ...(monthlyAllowances[currentMonthKey] || []).map(item => [
+                        item.date,
+                        item.type === 'subsidy' ? '补贴' : '扣款',
+                        item.category,
+                        item.amount,
+                        item.notes || ''
+                    ])
                 ];
+                const wsAllowance = XLSX.utils.aoa_to_sheet(allowanceData);
+                XLSX.utils.book_append_sheet(wb, wsAllowance, "补贴扣款");
 
-                // 5. 添加工作表到工作簿
-                XLSX.utils.book_append_sheet(wb, ws, "加班记录");
-
-                // 6. 添加统计信息到第二个工作表
+                // 3. 统计表
                 const statsData = [
                     ["统计项", "值"],
+                    ["标准工资", `¥${salary.toFixed(2)}`],
                     ["总加班时长", document.getElementById("totalOvertime").textContent],
                     ["总请假时长", document.getElementById("totalLeave").textContent],
                     ["加班工资", document.getElementById("overtimePay").textContent],
                     ["请假扣款", document.getElementById("leaveDeduction").textContent],
+                    ["补贴扣款", document.getElementById("totalAllowance").textContent],
                     ["实发工资", document.getElementById("realPay").textContent],
-                    ["标准工资", salary],
                     ["导出时间", new Date().toLocaleString()]
                 ];
-                const statsWs = XLSX.utils.aoa_to_sheet(statsData);
-                XLSX.utils.book_append_sheet(wb, statsWs, "统计汇总");
+                const wsStats = XLSX.utils.aoa_to_sheet(statsData);
+                XLSX.utils.book_append_sheet(wb, wsStats, "统计汇总");
 
-                // 7. 导出文件
-                XLSX.writeFile(wb, `加班记录_${new Date().toISOString().slice(0, 10)}.xlsx`);
+                // 生成指定格式的文件名：YYYY-MM-DD-HHmm
+                const now = new Date();
+                const fileName = `加班记录_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.xlsx`;
+
+                XLSX.writeFile(wb, fileName);
 
             } catch (error) {
-                console.error("导出Excel失败:", error);
-                alert("导出Excel时出错: " + error.message);
+                console.error("导出失败:", error);
+                alert("导出出错: " + error.message);
             }
         }
 
         function importFromExcel(e) {
             const file = e.target.files[0];
+            if (!file || !file.name.endsWith('.xlsx')) {
+                alert("请选择有效的Excel文件(.xlsx)");
+                return;
+            }
+            const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
             if (!file) return;
+
             const reader = new FileReader();
             reader.onload = function (evt) {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: "array" });
 
-                // 假设第一行为表头，第二行开始数据
-                records = {};
-                for (let i = 1; i < jsonData.length; i++) {
-                    const row = jsonData[i];
-                    if (!row || row.length < 5) continue;
-                    const date = row[0];
-                    const type = row[1];
-                    const hours = parseFloat(row[2]);
-                    const multiplier = parseFloat(row[3]);
-                    const pay = parseFloat(row[4]);
+                    // 清空当前月份数据
+                    monthlyRecords[currentMonthKey] = {};
+                    monthlyAllowances[currentMonthKey] = [];
 
-                    if (!date || isNaN(hours) || isNaN(multiplier) || isNaN(pay)) continue;
+                    // 处理每个工作表
+                    workbook.SheetNames.forEach(sheetName => {
+                        const sheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-                    records[date] = {
-                        hours: hours,
-                        leave: type === "请假",
-                        multiplier: multiplier,
-                        pay: pay,
-                    };
+                        if (sheetName === "加班记录") {
+                            // 处理加班记录
+                            for (let i = 1; i < jsonData.length; i++) {
+                                const row = jsonData[i];
+                                if (!row || row.length < 5) continue;
+
+                                const date = formatDate(row[0]); // 格式化日期
+                                if (!date) continue;
+
+                                const hours = parseFloat(row[2]);
+                                if (isNaN(hours)) continue;
+
+                                const isLeave = row[1] === "请假";
+                                const multiplier = parseFloat(row[3]) ||
+                                    (isLeave ? 1.5 :
+                                        holidays.includes(date) ? 3 :
+                                            [0, 6].includes(new Date(date).getDay()) ? 2 : 1.5);
+
+                                monthlyRecords[currentMonthKey][date] = {
+                                    hours: hours,
+                                    leave: isLeave,
+                                    multiplier: multiplier,
+                                    pay: hours * multiplier * hourly()
+                                };
+                            }
+                        }
+                        else if (sheetName === "补贴扣款") {
+                            // 处理补贴扣款
+                            for (let i = 1; i < jsonData.length; i++) {
+                                const row = jsonData[i];
+                                if (!row || row.length < 3) continue;
+
+                                const date = formatDate(row[0]);
+                                if (!date) continue;
+
+                                monthlyAllowances[currentMonthKey].push({
+                                    type: row[1] === '补贴' ? 'subsidy' : 'deduction',
+                                    category: row[2] || '其他',
+                                    amount: parseFloat(row[3]),
+                                    notes: row[4] || '',
+                                    date: date
+                                });
+                            }
+                        }
+                    });
+
+                    // 保存并刷新
+                    localStorage.setItem("monthlyRecords", JSON.stringify(monthlyRecords));
+                    localStorage.setItem("monthlyAllowances", JSON.stringify(monthlyAllowances));
+                    renderCalendar();
+                    alert("导入成功！");
+
+                } catch (error) {
+                    console.error("导入失败:", error);
+                    alert("导入出错：" + error.message);
                 }
-                localStorage.setItem("records", JSON.stringify(records));
-                renderCalendar(currentYear, currentMonth);
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // 添加日期格式化辅助函数
+        function formatDate(dateStr) {
+            if (!dateStr) return null;
+            // 处理各种可能的日期格式
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return null;
+            return date.toISOString().slice(0, 10);
         }
 
 
@@ -855,6 +1691,7 @@
             localStorage.setItem("baseSalary", salary);
             updateStats(); // 立即更新所有计算
         });
+
 
 
         function hourly() {
@@ -869,14 +1706,153 @@
         }
 
         // 实时监听工资输入框
-        document.getElementById("salaryInput").addEventListener("change", e => {
-            salary = parseFloat(e.target.value) || 4600;
+        document.getElementById("salaryInput").addEventListener("input", function (e) {
+            salary = parseFloat(e.target.value) || 0;
             localStorage.setItem("baseSalary", salary);
+
+            // 更新工资显示
+            document.getElementById("dailyWage").innerText = `日薪：¥${(salary / 21.75).toFixed(2)}`;
+            document.getElementById("hourlyWage").innerText = `时薪：¥${hourly().toFixed(2)}`;
+
+            // 强制更新所有统计和记录
             updateStats();
         });
 
+        // 添加补贴扣款相关函数
+        function openAllowanceModal() {
+            document.getElementById('allowanceModal').style.display = 'flex';
+            document.getElementById('allowanceAmount').focus();
+            document.getElementById('allowanceDate').value = new Date().toISOString().slice(0, 10);
+            renderAllowanceRecords();
+        }
 
+        function closeAllowanceModal(e) {
+            if (!e || e.target.id === 'allowanceModal') {
+                document.getElementById('allowanceModal').style.display = 'none';
+                document.getElementById('newCategory').style.display = 'none';
+            }
+        }
+        function renderAllowanceRecords() {
+            const container = document.getElementById('allowanceRecordsList');
+            container.innerHTML = '';
 
+            const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+            const currentMonthAllowances = monthlyAllowances[currentMonthKey] || [];
+
+            if (currentMonthAllowances.length === 0) {
+                container.innerHTML = '<div style="color:#999;text-align:center;padding:10px;">本月暂无记录</div>';
+                return;
+            }
+
+            // 按日期倒序排列
+            const sortedRecords = [...currentMonthAllowances].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedRecords.forEach((record, index) => {
+                const recordEl = document.createElement('div');
+                recordEl.className = 'record-item';
+
+                recordEl.innerHTML = `
+            <div class="record-date">${record.date}</div>
+            <div class="record-category">${record.category}</div>
+            <div class="record-notes">${record.notes || ''}</div>
+            <div class="record-amount ${record.amount >= 0 ? 'record-subsidy' : 'record-deduction'}">
+                ${record.amount >= 0 ? '+' : ''}${record.amount.toFixed(2)}
+            </div>
+            <div class="record-actions">
+                <button onclick="deleteAllowance(${index})">删除</button>
+            </div>
+        `;
+
+                container.appendChild(recordEl);
+            });
+        }
+
+        // 修改deleteAllowance函数
+        function deleteAllowance(index) {
+            const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+            if (confirm('确定要删除这条记录吗？')) {
+                monthlyAllowances[currentMonthKey].splice(index, 1);
+                localStorage.setItem('monthlyAllowances', JSON.stringify(monthlyAllowances));
+                updateStats();  // 确保立即更新统计
+                renderAllowanceRecords();
+            }
+        }
+        function saveAllowance() {
+            const categoryHistory = JSON.parse(localStorage.getItem("categoryHistory")) || [];
+            const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+            const type = document.querySelector('input[name="allowanceType"]:checked').value;
+            const categorySelect = document.getElementById('allowanceCategory');
+            let category = categorySelect.value;
+            const newCategory = document.getElementById('newCategory').value;
+            const amount = parseFloat(document.getElementById('allowanceAmount').value);
+            const notes = document.getElementById('allowanceNotes').value;
+            const date = document.getElementById('allowanceDate').value;
+
+            // 处理自定义分类
+            if (category === 'custom') {
+                if (!newCategory) {
+                    alert('请输入自定义分类名称');
+                    return;
+                }
+                category = newCategory;
+
+                // 添加到分类选项中（不重复添加）
+                if (!Array.from(categorySelect.options).some(opt => opt.value === newCategory)) {
+                    const option = document.createElement('option');
+                    option.value = newCategory;
+                    option.textContent = newCategory;
+                    categorySelect.insertBefore(option, categorySelect.lastChild);
+                }
+            }
+            if (!categoryHistory.includes(category)) {
+                categoryHistory.push(category);
+                localStorage.setItem("categoryHistory", JSON.stringify(categoryHistory));
+            }
+
+            if (!category || isNaN(amount) || !date) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            // 初始化当前月份的补贴数据
+            if (!monthlyAllowances[currentMonthKey]) {
+                monthlyAllowances[currentMonthKey] = [];
+            }
+
+            // 添加到当前月份
+            monthlyAllowances[currentMonthKey].push({
+                type,
+                category,
+                amount: type === 'deduction' ? -Math.abs(amount) : Math.abs(amount),
+                notes,
+                date
+            });
+
+            localStorage.setItem('monthlyAllowances', JSON.stringify(monthlyAllowances));
+
+            // 重置表单
+            document.getElementById('allowanceAmount').value = '';
+            document.getElementById('allowanceNotes').value = '';
+            document.getElementById('newCategory').value = '';
+            document.getElementById('newCategory').style.display = 'none';
+            categorySelect.value = '';
+
+            // 更新显示
+            renderAllowanceRecords();
+            updateStats();
+
+        }
+        // 在DOM加载后添加这个事件监听
+        document.getElementById('allowanceCategory').addEventListener('change', function () {
+            const newCategoryInput = document.getElementById('newCategory');
+            if (this.value === 'custom') {
+                newCategoryInput.style.display = 'block';
+                newCategoryInput.focus();
+            } else {
+                newCategoryInput.style.display = 'none';
+                newCategoryInput.value = '';
+            }
+        });
         populateSelectors();
         renderCalendar();
         updateStats();
