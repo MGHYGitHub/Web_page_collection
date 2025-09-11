@@ -1,0 +1,463 @@
+<!--
+********************************************************************************
+*  📊 CPK 计算工具
+*  作者: ELI_MORGAN
+*  版本: 1.0.0
+*  发布日期: 2025-09-11
+*  官方网站/来源: https://github.com/MGHYGitHub/Web_page_collection
+*  防伪标识: CPK-20250911-MGHY
+*  说明: 本工具用于 Excel/CSV 数据的 CPK 分析与可视化，
+*        禁止未经授权的复制或分发。
+********************************************************************************
+-->
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CPK 计算工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f7f9fc;
+        }
+
+        #footerInfo {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-box {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            padding: 8px 12px;
+            border: 2px solid #4e73df;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #fff;
+            transition: 0.3s;
+        }
+
+        input[type="file"]:hover {
+            background: #4e73df;
+            color: #fff;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #e3e6f0;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #4e73df;
+            color: #fff;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fc;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: 400px;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .button-container button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        #generateChartsBtn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        #toggleParamChartBtn {
+            background: #2196F3;
+            color: white;
+        }
+
+        #toggleValidBtn {
+            background: #FF9800;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>📊 CPK 计算工具</h2>
+    <div class="upload-box">
+        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" />
+    </div>
+
+    <div id="result" class="card"></div>
+
+    <div class="button-container">
+        <button id="generateChartsBtn">📊 生成统计图</button>
+        <button id="toggleParamChartBtn">🔄 参数波动图</button>
+        <button id="toggleValidBtn">切换有效/源数据显示</button>
+        <span id="validModeLabel" style="margin-left:10px; font-weight:bold; color:#e74a3b;">当前模式：有效数据</span>
+    </div>
+    <div class="button-container">
+        <button id="exportDataChartBtn">导出数据趋势图 (PNG)</button>
+        <button id="exportCpkChartBtn">导出 CP/CPK 图 (PNG)</button>
+        <button id="exportFailChartBtn">导出超标率图 (PNG)</button>
+    </div>
+
+
+    <div id="chartsContainer" style="display:none;">
+        <div class="card">
+            <h3 style="text-align:center; color:#444;">数据趋势视图（均值、上下限、极值）</h3>
+            <canvas id="dataChart"></canvas>
+        </div>
+        <div class="card">
+            <h3 style="text-align:center; color:#444;">CP / CPK 趋势图</h3>
+            <canvas id="cpkChart"></canvas>
+        </div>
+        <div class="card">
+            <h3 style="text-align:center; color:#444;">超标率 (%)</h3>
+            <canvas id="failChart"></canvas>
+        </div>
+    </div>
+
+    <div id="paramChartContainer" class="card" style="display:none;">
+        <label for="paramSelect" style="font-weight:bold;">选择参数：</label>
+        <select id="paramSelect" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;"></select>
+        <div style="margin-top:20px;">
+            <canvas id="paramTrendChart"></canvas>
+        </div>
+    </div>
+    <div id="footerInfo">
+        作者: ELI_MORGAN | 版本: 1.0.0 | 防伪标识: CPK-20250911-MGHY
+    </div>
+
+    <script>
+        let dataChartInstance = null, cpkChartInstance = null, failChartInstance = null, paramTrendChart = null;
+        let rawData = [], columns = [];
+        let useValidData = true;
+
+        // 文件导入
+        document.getElementById("excelFile").addEventListener("change", handleFile, false);
+        function handleFile(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                rawData = jsonData.slice(1).map(r => { let obj = {}; jsonData[0].forEach((h, i) => { obj[h] = r[i]; }); return obj; });
+                columns = jsonData[0];
+                processData(jsonData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 计算统计数据
+        function processData(data) {
+            const headers = data[0], rows = data.slice(1);
+            let result = `<table><tr><th>参数</th><th>规格</th><th>上限</th><th>下限</th>
+      <th>最大值</th><th>最小值</th><th>平均值</th><th>标准差</th>
+      <th>CP</th><th>CPK</th><th>超标数</th><th>超标率</th>
+      <th>有效数</th><th>无效数</th></tr>`;
+
+            let chartLabels = [], cpData = [], cpkData = [], failRateData = [], outOfSpecData = [];
+            let meanData = [], uslData = [], lslData = [], maxData = [], minData = [];
+            window.paramValues = [];
+
+            for (let col = 2; col < headers.length; col++) {
+                const specText = headers[col];
+                const match = specText.match(/([-]?\d+\.?\d*)\s*±\s*(\d+\.?\d*)/);
+                if (!match) continue;
+                const target = parseFloat(match[1]), tol = parseFloat(match[2]);
+                const USL = target + tol, LSL = target - tol;
+
+                const valuesAll = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+                const valuesValid = valuesAll.filter(v => Math.abs(v - target) <= tol * 3);
+                const invalidCount = valuesAll.length - valuesValid.length;
+                const dataToUse = useValidData ? valuesValid : valuesAll;
+
+                const maxVal = Math.max(...dataToUse);
+                const minVal = Math.min(...dataToUse);
+                const mean = dataToUse.reduce((a, b) => a + b, 0) / dataToUse.length;
+                const std = Math.sqrt(dataToUse.reduce((a, b) => a + (b - mean) ** 2, 0) / (dataToUse.length - 1));
+                const CP = (USL - LSL) / (6 * std);
+                const Cpk1 = (USL - mean) / (3 * std), Cpk2 = (mean - LSL) / (3 * std), CPK = Math.min(Cpk1, Cpk2);
+                const outOfSpec = dataToUse.filter(v => v > USL || v < LSL).length;
+                const outRate = (outOfSpec / dataToUse.length) * 100;
+
+                result += `<tr>
+                    <td>${specText}</td><td>${target}±${tol}</td><td>${USL.toFixed(2)}</td><td>${LSL.toFixed(2)}</td>
+                    <td>${maxVal}</td><td>${minVal}</td><td>${mean.toFixed(2)}</td><td>${std.toFixed(2)}</td>
+                    <td>${CP.toFixed(3)}</td><td>${CPK.toFixed(3)}</td>
+                    <td>${outOfSpec}</td><td>${outRate.toFixed(2)}%</td>
+                    <td>${valuesValid.length}</td><td>${invalidCount}</td></tr>`;
+
+                chartLabels.push(specText);
+                cpData.push(CP.toFixed(3));
+                cpkData.push(CPK.toFixed(3));
+                failRateData.push(outRate.toFixed(2));
+                outOfSpecData.push(outOfSpec);
+                meanData.push(mean.toFixed(2));
+                uslData.push(USL.toFixed(2));
+                lslData.push(LSL.toFixed(2));
+                maxData.push(maxVal);
+                minData.push(minVal);
+
+                window.paramValues.push(valuesAll);
+            }
+            result += "</table>";
+            document.getElementById("result").innerHTML = result;
+
+            window.chartData = { labels: chartLabels, cpData, cpkData, failRateData, outOfSpecData, meanData, uslData, lslData, maxData, minData };
+        }
+
+
+        // 生成统计图
+        document.getElementById("generateChartsBtn").addEventListener("click", function () {
+            document.getElementById("chartsContainer").style.display = "block";
+            renderDataChart(window.chartData.labels, window.chartData.meanData, window.chartData.uslData, window.chartData.lslData, window.chartData.maxData, window.chartData.minData);
+            renderCpkChart(window.chartData.labels, window.chartData.cpData, window.chartData.cpkData);
+            renderFailChart(
+                window.chartData.labels,
+                window.chartData.failRateData,
+                window.chartData.outOfSpecData  // 需要在 processData 中保存每个参数的超标数量
+            );
+
+        });
+
+        // 参数波动图切换
+        document.getElementById("toggleParamChartBtn").addEventListener("click", function () {
+            const container = document.getElementById("paramChartContainer");
+            container.style.display = (container.style.display === "none") ? "block" : "none";
+            if (container.style.display === "block") initParamSelect();
+        });
+
+        function initParamSelect() {
+            const paramSelect = document.getElementById("paramSelect");
+            paramSelect.innerHTML = "";
+            columns.forEach(col => {
+                if (col !== columns[0] && col !== columns[1]) {
+                    const option = document.createElement("option");
+                    option.value = col; option.textContent = col;
+                    paramSelect.appendChild(option);
+                }
+            });
+            if (paramSelect.options.length > 0) renderParamTrend(paramSelect.value);
+            paramSelect.addEventListener("change", function () { renderParamTrend(this.value); });
+        }
+
+        function renderParamTrend(paramName) {
+            const ctx = document.getElementById("paramTrendChart").getContext("2d");
+            const labels = rawData.map(r => r[columns[0]]);
+            const valuesAll = rawData.map(r => parseFloat(r[paramName]));
+            const values = valuesAll.map(v => isNaN(v) ? null : v);
+            const match = paramName.match(/([-]?\d+\.?\d*)\s*±\s*(\d+\.?\d*)/);
+            const target = match ? parseFloat(match[1]) : 0;
+            const tol = match ? parseFloat(match[2]) : 0;
+            const USL = target + tol, LSL = target - tol;
+
+            if (paramTrendChart) paramTrendChart.destroy();
+            paramTrendChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [
+                        { label: paramName + " 波动", data: values, borderColor: "#FF5722", backgroundColor: "rgba(255,87,34,0.2)", fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: "#FF5722" },
+                        { label: "上限 (USL)", data: new Array(labels.length).fill(USL), borderColor: "#e74a3b", borderDash: [6, 6], fill: false, pointRadius: 0 },
+                        { label: "下限 (LSL)", data: new Array(labels.length).fill(LSL), borderColor: "#e74a3b", borderDash: [6, 6], fill: false, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: "index", intersect: false },
+                    plugins: { legend: { display: true }, tooltip: { mode: 'index' } },
+                    scales: { x: { title: { display: true, text: "SN" } }, y: { title: { display: true, text: "数值" } } }
+                }
+            });
+        }
+
+        // 数据趋势图
+        function renderDataChart(labels, meanData, uslData, lslData, maxData, minData) {
+            const ctx = document.getElementById("dataChart").getContext("2d");
+            if (dataChartInstance) dataChartInstance.destroy();
+            dataChartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels, datasets: [
+                        { label: "平均值", data: meanData, borderColor: "#4e73df", backgroundColor: "rgba(78,115,223,0.1)", fill: false, tension: 0.2 },
+                        { label: "上限 (USL)", data: uslData, borderColor: "#e74a3b", borderDash: [6, 6], fill: false, pointRadius: 0 },
+                        { label: "下限 (LSL)", data: lslData, borderColor: "#e74a3b", borderDash: [6, 6], fill: false, pointRadius: 0 },
+                        { label: "最大值", data: maxData, borderColor: "#1cc88a", type: "scatter", pointStyle: "triangle", pointRadius: 6, showLine: false },
+                        { label: "最小值", data: minData, borderColor: "#f6c23e", type: "scatter", pointStyle: "rect", pointRadius: 6, showLine: false }
+                    ]
+                },
+                options: { responsive: true, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "top" } } }
+            });
+        }
+
+        // CP/CPK图
+        function renderCpkChart(labels, cpData, cpkData) {
+            const ctx = document.getElementById("cpkChart").getContext("2d");
+            if (cpkChartInstance) cpkChartInstance.destroy();
+            cpkChartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels, datasets: [
+                        { label: "CP", data: cpData, borderColor: "#1cc88a", fill: false, tension: 0.2 },
+                        { label: "CPK", data: cpkData, borderColor: "#4e73df", fill: false, tension: 0.2 },
+                        { label: "警戒线 (1.33)", data: new Array(labels.length).fill(1.33), borderColor: "#e74a3b", borderDash: [6, 6], fill: false, pointRadius: 0 }
+                    ]
+                },
+                options: { responsive: true, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "top" } } }
+            });
+        }
+
+        // 超标率
+        function renderFailChart(labels, failData, outCountData) {
+            const ctx = document.getElementById("failChart").getContext("2d");
+            if (failChartInstance) failChartInstance.destroy();
+
+            failChartInstance = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "超标率 (%)",
+                        data: failData,
+                        backgroundColor: "#f6c23e"
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            color: '#444',
+                            font: { weight: 'bold' },
+                            formatter: function (value, context) {
+                                // 显示对应的超标数量
+                                return outCountData[context.dataIndex];
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `超标率: ${context.raw}% , 数量: ${outCountData[context.dataIndex]}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: "超标率 (%)" }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
+
+
+        // 有效/源数据切换
+        document.getElementById("toggleValidBtn").addEventListener("click", function () {
+            useValidData = !useValidData;
+            const label = document.getElementById("validModeLabel");
+
+            if (useValidData) {
+                this.textContent = "切换有效/源数据显示";
+                label.textContent = "当前模式：有效数据";
+                label.style.color = "#1cc88a";
+            } else {
+                this.textContent = "切换源/有效数据显示";
+                label.textContent = "当前模式：包含无效数据";
+                label.style.color = "#e74a3b";
+            }
+
+            // 重新处理表格和图表
+            processData([columns, ...rawData.map(r => columns.map(h => r[h]))]);
+
+            if (document.getElementById("chartsContainer").style.display === "block") {
+                const chartData = window.chartData; // 获取全局数据
+                renderDataChart(chartData.labels, chartData.meanData, chartData.uslData, chartData.lslData, chartData.maxData, chartData.minData);
+                renderCpkChart(chartData.labels, chartData.cpData, chartData.cpkData);
+                renderFailChart(chartData.labels, chartData.failRateData, chartData.outOfSpecData);
+            }
+        });
+        // 防伪标识输出
+        console.log(`
+            **********************************************
+            📊 CPK 计算工具
+            作者: 
+            版本: 1.0.0
+            防伪标识: CPK-20250911-MGHY
+            **********************************************
+            `);
+        function downloadChart(chartInstance, fileName) {
+            if (!chartInstance) return alert("图表未生成！");
+            const link = document.createElement('a');
+            link.href = chartInstance.toBase64Image();
+            link.download = fileName;
+            link.click();
+        }
+
+        document.getElementById("exportDataChartBtn").addEventListener("click", function () {
+            downloadChart(dataChartInstance, "数据趋势图.png");
+        });
+
+        document.getElementById("exportCpkChartBtn").addEventListener("click", function () {
+            downloadChart(cpkChartInstance, "CP_CPK图.png");
+        });
+
+        document.getElementById("exportFailChartBtn").addEventListener("click", function () {
+            downloadChart(failChartInstance, "超标率图.png");
+        });
+    </script>
+</body>
+
+</html>

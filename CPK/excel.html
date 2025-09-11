@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPK 数据生成器完全版</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+  th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; cursor: pointer; }
+  th { background: #4CAF50; color: white; cursor: default; }
+  .high { background-color: #c8e6c9; } /* 高CPK绿色 */
+  .low { background-color: #ffcdd2; }  /* 低CPK红色 */
+  .invalid { background-color: #f0f0f0; color: #999; } /* 无效/离谱数据 */
+  button { margin: 5px; padding: 5px 10px; }
+  input { width: 50px; margin-left: 5px; }
+</style>
+</head>
+<body>
+
+<h2>CPK 数据生成器完全版</h2>
+
+<div>
+  行数:<input type="number" id="rowCount" value="30">
+  列数:<input type="number" id="colCount" value="10">
+  <button onclick="generateHeaderAndData()">生成随机数据</button>
+  <br>
+  目标 CPK:<input type="number" id="targetCPK" step="0.01" value="1.33">
+  高CPK比例(%):<input type="number" id="highRatio" value="70">
+  <button onclick="generateTargetCPK()">生成目标CPK数据</button>
+  <br>
+  <button onclick="addOutlier()">添加离谱随机数据</button>
+  行数:<input type="number" id="outRow" value="5">
+  列数:<input type="number" id="outCol" value="5">
+  <br>
+  <button onclick="exportExcel()">导出 Excel</button>
+</div>
+
+<table id="dataTable">
+  <thead></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+// 生成随机数据函数
+function randomValue(base, tolerance, highCPK=true){
+  const sigma = highCPK ? tolerance/3 : tolerance*1.5;
+  return Math.round(base + (Math.random() * 2 - 1) * sigma);
+}
+
+// 自动生成表头
+function generateHeader(colCount){
+  const thead = document.querySelector("#dataTable thead");
+  const tr = document.createElement("tr");
+  tr.innerHTML = "<th>SN</th><th>槽位</th>";
+  for(let i=0;i<colCount;i++){
+    const base = [100,200,300,-100,-200][i%5];
+    tr.innerHTML += `<th>A(${base}±20)</th>`;
+  }
+  thead.innerHTML = "";
+  thead.appendChild(tr);
+}
+
+// 生成随机数据
+function generateHeaderAndData(){
+  const rowCount = parseInt(document.getElementById("rowCount").value) || 30;
+  const colCount = parseInt(document.getElementById("colCount").value) || 10;
+  generateHeader(colCount);
+  const tbody = document.querySelector("#dataTable tbody");
+  tbody.innerHTML = "";
+  for(let i=0;i<rowCount;i++){
+    const tr = document.createElement("tr");
+    const sn = "SEFW" + (1111 + i);
+    const slot = i % 5;
+    let tds = `<td>${sn}</td><td>${slot}</td>`;
+    for(let j=0;j<colCount;j++){
+      const base = [100,200,300,-100,-200][j%5];
+      const val = randomValue(base, 20, true);
+      tds += `<td class="high">${val}</td>`;
+    }
+    tr.innerHTML = tds;
+    tbody.appendChild(tr);
+  }
+}
+
+// 生成目标CPK数据
+function generateTargetCPK(){
+  const target = parseFloat(document.getElementById("targetCPK").value) || 1.33;
+  const ratio = parseInt(document.getElementById("highRatio").value) || 70;
+  const tbody = document.querySelector("#dataTable tbody");
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    tr.querySelectorAll("td").forEach((td, idx)=>{
+      if(idx<2) return; // SN和槽位跳过
+      const high = Math.random()*100 < ratio;
+      let base = parseInt(td.textContent) || 100;
+      const val = randomValue(base, 20, high);
+      td.textContent = val;
+      td.className = high ? "high" : "low";
+    });
+  });
+}
+
+// 添加离谱随机数据
+function addOutlier(){
+  const tbody = document.querySelector("#dataTable tbody");
+  const rows = parseInt(document.getElementById("outRow").value)||5;
+  const cols = parseInt(document.getElementById("outCol").value)||5;
+  const existingCols = document.querySelector("#dataTable thead tr").children.length - 2;
+  for(let i=0;i<rows;i++){
+    const tr = document.createElement("tr");
+    const sn = "OUT" + Math.floor(Math.random()*10000);
+    const slot = Math.floor(Math.random()*5);
+    let tds = `<td>${sn}</td><td>${slot}</td>`;
+    for(let j=0;j<existingCols;j++){
+      let val = Math.random() < 0.5 ? 0 : "";
+      tds += `<td class="invalid">${val}</td>`;
+    }
+    tr.innerHTML = tds;
+    tbody.appendChild(tr);
+  }
+}
+
+// Excel 导出
+function exportExcel(){
+  const table = document.getElementById("dataTable");
+  const wb = XLSX.utils.table_to_book(table, {sheet:"CPK数据"});
+  XLSX.writeFile(wb, "CPK数据.xlsx");
+}
+
+// 单元格点击切换有效/无效
+document.querySelector("#dataTable").addEventListener("click", function(e){
+  const td = e.target;
+  if(td.tagName !== "TD" || td.cellIndex<2) return;
+  if(td.classList.contains("invalid")){
+    td.classList.remove("invalid");
+    td.classList.add("high");
+  } else if(td.classList.contains("high") || td.classList.contains("low")){
+    td.classList.remove("high","low");
+    td.classList.add("invalid");
+  } else {
+    td.classList.add("invalid");
+  }
+});
+
+// 默认生成初始数据
+generateHeaderAndData();
+</script>
+
+</body>
+</html>
