@@ -727,17 +727,6 @@
             background: #4CAF50 !important;
         }
 
-        .hidden-content {
-            filter: blur(5px);
-            user-select: none;
-            transition: filter 0.3s ease;
-        }
-
-        .privacy-hidden {
-            filter: blur(5px);
-            user-select: none;
-            transition: filter 0.3s ease;
-        }
 
         .toggle-visibility {
             cursor: pointer;
@@ -775,6 +764,37 @@
 
         .stat-box>strong+span {
             display: inline-block;
+        }
+
+        /* 修改隐私模式样式 - 统一使用星号 */
+        .privacy-hidden {
+            font-family: monospace;
+            letter-spacing: 2px;
+            user-select: none;
+            position: relative;
+        }
+
+        .privacy-hidden::before {
+            content: "****";
+            display: inline-block;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .privacy-hidden>* {
+            visibility: hidden;
+        }
+
+        /* 输入框特殊处理 */
+        .privacy-hidden input {
+            color: transparent !important;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .hidden-content {
+            font-family: monospace;
+            letter-spacing: 2px;
+            user-select: none;
         }
     </style>
 </head>
@@ -1468,8 +1488,6 @@
 
         // 初始化时调用
         initCalendarSelection();
-
-
         function updateStats() {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
@@ -1540,31 +1558,62 @@
                     const totalPay = payA + payB + payC + paySpecial;
                     const realPay = salary + totalPay + allowanceTotal - leaveDeductionAmount;
 
-                    // 更新DOM元素
-                    document.getElementById("totalOvertime").innerText = total.toFixed(1) + " 小时";
-                    document.getElementById("netOvertime").innerText = (total - leave).toFixed(1) + " 小时";
-                    document.getElementById("totalLeave").innerText = leave.toFixed(1) + " 小时 (" + leaveDays.toFixed(1) + " 天)";
-                    document.getElementById("leaveDeduction").innerText = `¥${leaveDeductionAmount.toFixed(0)}`;
-                    document.getElementById("overtimePay").innerText = `¥${totalPay.toFixed(0)}`;
-                    document.getElementById("payA").innerText = `¥${payA.toFixed(0)}`;
-                    document.getElementById("payB").innerText = `¥${payB.toFixed(0)}`;
-                    document.getElementById("payC").innerText = `¥${payC.toFixed(0)}`;
-                    document.getElementById("paySpecial").innerText = `¥${paySpecial.toFixed(0)}`;
-                    document.getElementById("realPay").innerText = `¥${realPay.toFixed(0)}`;
-                    document.getElementById("totalAllowance").innerText = `¥${allowanceTotal.toFixed(0)}`;
-                    document.getElementById("dailyWage").innerText = `日薪：¥${daily().toFixed(2)}`;
-                    document.getElementById("hourlyWage").innerText = `时薪：¥${hourly().toFixed(2)}`;
+                    // 辅助函数：根据隐私模式更新元素内容
+                    const updateElement = (elementId, value, isCurrency = false, suffix = '') => {
+                        const element = document.getElementById(elementId);
+                        if (element) {
+                            // 保存原始值
+                            const originalValue = isCurrency ? `¥${value}${suffix}` : `${value}${suffix}`;
+                            element.setAttribute('data-original', originalValue);
 
-                    // 更新后重新应用隐私模式和隐藏状态
-                    applyPrivacyMode();
-                    initHiddenElements();
+                            // 根据隐私模式决定显示内容
+                            if (isPrivacyMode || (hiddenElements[elementId] && !isPrivacyMode)) {
+                                element.textContent = '****' + suffix;
+                            } else {
+                                element.textContent = originalValue;
+                            }
+                        }
+                    };
+
+                    // 更新DOM元素 - 使用新的辅助函数
+                    updateElement("totalOvertime", total.toFixed(1), false, " 小时");
+                    updateElement("netOvertime", (total - leave).toFixed(1), false, " 小时");
+                    updateElement("totalLeave", leave.toFixed(1), false, " 小时 (" + leaveDays.toFixed(1) + " 天)");
+                    updateElement("leaveDeduction", leaveDeductionAmount.toFixed(0), true);
+                    updateElement("overtimePay", totalPay.toFixed(0), true);
+                    updateElement("payA", payA.toFixed(0), true);
+                    updateElement("payB", payB.toFixed(0), true);
+                    updateElement("payC", payC.toFixed(0), true);
+                    updateElement("paySpecial", paySpecial.toFixed(0), true);
+                    updateElement("realPay", realPay.toFixed(0), true);
+                    updateElement("totalAllowance", allowanceTotal.toFixed(0), true);
+
+                    // 工资显示特殊处理
+                    const dailyWageEl = document.getElementById("dailyWage");
+                    const hourlyWageEl = document.getElementById("hourlyWage");
+                    if (dailyWageEl) {
+                        dailyWageEl.setAttribute('data-original', `日薪：¥${daily().toFixed(2)}`);
+                        dailyWageEl.textContent = isPrivacyMode ? '****' : `日薪：¥${daily().toFixed(2)}`;
+                    }
+                    if (hourlyWageEl) {
+                        hourlyWageEl.setAttribute('data-original', `时薪：¥${hourly().toFixed(2)}`);
+                        hourlyWageEl.textContent = isPrivacyMode ? '****' : `时薪：¥${hourly().toFixed(2)}`;
+                    }
 
                     // 更新加班费率详情
                     const baseHourly = hourly();
-                    document.getElementById("weekdayRate").innerText = `${(baseHourly * 1.5).toFixed(2)}元/时`;
-                    document.getElementById("weekendRate").innerText = `${(baseHourly * 2).toFixed(2)}元/时`;
-                    document.getElementById("holidayRate").innerText = `${(baseHourly * 3).toFixed(2)}元/时`;
-                    document.getElementById("adjustedRate").innerText = `${(baseHourly * 2).toFixed(2)}元/时`;
+                    const updateRate = (id, rate) => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            element.setAttribute('data-original', `${rate.toFixed(2)}元/时`);
+                            element.textContent = isPrivacyMode ? '****' : `${rate.toFixed(2)}元/时`;
+                        }
+                    };
+
+                    updateRate("weekdayRate", baseHourly * 1.5);
+                    updateRate("weekendRate", baseHourly * 2);
+                    updateRate("holidayRate", baseHourly * 3);
+                    updateRate("adjustedRate", baseHourly * 2);
 
                     // 更新补贴标签显示
                     const allowanceLabel = document.getElementById("allowanceLabel");
@@ -1579,8 +1628,6 @@
                 }
             }, 100);
         }
-
-
 
         // 添加分类选择切换
         document.getElementById('allowanceCategory').addEventListener('change', function () {
@@ -1978,35 +2025,6 @@
         renderCalendar();
         updateStats();
 
-        // 修改toggleVisibility函数，加入隐私模式检查
-        function toggleVisibility(elementId) {
-            if (isPrivacyMode) return; // 在隐私模式下禁用单个切换
-
-            const elements = {
-                'leaveDeduction': ['leaveDeduction'],
-                'overtimePay': ['overtimePay'],     // 加班工资
-                'realPay': ['realPay'],             // 实发工资
-                'overtimeDetails': ['payA', 'payB', 'payC', 'paySpecial'], // 加班明细
-                'totalAllowance': ['totalAllowance'] // 补贴总额
-            };
-
-            const elementIds = elements[elementId];
-            if (!elementIds) return;
-
-            // 切换显示状态
-            hiddenElements[elementId] = !hiddenElements[elementId];
-
-            // 应用样式
-            elementIds.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.classList.toggle('hidden-content', hiddenElements[elementId]);
-                }
-            });
-
-            // 保存状态
-            localStorage.setItem('hiddenElements', JSON.stringify(hiddenElements));
-        }
         // 初始化函数
         function initPrivacyMode() {
             // 初始化隐私模式
@@ -2068,11 +2086,11 @@
 
         // 应用隐私模式
         function applyPrivacyMode() {
-            // 需要隐藏的金额元素ID列表
+            // 需要隐藏的金额元素ID列表 - 更全面的列表
             const moneyElements = [
                 'salaryInput', 'dailyWage', 'hourlyWage',
                 'weekdayRate', 'weekendRate', 'holidayRate', 'adjustedRate',
-                'leaveDeduction', 'overtimePay', 'realPay', // 添加overtimePay和realPay
+                'leaveDeduction', 'overtimePay', 'realPay',
                 'payA', 'payB', 'payC', 'paySpecial',
                 'totalAllowance'
             ];
@@ -2080,10 +2098,33 @@
             moneyElements.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
+                    // 保存原始值作为data属性
+                    if (!element.hasAttribute('data-original')) {
+                        if (element.tagName === 'INPUT') {
+                            element.setAttribute('data-original', element.value);
+                        } else {
+                            element.setAttribute('data-original', element.textContent);
+                        }
+                    }
+
                     if (isPrivacyMode) {
                         element.classList.add('privacy-hidden');
+                        // 对于输入框特殊处理
+                        if (element.tagName === 'INPUT') {
+                            element.type = 'password';
+                            element.value = '****';
+                        } else {
+                            element.textContent = '****';
+                        }
                     } else {
                         element.classList.remove('privacy-hidden');
+                        // 恢复元素内容
+                        if (element.tagName === 'INPUT') {
+                            element.type = 'number';
+                            element.value = element.getAttribute('data-original');
+                        } else {
+                            element.textContent = element.getAttribute('data-original');
+                        }
                     }
                 }
             });
@@ -2112,10 +2153,10 @@
 
             const elements = {
                 'leaveDeduction': ['leaveDeduction'],
-                'overtimePay': ['overtimePay'],     // 加班工资
-                'realPay': ['realPay'],             // 实发工资
-                'overtimeDetails': ['payA', 'payB', 'payC', 'paySpecial'], // 加班明细
-                'totalAllowance': ['totalAllowance'] // 补贴总额
+                'overtimePay': ['overtimePay'],
+                'realPay': ['realPay'],
+                'overtimeDetails': ['payA', 'payB', 'payC', 'paySpecial'],
+                'totalAllowance': ['totalAllowance']
             };
 
             const elementIds = elements[elementId];
@@ -2128,7 +2169,18 @@
             elementIds.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
-                    element.classList.toggle('hidden-content', hiddenElements[elementId]);
+                    // 保存原始值
+                    if (!element.hasAttribute('data-original')) {
+                        element.setAttribute('data-original', element.textContent);
+                    }
+
+                    if (hiddenElements[elementId]) {
+                        element.classList.add('hidden-content');
+                        element.textContent = '****';
+                    } else {
+                        element.classList.remove('hidden-content');
+                        element.textContent = element.getAttribute('data-original');
+                    }
                 }
             });
 
