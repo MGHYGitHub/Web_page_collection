@@ -1,0 +1,1639 @@
+<!--
+********************************************************************************
+*  📊 CPK 计算工具
+*  作者: ELI_MORGAN
+*  版本: 2.2.6-Beta
+*  发布日期: 2025-09-12
+*  官方网站/来源: https://github.com/MGHYGitHub/Web_page_collection
+*  防伪标识: CPK-20250912-MGHY
+*  说明: 本工具用于 Excel/CSV 数据的 CPK 分析与可视化，
+*        禁止未经授权的复制或分发。
+********************************************************************************
+-->
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CPK 计算工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- 替换这些CDN引用 -->
+    <!-- <script src="./js/xlsx.full.min.js"></script>
+    <script src="./js/chart.js"></script>
+    <script src="./js/chartjs-plugin-datalabels.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/font-awesome.min.css"> -->
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f7f9fc;
+        }
+
+        #footerInfo {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-box {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            padding: 8px 12px;
+            border: 2px solid #4e73df;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #fff;
+            transition: 0.3s;
+        }
+
+        input[type="file"]:hover {
+            background: #4e73df;
+            color: #fff;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #e3e6f0;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #4e73df;
+            color: #fff;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fc;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: 400px;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .button-container button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        #generateChartsBtn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        #toggleParamChartBtn {
+            background: #2196F3;
+            color: white;
+        }
+
+        #toggleValidBtn {
+            background: #FF9800;
+            color: white;
+        }
+
+        .filter-buttons {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .filter-buttons button {
+            margin: 5px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background: #6c757d;
+            color: #fff;
+        }
+
+        .filter-buttons button.active {
+            background: #4e73df;
+            font-weight: bold;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .button-container button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background: #4e73df;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .button-container button:hover {
+            background: #2e59d9;
+        }
+
+        #exportReportBtn {
+            background: #9c27b0;
+        }
+
+        #exportReportBtn:hover {
+            background: #7b1fa2;
+        }
+
+        /* 格式选择器样式 */
+        select#reportFormat {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        select#reportFormat:focus {
+            outline: none;
+            border-color: #4e73df;
+            box-shadow: 0 0 0 2px rgba(78, 115, 223, 0.25);
+        }
+
+        /* 毛玻璃滚动公告条样式 */
+        .announcement-bar {
+            position: relative;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 0;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .announcement-content {
+            display: flex;
+            white-space: nowrap;
+            animation: scrollAnnouncement 30s linear infinite;
+            padding: 0 20px;
+        }
+
+        .announcement-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4e73df;
+        }
+
+        .announcement-item i {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        @keyframes scrollAnnouncement {
+            0% {
+                transform: translateX(100%);
+            }
+
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .announcement-bar:hover .announcement-content {
+            animation-play-state: paused;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 毛玻璃滚动公告条 -->
+    <!-- 毛玻璃滚动公告条 -->
+    <div class="announcement-bar">
+        <div class="announcement-content">
+            <div class="announcement-item"><i>📢</i> 欢迎使用 CPK 计算工具 v2.2.6-Beta</div>
+            <div class="announcement-item"><i>⭐</i> 新增数据筛选和导出功能</div>
+            <div class="announcement-item"><i>🔔</i> 支持 Excel/CSV 格式数据导入</div>
+            <div class="announcement-item"><i>🌐</i> 请使用谷歌浏览器(Chrome)获得最佳体验</div>
+            <div class="announcement-item"><i>📈</i> 生成专业统计图表和报告</div>
+            <div class="announcement-item"><i>⚠️</i> 注意：请勿上传敏感数据</div>
+        </div>
+    </div>
+    <h2>📊 CPK 计算工具</h2>
+    <div class="upload-box">
+        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" />
+    </div>
+
+    <div id="result" class="card"></div>
+
+    <!-- 在按钮容器中添加 -->
+    <div class="button-container">
+        <button id="generateChartsBtn">📊 生成统计图</button>
+        <button id="toggleParamChartBtn">🔄 参数波动图</button>
+        <button id="toggleValidBtn">切换有效/源数据显示</button>
+        <!-- 修改为下拉选择 -->
+        <select id="dataLabelsMode" style="padding:8px 12px; border-radius:6px; border:1px solid #ccc;">
+            <option value="smart">🔢 智能显示标签</option>
+            <option value="none">❌ 隐藏数据标签</option>
+            <option value="hover">🖱️ 悬停显示标签</option>
+            <option value="important">⭐ 仅关键数据</option>
+        </select>
+        <span id="validModeLabel" style="margin-left:10px; font-weight:bold; color:#1cc88a;">
+            当前模式：有效数据
+        </span>
+    </div>
+
+    <!-- 筛选按钮 -->
+    <div class="filter-buttons" style="text-align:center; margin: 15px 0;">
+        <button id="showAllBtn" class="active">全部数据</button>
+        <button id="showValidBtn">有效数据</button>
+        <button id="showInvalidBtn">无效数据</button>
+        <button id="showInSpecBtn">仅不超标</button>
+        <div id="modeIndicator" style="margin: 10px 0; font-weight: bold; color: #1976d2;">
+            📊 当前模式：全部数据
+        </div>
+    </div>
+
+    <!-- 导出按钮 -->
+    <div class="button-container">
+        <button id="exportDataChartBtn">导出数据趋势图 (PNG)</button>
+        <button id="exportCpkChartBtn">导出 CP/CPK 图 (PNG)</button>
+        <button id="exportFailChartBtn">导出超标率图 (PNG)</button>
+        <!-- 新增导出报告按钮 -->
+        <button id="exportReportBtn" style="background: #9c27b0; color: white;">📋 导出完整报告</button>
+    </div>
+
+    <!-- 添加报告格式选择 -->
+    <div style="text-align: center; margin: 10px 0;">
+        <label for="reportFormat" style="font-weight: bold;">报告格式：</label>
+        <select id="reportFormat" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc;">
+            <option value="excel">Excel 格式</option>
+        </select>
+    </div>
+
+
+    <!-- 图表容器 -->
+    <div id="chartsContainer" style="display:none;">
+        <div class="card">
+            <h3 style="text-align:center; color:#444;">数据趋势视图（均值、上下限、极值）</h3>
+            <canvas id="dataChart"></canvas>
+        </div>
+        <div class="card">
+            <h3 style="text-align:center; color:#444;">CP / CPK 趋势图</h3>
+            <canvas id="cpkChart"></canvas>
+        </div>
+        <div class="card">
+            <h3 style="text-align:center; color:#444;">超标率 (%)</h3>
+            <canvas id="failChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 参数波动图 -->
+    <div id="paramChartContainer" class="card" style="display:none;">
+        <label for="paramSelect" style="font-weight:bold;">选择参数：</label>
+        <select id="paramSelect" style="padding:6px 10px;border-radius:6px;border:1px solid #ccc;"></select>
+        <div style="margin-top:20px;">
+            <canvas id="paramTrendChart"></canvas>
+        </div>
+    </div>
+
+    <div id="footerInfo">
+        作者: ELI_MORGAN | 版本: 2.2.6-Beta | 防伪标识: CPK-20250912-MGHY
+    </div>
+
+    <script>
+        let dataChartInstance = null, cpkChartInstance = null, failChartInstance = null, paramTrendChart = null;
+        let rawData = [], columns = [];
+        let useValidData = true;
+        let validData = [], invalidData = [], inSpecData = [];
+        let filterMode = "all"; // all / valid / invalid / inSpec
+        let currentMode = "全部数据"; // 当前筛选模式
+        let showDataLabels = true; // 默认显示数据标签
+        let dataLabelsMode = "smart"; // smart, none, hover, important
+        let reportData = [];
+
+        // 文件导入
+        document.getElementById("excelFile").addEventListener("change", handleFile, false);
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: "array" });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (!jsonData || jsonData.length < 2) {
+                        alert("文件数据不足或格式不正确！");
+                        return;
+                    }
+
+                    rawData = jsonData.slice(1).map(r => {
+                        let obj = {};
+                        jsonData[0].forEach((h, i) => { obj[h] = r[i]; });
+                        return obj;
+                    });
+                    columns = jsonData[0];
+                    processData([columns, ...rawData.map(r => columns.map(h => r[h]))]);
+                } catch (error) {
+                    console.error("文件处理错误:", error);
+                    alert("文件处理失败，请检查文件格式！");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        /// 修改 processData 函数中的异常值检测逻辑
+        function processData(data) {
+            const headers = data[0], rows = data.slice(1);
+            let result = `<table><tr>
+                <th>参数</th><th>规格</th><th>上限</th><th>下限</th>
+                <th>最大值</th><th>最小值</th><th>平均值</th><th>标准差</th>
+                <th>CP</th><th>CPK</th><th>超标数</th><th>超标率</th>
+                <th>有效数</th><th>无效数</th></tr>`;
+
+            let chartLabels = [], cpData = [], cpkData = [], failRateData = [];
+            let meanData = [], uslData = [], lslData = [], maxData = [], minData = [], outOfSpecData = [];
+
+            reportData = [];
+            for (let col = 2; col < headers.length; col++) {
+                const specText = headers[col];
+                const match = specText.match(/([-]?\d+\.?\d*)\s*±\s*(\d+\.?\d*)/);
+                if (!match) continue;
+
+                const target = parseFloat(match[1]), tol = parseFloat(match[2]);
+                const USL = target + tol, LSL = target - tol;
+
+                // 现在 col 在 for 循环中定义，可以正确使用
+                const valuesAll = rows.map(r => parseFloat(r[col]));
+                const values = valuesAll.filter(v => !isNaN(v));
+
+                // 修复的异常值剔除逻辑 - 处理标准值为0的情况
+                let valuesValid, invalidValues;
+
+                if (target === 0) {
+                    // 当标准值为0时，使用绝对容差
+                    const maxTolerance = tol * 3;
+                    valuesValid = values.filter(v => Math.abs(v) <= maxTolerance);
+                    invalidValues = values.filter(v => Math.abs(v) > maxTolerance);
+                } else {
+                    // 当标准值不为0时，使用相对容差 (15%)
+                    const relativeTolerance = 0.15; // 15%的相对容差
+                    const maxRelativeDeviation = Math.abs(target) * relativeTolerance;
+                    valuesValid = values.filter(v => Math.abs(v - target) <= maxRelativeDeviation);
+                    invalidValues = values.filter(v => Math.abs(v - target) > maxRelativeDeviation);
+                }
+
+                // 根据 useValidData 决定是否使用有效数据
+                let baseData = useValidData ? valuesValid : values;
+
+                let dataToUse = [];
+                if (filterMode === "all") {
+                    dataToUse = baseData;
+                } else if (filterMode === "valid") {
+                    dataToUse = valuesValid;
+                } else if (filterMode === "invalid") {
+                    dataToUse = invalidValues;
+                } else if (filterMode === "inSpec") {
+                    dataToUse = baseData.filter(v => v >= LSL && v <= USL);
+                }
+
+                if (dataToUse.length === 0) continue;
+
+                const maxVal = Math.max(...dataToUse);
+                const minVal = Math.min(...dataToUse);
+                const mean = dataToUse.reduce((a, b) => a + b, 0) / dataToUse.length;
+                const std = Math.sqrt(dataToUse.reduce((a, b) => a + (b - mean) ** 2, 0) / (dataToUse.length - 1));
+
+                // 处理标准差为0的情况
+                let CP, CPK;
+                if (std === 0) {
+                    CP = Infinity;
+                    CPK = Infinity;
+                } else {
+                    CP = (USL - LSL) / (6 * std);
+                    const Cpk1 = (USL - mean) / (3 * std);
+                    const Cpk2 = (mean - LSL) / (3 * std);
+                    CPK = Math.min(Cpk1, Cpk2);
+                }
+
+                const outOfSpec = dataToUse.filter(v => v > USL || v < LSL).length;
+                const outRate = (outOfSpec / dataToUse.length) * 100;
+
+                // 添加CP/CPK颜色判断函数
+                function getCpkColor(cpkValue) {
+                    if (cpkValue === Infinity) return '#1b5e20'; // 无穷大视为良好
+                    if (cpkValue > 1.67) return '#1b5e20'; // 深绿色 - 良好
+                    if (cpkValue > 1.33) return '#2e7d32'; // 绿色 - 合格
+                    return '#c62828'; // 红色 - 不合格
+                }
+
+                function getCpColor(cpValue) {
+                    if (cpValue === Infinity) return '#1b5e20'; // 无穷大视为良好
+                    if (cpValue > 1.67) return '#1b5e20'; // 深绿色 - 良好
+                    if (cpValue > 1.33) return '#2e7d32'; // 绿色 - 合格
+                    return '#c62828'; // 红色 - 不合格
+                }
+
+                // 在循环内添加表格行
+                result += `<tr>
+                            <td>${specText}</td><td>${target}±${tol}</td>
+                            <td>${USL.toFixed(2)}</td><td>${LSL.toFixed(2)}</td>
+                            <td>${maxVal.toFixed(2)}</td><td>${minVal.toFixed(2)}</td>
+                            <td>${mean.toFixed(2)}</td><td>${std.toFixed(2)}</td>
+                            <td style="background-color: ${getCpColor(CP)}; color: white; font-weight: bold;">${CP === Infinity ? "∞" : CP.toFixed(3)}</td>
+                            <td style="background-color: ${getCpkColor(CPK)}; color: white; font-weight: bold;">${CPK === Infinity ? "∞" : CPK.toFixed(3)}</td>
+                            <td>${outOfSpec}</td><td>${outRate.toFixed(2)}%</td>
+                            <td style="background-color: #e8f5e9; color: #2e7d32; font-weight: bold;">${valuesValid.length}</td>
+                            <td style="background-color: #ffebee; color: #c62828; font-weight: bold;">${invalidValues.length}</td>
+                        </tr>`;
+
+                // 保存图表数据
+                chartLabels.push(specText);
+                cpData.push(CP === Infinity ? 10 : CP.toFixed(3)); // 将无穷大映射为10以便显示
+                cpkData.push(CPK === Infinity ? 10 : CPK.toFixed(3));
+                failRateData.push(outRate.toFixed(2));
+                meanData.push(mean.toFixed(2));
+                uslData.push(USL.toFixed(2));
+                lslData.push(LSL.toFixed(2));
+                maxData.push(maxVal);
+                minData.push(minVal);
+                outOfSpecData.push(outOfSpec);
+
+                // 保存到报告数据
+                reportData.push({
+                    parameter: specText,
+                    target: `${target}±${tol}`,
+                    usl: USL.toFixed(2),
+                    lsl: LSL.toFixed(2),
+                    max: maxVal.toFixed(2),
+                    min: minVal.toFixed(2),
+                    mean: mean.toFixed(2),
+                    std: std.toFixed(2),
+                    cp: CP === Infinity ? "∞" : CP.toFixed(3),
+                    cpk: CPK === Infinity ? "∞" : CPK.toFixed(3),
+                    outOfSpec: outOfSpec,
+                    outRate: outRate.toFixed(2) + '%',
+                    validCount: valuesValid.length,
+                    invalidCount: invalidValues.length,
+                    cpColor: getCpColor(CP),
+                    cpkColor: getCpkColor(CPK)
+                });
+            }
+
+            result += "</table>";
+            document.getElementById("result").innerHTML = result;
+            document.getElementById("dataLabelsMode").value = "smart";
+
+            // 保存图表数据
+            window.chartData = { labels: chartLabels, cpData, cpkData, failRateData, meanData, uslData, lslData, maxData, minData, outOfSpecData };
+        }
+
+        // 更新按钮激活状态
+        function updateButtonActiveState() {
+            document.querySelectorAll('.filter-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            if (filterMode === "all") document.getElementById("showAllBtn").classList.add('active');
+            else if (filterMode === "valid") document.getElementById("showValidBtn").classList.add('active');
+            else if (filterMode === "invalid") document.getElementById("showInvalidBtn").classList.add('active');
+            else if (filterMode === "inSpec") document.getElementById("showInSpecBtn").classList.add('active');
+        }
+
+        // 按钮绑定
+        document.getElementById("showAllBtn").addEventListener("click", () => {
+            filterMode = "all";
+            updateModeIndicator("全部数据");
+            updateButtonActiveState();
+            reprocessData();
+        });
+        document.getElementById("showValidBtn").addEventListener("click", () => {
+            filterMode = "valid";
+            updateModeIndicator("有效数据");
+            updateButtonActiveState();
+            reprocessData();
+        });
+        document.getElementById("showInvalidBtn").addEventListener("click", () => {
+            filterMode = "invalid";
+            updateModeIndicator("无效数据");
+            updateButtonActiveState();
+            reprocessData();
+        });
+        document.getElementById("showInSpecBtn").addEventListener("click", () => {
+            filterMode = "inSpec";
+            updateModeIndicator("仅不超标数据");
+            updateButtonActiveState();
+            reprocessData();
+        });
+
+        // 重新处理数据
+        function reprocessData() {
+            if (columns.length > 0 && rawData.length > 0) {
+                processData([columns, ...rawData.map(r => columns.map(h => r[h]))]);
+                if (document.getElementById("chartsContainer").style.display === "block") {
+                    renderDataChart(window.chartData.labels, window.chartData.meanData, window.chartData.uslData, window.chartData.lslData, window.chartData.maxData, window.chartData.minData);
+                    renderCpkChart(window.chartData.labels, window.chartData.cpData, window.chartData.cpkData);
+                    renderFailChart(window.chartData.labels, window.chartData.failRateData, window.chartData.outOfSpecData);
+                }
+            }
+        }
+
+        // 更新模式提示
+        function updateModeIndicator(text) {
+            document.getElementById("modeIndicator").textContent = "📊 当前模式：" + text;
+        }
+
+        // 生成图表按钮
+        document.getElementById("generateChartsBtn").addEventListener("click", function () {
+            if (!window.chartData || !window.chartData.labels) {
+                alert("请先上传数据文件！");
+                return;
+            }
+
+            document.getElementById("chartsContainer").style.display = "block";
+            const chartData = window.chartData;
+            renderDataChart(chartData.labels, chartData.meanData, chartData.uslData, chartData.lslData, chartData.maxData, chartData.minData);
+            renderCpkChart(chartData.labels, chartData.cpData, chartData.cpkData);
+            renderFailChart(chartData.labels, chartData.failRateData, chartData.outOfSpecData);
+        });
+        // 添加导出报告按钮的事件监听器
+        document.getElementById("exportReportBtn").addEventListener("click", function () {
+            if (reportData.length === 0) {
+                alert("请先上传数据文件并生成分析结果！");
+                return;
+            }
+            exportExcelReport();
+        });
+        // 有效/源数据切换
+        document.getElementById("toggleValidBtn").addEventListener("click", function () {
+            useValidData = !useValidData;
+            const label = document.getElementById("validModeLabel");
+            if (useValidData) {
+                this.textContent = "切换有效/源数据显示";
+                label.textContent = "当前模式：有效数据";
+                label.style.color = "#1cc88a";
+            } else {
+                this.textContent = "切换源/有效数据显示";
+                label.textContent = "当前模式：包含无效数据";
+                label.style.color = "#e74a3b";
+            }
+            reprocessData(); // 重新处理数据
+        });
+
+        // 下载函数
+        // 下载函数
+        function downloadChart(chartInstance, fileName) {
+            if (!chartInstance || !chartInstance.canvas) return alert("图表未生成！");
+            const link = document.createElement('a');
+            link.href = chartInstance.toBase64Image();
+            link.download = fileName;
+            link.click();
+        }
+
+        // 只绑定一次事件监听器
+        document.getElementById("exportDataChartBtn").addEventListener("click", () => {
+            if (!dataChartInstance) {
+                alert("请先生成数据趋势图！");
+                return;
+            }
+            downloadChart(dataChartInstance, "数据趋势图.png");
+        });
+
+        document.getElementById("exportCpkChartBtn").addEventListener("click", () => {
+            if (!cpkChartInstance) {
+                alert("请先生成CP/CPK图！");
+                return;
+            }
+            downloadChart(cpkChartInstance, "CP_CPK图.png");
+        });
+
+        document.getElementById("exportFailChartBtn").addEventListener("click", () => {
+            if (!failChartInstance) {
+                alert("请先生成超标率图！");
+                return;
+            }
+            downloadChart(failChartInstance, "超标率图.png");
+        });
+
+        // 智能数据标签函数
+        function addSmartDataLabels(chart, meanData, maxData, minData) {
+            if (!chart || !chart.ctx) return;
+
+            const ctx = chart.ctx;
+            const datasets = chart.data.datasets;
+
+            // 确保animation对象存在
+            chart.options.animation = chart.options.animation || {};
+
+            chart.options.animation.onComplete = function () {
+                if (dataLabelsMode === "none" || !ctx) return;
+
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 12px Arial';
+
+                // 只显示关键数据点的标签（平均值、最大值、最小值）
+                const importantIndices = new Set();
+
+                // 找出每个参数的关键点索引
+                meanData.forEach((_, index) => {
+                    importantIndices.add(index);
+                });
+
+                importantIndices.forEach(index => {
+                    // 平均值标签
+                    const meanMeta = chart.getDatasetMeta(0);
+                    if (meanMeta && meanMeta.data[index]) {
+                        const meanPos = meanMeta.data[index].tooltipPosition();
+                        drawDataLabel(ctx, meanData[index], meanPos.x, meanPos.y - 20, "#4e73df");
+                    }
+
+                    // 最大值标签
+                    const maxMeta = chart.getDatasetMeta(3);
+                    if (maxMeta && maxMeta.data[index]) {
+                        const maxPos = maxMeta.data[index].tooltipPosition();
+                        drawDataLabel(ctx, maxData[index], maxPos.x, maxPos.y - 25, "#1cc88a");
+                    }
+
+                    // 最小值标签
+                    const minMeta = chart.getDatasetMeta(4);
+                    if (minMeta && minMeta.data[index]) {
+                        const minPos = minMeta.data[index].tooltipPosition();
+                        drawDataLabel(ctx, minData[index], minPos.x, minPos.y + 25, "#f6c23e");
+                    }
+                });
+
+                ctx.restore();
+            };
+
+            chart.update();
+        }
+
+        // 绘制单个数据标签
+        function drawDataLabel(ctx, value, x, y, color) {
+            const text = typeof value === 'number' ? value.toFixed(2) : value;
+            const textWidth = ctx.measureText(text).width + 12;
+            const textHeight = 20;
+
+            // 绘制背景框
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x - textWidth / 2, y - textHeight / 2, textWidth, textHeight, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // 绘制文字
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(text, x, y + 2);
+
+            // 绘制指示线
+            ctx.beginPath();
+            ctx.moveTo(x, y - textHeight / 2);
+            ctx.lineTo(x, y - textHeight / 2 - 5);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        // CPK 图
+        function renderCpkChart(labels, cpData, cpkData) {
+            const ctx = document.getElementById("cpkChart").getContext("2d");
+            if (cpkChartInstance) cpkChartInstance.destroy();
+
+            cpkChartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "CP",
+                            data: cpData,
+                            borderColor: "#1cc88a",
+                            fill: false,
+                            tension: 0.2,
+                            pointBackgroundColor: "#1cc88a",
+                            pointRadius: 5
+                        },
+                        {
+                            label: "CPK",
+                            data: cpkData,
+                            borderColor: "#4e73df",
+                            fill: false,
+                            tension: 0.2,
+                            pointBackgroundColor: "#4e73df",
+                            pointRadius: 5
+                        },
+                        {
+                            label: "警戒线 (1.33)",
+                            data: new Array(labels.length).fill(1.33),
+                            borderColor: "#e74a3b",
+                            borderDash: [6, 6],
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: "index", intersect: false }
+                }
+            });
+        }
+
+        // 超标率图
+        function renderFailChart(labels, failRateData, outOfSpecData) {
+            const ctx = document.getElementById("failChart").getContext("2d");
+            if (failChartInstance) failChartInstance.destroy();
+
+            failChartInstance = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "超标率 (%)",
+                            data: failRateData,
+                            backgroundColor: "rgba(231, 74, 59, 0.7)",
+                            yAxisID: "y1"
+                        },
+                        {
+                            label: "超标数",
+                            data: outOfSpecData,
+                            type: "line",
+                            borderColor: "#4e73df",
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: "y2",
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: "index", intersect: false },
+                    scales: {
+                        y1: { type: "linear", position: "left", title: { display: true, text: "超标率 (%)" } },
+                        y2: { type: "linear", position: "right", title: { display: true, text: "超标数" }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+        }
+
+        // 初始化数据标签模式
+        document.getElementById("dataLabelsMode").value = "smart";
+
+        // 参数波动图
+        function renderParamTrendChart(paramIndex) {
+            const ctx = document.getElementById("paramTrendChart").getContext("2d");
+            if (paramTrendChart) paramTrendChart.destroy();
+
+            const paramName = columns[paramIndex];
+            const values = rawData.map(r => parseFloat(r[paramName])).filter(v => !isNaN(v));
+
+            paramTrendChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: values.map((_, i) => i + 1),
+                    datasets: [{
+                        label: paramName,
+                        data: values,
+                        borderColor: "#36b9cc",
+                        backgroundColor: "rgba(54, 185, 204, 0.1)",
+                        fill: true,
+                        tension: 0.2,
+                        pointBackgroundColor: "#36b9cc",
+                        pointBorderColor: "#36b9cc",
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: "样本序号"
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: "数值"
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        // 初始化时设置按钮样式
+        document.getElementById("dataLabelsMode").value = "smart";
+
+        // 绑定参数波动图按钮
+        document.getElementById("toggleParamChartBtn").addEventListener("click", function () {
+            const container = document.getElementById("paramChartContainer");
+            if (container.style.display === "none") {
+                container.style.display = "block";
+                const paramSelect = document.getElementById("paramSelect");
+                paramSelect.innerHTML = "";
+
+                // 只添加包含规格信息的参数
+                if (columns && columns.length > 0) {
+                    columns.forEach((c, i) => {
+                        if (i >= 2 && c && c.match && c.match(/[-]?\d+\s*±\s*\d+/)) {
+                            const opt = document.createElement("option");
+                            opt.value = i;
+                            opt.textContent = c;
+                            paramSelect.appendChild(opt);
+                        }
+                    });
+
+                    if (paramSelect.options.length > 0) {
+                        renderParamTrendChart(parseInt(paramSelect.value));
+                    }
+                }
+            } else {
+                container.style.display = "none";
+            }
+        });
+
+        document.getElementById("paramSelect").addEventListener("change", function () {
+            renderParamTrendChart(parseInt(this.value));
+        });
+
+        // 控制台输出防伪标识
+        console.log("%c📊 CPK 计算工具", "color:#4e73df; font-size:16px; font-weight:bold;");
+        console.log("作者: ELI_MORGAN");
+        console.log("版本: 2.2.6-Beta");
+        console.log("防伪标识: CPK-20250912-MGHY");
+        console.log("来源: https://github.com/MGHYGitHub/Web_page_collection");
+
+        // 修改图表渲染函数，添加数据标签配置
+        // 修复图表渲染函数，确保正确的数据集标签
+        // 数据趋势图 - 完整版本
+        function renderDataChart(labels, meanData, uslData, lslData, maxData, minData) {
+            const ctx = document.getElementById("dataChart").getContext("2d");
+            if (dataChartInstance) dataChartInstance.destroy();
+
+            dataChartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "平均值",
+                            data: meanData,
+                            borderColor: "#4e73df",
+                            backgroundColor: "rgba(78, 115, 223, 0.1)",
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: "#4e73df",
+                            pointBorderColor: "#ffffff",
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: "上限 (USL)",
+                            data: uslData,
+                            borderColor: "#e74a3b",
+                            borderDash: [6, 6],
+                            fill: false,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        },
+                        {
+                            label: "下限 (LSL)",
+                            data: lslData,
+                            borderColor: "#e74a3b",
+                            borderDash: [6, 6],
+                            fill: false,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        },
+                        {
+                            label: "最大值",
+                            data: maxData,
+                            borderColor: "#1cc88a",
+                            backgroundColor: "rgba(28, 200, 138, 0.2)",
+                            type: "scatter",
+                            pointStyle: "triangle",
+                            pointRadius: 8,
+                            showLine: false,
+                            pointHoverRadius: 10
+                        },
+                        {
+                            label: "最小值",
+                            data: minData,
+                            borderColor: "#f6c23e",
+                            backgroundColor: "rgba(246, 194, 62, 0.2)",
+                            type: "scatter",
+                            pointStyle: "rect",
+                            pointRadius: 8,
+                            showLine: false,
+                            pointHoverRadius: 10
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 30,
+                            bottom: 30,
+                            left: 20,
+                            right: 20
+                        }
+                    },
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+                    plugins: {
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#4e73df',
+                            borderWidth: 1,
+                            cornerRadius: 6,
+                            displayColors: true,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function (context) {
+                                    return `${context.dataset.label}: ${context.parsed.y}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: '测量数值',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '参数名称',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.4
+                        }
+                    }
+                }
+            });
+        }
+
+        // CPK 图 - 完整版本
+        function renderCpkChart(labels, cpData, cpkData) {
+            const ctx = document.getElementById("cpkChart").getContext("2d");
+            if (cpkChartInstance) cpkChartInstance.destroy();
+
+            // 计算Y轴的最大值
+            const maxCpValue = Math.max(...cpData.map(v => parseFloat(v) || 0), ...cpkData.map(v => parseFloat(v) || 0));
+            const yMax = Math.max(2, maxCpValue) + 0.5;
+
+            cpkChartInstance = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "CP",
+                            data: cpData,
+                            borderColor: "#1cc88a",
+                            fill: false,
+                            tension: 0.2,
+                            pointBackgroundColor: "#1cc88a",
+                            pointBorderColor: "#ffffff",
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: "CPK",
+                            data: cpkData,
+                            borderColor: "#4e73df",
+                            fill: false,
+                            tension: 0.2,
+                            pointBackgroundColor: "#4e73df",
+                            pointBorderColor: "#ffffff",
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: "警戒线 (1.33)",
+                            data: new Array(labels.length).fill(1.33),
+                            borderColor: "#e74a3b",
+                            borderDash: [6, 6],
+                            fill: false,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 30,
+                            bottom: 30,
+                            left: 20,
+                            right: 20
+                        }
+                    },
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+                    plugins: {
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#4e73df',
+                            borderWidth: 1,
+                            cornerRadius: 6,
+                            displayColors: true,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function (context) {
+                                    return `${context.dataset.label}: ${context.parsed.y}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'CP/CPK 值',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            min: 0,
+                            max: yMax,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '参数名称',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+
+        // 超标率图 - 完整版本
+        function renderFailChart(labels, failRateData, outOfSpecData) {
+            const ctx = document.getElementById("failChart").getContext("2d");
+            if (failChartInstance) failChartInstance.destroy();
+
+            failChartInstance = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "超标率 (%)",
+                            data: failRateData,
+                            backgroundColor: "rgba(231, 74, 59, 0.7)",
+                            borderColor: "#e74a3b",
+                            borderWidth: 1,
+                            yAxisID: "y1",
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8
+                        },
+                        {
+                            label: "超标数",
+                            data: outOfSpecData,
+                            type: "line",
+                            borderColor: "#4e73df",
+                            borderWidth: 3,
+                            fill: false,
+                            pointBackgroundColor: "#4e73df",
+                            pointBorderColor: "#ffffff",
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            yAxisID: "y2"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 40,
+                            bottom: 30,
+                            left: 20,
+                            right: 20
+                        }
+                    },
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+                    plugins: {
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#4e73df',
+                            borderWidth: 1,
+                            cornerRadius: 6,
+                            displayColors: true,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function (context) {
+                                    return `${context.dataset.label}: ${context.parsed.y}`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y1: {
+                            type: "linear",
+                            position: "left",
+                            title: {
+                                display: true,
+                                text: "超标率 (%)",
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            min: 0,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        y2: {
+                            type: "linear",
+                            position: "right",
+                            title: {
+                                display: true,
+                                text: "超标数",
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            min: 0
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '参数名称',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+        // 修复数据标签插件 - 确保正确显示关键数据
+        const smartDataLabelsPlugin = {
+            id: 'smartDataLabels',
+            afterDatasetsDraw(chart) {
+                if (dataLabelsMode === "none") return;
+
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 11px Arial';
+
+                // 确定要显示标签的数据集
+                let datasetsToLabel = [];
+
+                if (dataLabelsMode === "important") {
+                    // 根据图表类型显示不同的关键数据
+                    if (chart.canvas.id === "dataChart") {
+                        datasetsToLabel = chart.data.datasets.filter(d => d.label === "平均值");
+                    } else if (chart.canvas.id === "cpkChart") {
+                        datasetsToLabel = chart.data.datasets.filter(d => ["CP", "CPK"].includes(d.label));
+                    } else if (chart.canvas.id === "failChart") {
+                        datasetsToLabel = chart.data.datasets.filter(d => d.label === "超标率 (%)");
+                    }
+                } else if (dataLabelsMode === "smart") {
+                    // 智能模式：显示平均值、最大值、最小值（仅对数据趋势图）
+                    if (chart.canvas.id === "dataChart") {
+                        datasetsToLabel = chart.data.datasets.filter(d =>
+                            ["平均值", "最大值", "最小值"].includes(d.label)
+                        );
+                    }
+                }
+
+                const displayedPositions = [];
+                const chartArea = chart.chartArea;
+
+                datasetsToLabel.forEach((dataset, datasetIndex) => {
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    if (meta.hidden) return;
+
+                    meta.data.forEach((element, index) => {
+                        const value = dataset.data[index];
+                        if (value === undefined || value === null) return;
+
+                        const position = element.tooltipPosition();
+
+                        // 检查标签是否在图表区域内
+                        if (position.x < chartArea.left || position.x > chartArea.right ||
+                            position.y < chartArea.top || position.y > chartArea.bottom) {
+                            return;
+                        }
+
+                        // 检查是否与其他标签太近
+                        const tooClose = displayedPositions.some(pos =>
+                            Math.abs(pos.x - position.x) < 50 && Math.abs(pos.y - position.y) < 30
+                        );
+
+                        if (tooClose) return;
+
+                        displayedPositions.push(position);
+
+                        let yOffset = -20;
+                        let bgColor = dataset.borderColor || '#000';
+
+                        // 根据不同图表类型调整位置
+                        if (chart.config.type === 'bar') {
+                            yOffset = dataset.label === "超标率 (%)" ? -25 : 15;
+                        } else if (dataset.type === 'scatter') {
+                            yOffset = -25;
+                        }
+
+                        const y = position.y + yOffset;
+
+                        // 确保标签在图表区域内
+                        const finalY = Math.max(chartArea.top + 15, Math.min(chartArea.bottom - 15, y));
+                        const text = typeof value === 'number' ? value.toFixed(2) : value;
+                        const textWidth = ctx.measureText(text).width + 16;
+
+                        // 检查水平边界
+                        const x = Math.max(chartArea.left + textWidth / 2,
+                            Math.min(chartArea.right - textWidth / 2, position.x));
+
+                        // 绘制背景框
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                        ctx.strokeStyle = bgColor;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.roundRect(x - textWidth / 2, finalY - 10, textWidth, 20, 6);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        // 绘制文字
+                        ctx.fillStyle = '#2c3e50';
+                        ctx.fillText(text, x, finalY + 2);
+
+                        // 为散点图添加指示线
+                        if (dataset.type === 'scatter') {
+                            ctx.beginPath();
+                            ctx.moveTo(x, finalY - 10);
+                            ctx.lineTo(position.x, position.y);
+                            ctx.strokeStyle = bgColor;
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                        }
+                    });
+                });
+
+                ctx.restore();
+            }
+        };
+        // 重新注册插件
+        Chart.register(smartDataLabelsPlugin);
+
+        // 修复模式切换功能
+        document.getElementById("dataLabelsMode").addEventListener("change", function () {
+            dataLabelsMode = this.value;
+            updateAllCharts();
+        });
+
+        // 修改更新图表函数，确保完全重新渲染
+        function updateAllCharts() {
+            if (dataChartInstance) {
+                dataChartInstance.destroy();
+                if (window.chartData) {
+                    renderDataChart(window.chartData.labels, window.chartData.meanData,
+                        window.chartData.uslData, window.chartData.lslData,
+                        window.chartData.maxData, window.chartData.minData);
+                }
+            }
+            if (cpkChartInstance) {
+                cpkChartInstance.destroy();
+                if (window.chartData) {
+                    renderCpkChart(window.chartData.labels, window.chartData.cpData, window.chartData.cpkData);
+                }
+            }
+            if (failChartInstance) {
+                failChartInstance.destroy();
+                if (window.chartData) {
+                    renderFailChart(window.chartData.labels, window.chartData.failRateData, window.chartData.outOfSpecData);
+                }
+            }
+            if (paramTrendChart) {
+                paramTrendChart.destroy();
+                const paramSelect = document.getElementById("paramSelect");
+                if (paramSelect.value && columns.length > 0) {
+                    renderParamTrendChart(parseInt(paramSelect.value));
+                }
+            }
+        }
+
+        // 简化数据标签模式，移除悬停模式（太难实现）
+        document.getElementById("dataLabelsMode").innerHTML = `
+    <option value="smart">🔢 智能显示标签</option>
+    <option value="none">❌ 隐藏数据标签</option>
+    <option value="important">⭐ 仅关键数据</option>
+`;
+
+        // 添加一些CSS改善显示
+        const improvedStyle = document.createElement('style');
+        improvedStyle.textContent = `
+    .chartjs-tooltip {
+        background: rgba(0, 0, 0, 0.8) !important;
+        border-radius: 6px !important;
+        padding: 8px 12px !important;
+    }
+    
+    canvas {
+        max-width: 100%;
+        height: 450px !important; /* 增加高度给标签更多空间 */
+    }
+    
+    .card {
+        margin-bottom: 40px; /* 增加卡片间距 */
+    }
+`;
+        document.head.appendChild(improvedStyle);
+        // 添加CSS确保图表容器有足够空间
+        const chartStyle = document.createElement('style');
+        chartStyle.textContent = `
+    .card canvas {
+        height: 500px !important;
+        max-height: 500px;
+    }
+    
+    #chartsContainer {
+        padding: 20px 0;
+    }
+    
+    .chart-container {
+        min-height: 550px;
+        margin-bottom: 40px;
+    }
+`;
+
+        // Excel报告导出函数
+        function exportExcelReport() {
+            try {
+                // 创建工作簿
+                const wb = XLSX.utils.book_new();
+
+                // 创建数据表
+                const wsData = [
+                    ['参数分析报告', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                    ['生成时间: ' + new Date().toLocaleString(), '', '', '', '', '', '', '', '', '', '', '', '', ''],
+                    [''],
+                    ['参数', '规格', '上限(USL)', '下限(LSL)', '最大值', '最小值', '平均值', '标准差', 'CP', 'CPK', '超标数', '超标率', '有效数', '无效数']
+                ];
+
+                // 添加数据行
+                reportData.forEach(item => {
+                    wsData.push([
+                        item.parameter,
+                        item.target,
+                        item.usl,
+                        item.lsl,
+                        item.max,
+                        item.min,
+                        item.mean,
+                        item.std,
+                        item.cp,
+                        item.cpk,
+                        item.outOfSpec,
+                        item.outRate,
+                        item.validCount,
+                        item.invalidCount
+                    ]);
+                });
+
+                // 添加统计信息
+                wsData.push(['']);
+                wsData.push(['统计摘要', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+
+                const totalParams = reportData.length;
+                const goodParams = reportData.filter(item => parseFloat(item.cpk) > 1.67).length;
+                const okParams = reportData.filter(item => parseFloat(item.cpk) > 1.33 && parseFloat(item.cpk) <= 1.67).length;
+                const badParams = reportData.filter(item => parseFloat(item.cpk) <= 1.33).length;
+
+                wsData.push(['总参数数量:', totalParams]);
+                wsData.push(['良好(CPK>1.67):', goodParams, `(${(goodParams / totalParams * 100).toFixed(1)}%)`]);
+                wsData.push(['合格(1.33<CPK≤1.67):', okParams, `(${(okParams / totalParams * 100).toFixed(1)}%)`]);
+                wsData.push(['不合格(CPK≤1.33):', badParams, `(${(badParams / totalParams * 100).toFixed(1)}%)`]);
+
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                // 设置列宽
+                const colWidths = [
+                    { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 12 },
+                    { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+                    { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 10 },
+                    { wch: 10 }, { wch: 10 }
+                ];
+                ws['!cols'] = colWidths;
+
+                // 合并标题单元格
+                if (!ws['!merges']) ws['!merges'] = [];
+                ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 13 } });
+                ws['!merges'].push({ s: { r: 1, c: 0 }, e: { r: 1, c: 13 } });
+
+                // 添加工作表
+                XLSX.utils.book_append_sheet(wb, ws, "CPK分析报告");
+
+                // 生成Excel文件并下载
+                const fileName = `CPK分析报告_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+
+                alert(`Excel报告已生成: ${fileName}`);
+            } catch (error) {
+                console.error("Excel导出错误:", error);
+                alert("Excel报告导出失败，请重试");
+            }
+        }
+
+
+    </script>
+</body>
+
+</html>
