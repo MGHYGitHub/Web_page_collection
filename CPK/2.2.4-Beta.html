@@ -2,7 +2,7 @@
 ********************************************************************************
 *  📊 CPK 计算工具
 *  作者: ELI_MORGAN
-*  版本: 2.2.6-Beta
+*  版本: 2.2.4-Beta
 *  发布日期: 2025-09-12
 *  官方网站/来源: https://github.com/MGHYGitHub/Web_page_collection
 *  防伪标识: CPK-20250912-MGHY
@@ -16,18 +16,18 @@
 <head>
     <meta charset="UTF-8">
     <title>CPK 计算工具</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> -->
 
     <!-- 替换这些CDN引用 -->
-    <!-- <script src="./js/xlsx.full.min.js"></script>
+    <script src="./js/xlsx.full.min.js"></script>
     <script src="./js/chart.js"></script>
     <script src="./js/chartjs-plugin-datalabels.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./css/font-awesome.min.css"> -->
+    <link rel="stylesheet" href="./css/font-awesome.min.css">
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -253,7 +253,7 @@
     <!-- 毛玻璃滚动公告条 -->
     <div class="announcement-bar">
         <div class="announcement-content">
-            <div class="announcement-item"><i>📢</i> 欢迎使用 CPK 计算工具 v2.2.6-Beta</div>
+            <div class="announcement-item"><i>📢</i> 欢迎使用 CPK 计算工具 v2.2.4-Beta</div>
             <div class="announcement-item"><i>⭐</i> 新增数据筛选和导出功能</div>
             <div class="announcement-item"><i>🔔</i> 支持 Excel/CSV 格式数据导入</div>
             <div class="announcement-item"><i>🌐</i> 请使用谷歌浏览器(Chrome)获得最佳体验</div>
@@ -340,7 +340,7 @@
     </div>
 
     <div id="footerInfo">
-        作者: ELI_MORGAN | 版本: 2.2.6-Beta | 防伪标识: CPK-20250912-MGHY
+        作者: ELI_MORGAN | 版本: 2.2.4-Beta | 防伪标识: CPK-20250912-MGHY
     </div>
 
     <script>
@@ -389,7 +389,7 @@
             reader.readAsArrayBuffer(file);
         }
 
-        /// 修改 processData 函数中的异常值检测逻辑
+        // 修改 processData 增加过滤逻辑
         function processData(data) {
             const headers = data[0], rows = data.slice(1);
             let result = `<table><tr>
@@ -404,7 +404,7 @@
             reportData = [];
             for (let col = 2; col < headers.length; col++) {
                 const specText = headers[col];
-                const match = specText.match(/([-]?\d+\.?\d*)\s*±\s*(\d+\.?\d*)/);
+                const match = specText.match(/([-]?\d+)\s*±\s*(\d+)/);
                 if (!match) continue;
 
                 const target = parseFloat(match[1]), tol = parseFloat(match[2]);
@@ -414,21 +414,10 @@
                 const valuesAll = rows.map(r => parseFloat(r[col]));
                 const values = valuesAll.filter(v => !isNaN(v));
 
-                // 修复的异常值剔除逻辑 - 处理标准值为0的情况
-                let valuesValid, invalidValues;
-
-                if (target === 0) {
-                    // 当标准值为0时，使用绝对容差
-                    const maxTolerance = tol * 3;
-                    valuesValid = values.filter(v => Math.abs(v) <= maxTolerance);
-                    invalidValues = values.filter(v => Math.abs(v) > maxTolerance);
-                } else {
-                    // 当标准值不为0时，使用相对容差 (15%)
-                    const relativeTolerance = 0.15; // 15%的相对容差
-                    const maxRelativeDeviation = Math.abs(target) * relativeTolerance;
-                    valuesValid = values.filter(v => Math.abs(v - target) <= maxRelativeDeviation);
-                    invalidValues = values.filter(v => Math.abs(v - target) > maxRelativeDeviation);
-                }
+                // 异常值剔除
+                const maxTolerance = tol * 3;
+                const valuesValid = values.filter(v => Math.abs(v - target) <= maxTolerance);
+                const invalidValues = values.filter(v => Math.abs(v - target) > maxTolerance);
 
                 // 根据 useValidData 决定是否使用有效数据
                 let baseData = useValidData ? valuesValid : values;
@@ -446,49 +435,38 @@
 
                 if (dataToUse.length === 0) continue;
 
+                if (dataToUse.length === 0) continue;
+
                 const maxVal = Math.max(...dataToUse);
                 const minVal = Math.min(...dataToUse);
                 const mean = dataToUse.reduce((a, b) => a + b, 0) / dataToUse.length;
                 const std = Math.sqrt(dataToUse.reduce((a, b) => a + (b - mean) ** 2, 0) / (dataToUse.length - 1));
 
-                // 处理标准差为0的情况
-                let CP, CPK;
-                if (std === 0) {
-                    CP = Infinity;
-                    CPK = Infinity;
-                } else {
-                    CP = (USL - LSL) / (6 * std);
-                    const Cpk1 = (USL - mean) / (3 * std);
-                    const Cpk2 = (mean - LSL) / (3 * std);
-                    CPK = Math.min(Cpk1, Cpk2);
-                }
+                const CP = (USL - LSL) / (6 * std);
+                const Cpk1 = (USL - mean) / (3 * std), Cpk2 = (mean - LSL) / (3 * std), CPK = Math.min(Cpk1, Cpk2);
 
                 const outOfSpec = dataToUse.filter(v => v > USL || v < LSL).length;
                 const outRate = (outOfSpec / dataToUse.length) * 100;
-
                 // 添加CP/CPK颜色判断函数
                 function getCpkColor(cpkValue) {
-                    if (cpkValue === Infinity) return '#1b5e20'; // 无穷大视为良好
                     if (cpkValue > 1.67) return '#1b5e20'; // 深绿色 - 良好
                     if (cpkValue > 1.33) return '#2e7d32'; // 绿色 - 合格
                     return '#c62828'; // 红色 - 不合格
                 }
 
                 function getCpColor(cpValue) {
-                    if (cpValue === Infinity) return '#1b5e20'; // 无穷大视为良好
                     if (cpValue > 1.67) return '#1b5e20'; // 深绿色 - 良好
                     if (cpValue > 1.33) return '#2e7d32'; // 绿色 - 合格
                     return '#c62828'; // 红色 - 不合格
                 }
-
                 // 在循环内添加表格行
                 result += `<tr>
                             <td>${specText}</td><td>${target}±${tol}</td>
                             <td>${USL.toFixed(2)}</td><td>${LSL.toFixed(2)}</td>
                             <td>${maxVal.toFixed(2)}</td><td>${minVal.toFixed(2)}</td>
                             <td>${mean.toFixed(2)}</td><td>${std.toFixed(2)}</td>
-                            <td style="background-color: ${getCpColor(CP)}; color: white; font-weight: bold;">${CP === Infinity ? "∞" : CP.toFixed(3)}</td>
-                            <td style="background-color: ${getCpkColor(CPK)}; color: white; font-weight: bold;">${CPK === Infinity ? "∞" : CPK.toFixed(3)}</td>
+                            <td style="background-color: ${getCpColor(CP)}; color: white; font-weight: bold;">${CP.toFixed(3)}</td>
+                            <td style="background-color: ${getCpkColor(CPK)}; color: white; font-weight: bold;">${CPK.toFixed(3)}</td>
                             <td>${outOfSpec}</td><td>${outRate.toFixed(2)}%</td>
                             <td style="background-color: #e8f5e9; color: #2e7d32; font-weight: bold;">${valuesValid.length}</td>
                             <td style="background-color: #ffebee; color: #c62828; font-weight: bold;">${invalidValues.length}</td>
@@ -496,8 +474,8 @@
 
                 // 保存图表数据
                 chartLabels.push(specText);
-                cpData.push(CP === Infinity ? 10 : CP.toFixed(3)); // 将无穷大映射为10以便显示
-                cpkData.push(CPK === Infinity ? 10 : CPK.toFixed(3));
+                cpData.push(CP.toFixed(3));
+                cpkData.push(CPK.toFixed(3));
                 failRateData.push(outRate.toFixed(2));
                 meanData.push(mean.toFixed(2));
                 uslData.push(USL.toFixed(2));
@@ -516,8 +494,8 @@
                     min: minVal.toFixed(2),
                     mean: mean.toFixed(2),
                     std: std.toFixed(2),
-                    cp: CP === Infinity ? "∞" : CP.toFixed(3),
-                    cpk: CPK === Infinity ? "∞" : CPK.toFixed(3),
+                    cp: CP.toFixed(3),
+                    cpk: CPK.toFixed(3),
                     outOfSpec: outOfSpec,
                     outRate: outRate.toFixed(2) + '%',
                     validCount: valuesValid.length,
@@ -528,7 +506,10 @@
             }
 
             result += "</table>";
+
+            // 添加这行代码：将结果设置到页面上
             document.getElementById("result").innerHTML = result;
+
             document.getElementById("dataLabelsMode").value = "smart";
 
             // 保存图表数据
@@ -924,7 +905,7 @@
         // 控制台输出防伪标识
         console.log("%c📊 CPK 计算工具", "color:#4e73df; font-size:16px; font-weight:bold;");
         console.log("作者: ELI_MORGAN");
-        console.log("版本: 2.2.6-Beta");
+        console.log("版本: 2.2.4-Beta");
         console.log("防伪标识: CPK-20250912-MGHY");
         console.log("来源: https://github.com/MGHYGitHub/Web_page_collection");
 
