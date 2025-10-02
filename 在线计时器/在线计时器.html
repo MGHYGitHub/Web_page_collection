@@ -1,88 +1,146 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在线秒表</title>
+    <title>高级在线计时器</title>
     <link rel="icon" type="image/x-icon" href="../icons/jsq.ico">
     <style>
+        :root {
+            --bg-color: #e0f7fa;
+            --text-color: #00796b;
+            --accent-color: #42a5f5;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --accent-color: #bb86fc;
+            --card-bg: #2d2d2d;
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
         body {
             font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            background-color: #e0f7fa;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 20px;
             position: relative;
+            transition: all 0.3s ease;
         }
+
+        /* 顶部控制栏 */
         #top-controls {
             position: absolute;
             top: 20px;
             left: 20px;
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        #currentTimeBtn, #exportBtn, #toggleMsBtn {
-            padding: 10px 15px;
-            font-size: 16px;
+
+        .control-btn {
+            padding: 8px 12px;
+            /* 统一内边距 */
+            font-size: 12px;
+            /* 统一字体大小 */
             cursor: pointer;
             border: none;
             border-radius: 5px;
-            margin-right: 10px;
-            transition: background 0.3s;
-        }
-        #currentTimeBtn {
-            background-color: #00796b;
+            transition: all 0.3s;
+            background-color: var(--accent-color);
             color: white;
+            white-space: nowrap;
+            /* 防止文字换行 */
+            flex-shrink: 0;
+            /* 防止按钮被压缩 */
         }
-        #exportBtn {
-            background-color: #42a5f5;
-            color: white;
+
+        .control-btn:hover {
+            opacity: 0.8;
+            transform: translateY(-2px);
         }
-        #toggleMsBtn {
-            background-color: #f44336;
-            color: white;
-        }
-        #toggleMsBtn.on {
+
+        .control-btn.on {
             background-color: #4caf50;
         }
-        #currentTimeBtn:hover, #exportBtn:hover, #toggleMsBtn:hover {
-            opacity: 0.8;
+
+        /* 模式选择 */
+        #mode-selector {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
         }
+
+        .mode-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--accent-color);
+            background: transparent;
+            color: var(--text-color);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* 计时器显示 */
         #timer {
             font-size: 48px;
-            color: #00796b;
-            margin-bottom: 20px;
+            margin: 20px 0;
             text-align: center;
+            font-family: 'Courier New', monospace;
         }
+
+        /* 控制按钮 */
         .control-button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
             margin: 5px;
             cursor: pointer;
             border: none;
             border-radius: 25px;
-            background: linear-gradient(90deg, #42a5f5, #478ed1);
+            background: linear-gradient(90deg, var(--accent-color), #478ed1);
             color: white;
-            transition: background 0.3s, transform 0.2s;
+            transition: all 0.3s;
         }
+
         .control-button:hover {
-            background: linear-gradient(90deg, #478ed1, #42a5f5);
             transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
+
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 记录区域 */
         #records {
             margin-top: 20px;
-            width: 350px;
-            max-height: 200px;
+            width: 400px;
+            max-height: 300px;
             overflow-y: auto;
             border: 1px solid #ccc;
             border-radius: 10px;
-            background-color: #ffffff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: var(--card-bg);
+            box-shadow: var(--shadow);
         }
+
         .record {
             display: flex;
             align-items: center;
@@ -90,28 +148,34 @@
             border-bottom: 1px solid #eee;
             transition: background 0.2s;
         }
+
         .record:hover {
-            background-color: #f1f1f1;
+            background-color: rgba(0, 0, 0, 0.05);
         }
+
         .record:last-child {
             border-bottom: none;
         }
+
         .index {
             font-weight: bold;
-            color: #00796b;
+            color: var(--accent-color);
             margin-right: 10px;
             min-width: 20px;
         }
+
         .separator {
             margin: 0 5px;
-            color: #00796b;
+            color: var(--accent-color);
         }
+
         .time {
             font-size: 14px;
-            color: #00796b;
+            color: var(--text-color);
             margin-right: 10px;
             min-width: 80px;
         }
+
         .interval {
             font-size: 12px;
             color: #ff5722;
@@ -119,44 +183,481 @@
             min-width: 60px;
             font-style: italic;
         }
+
         .remark {
             flex-grow: 1;
             border: none;
             outline: none;
             padding: 0 5px;
             font-size: 14px;
-            color: #333;
+            color: var(--text-color);
+            background: transparent;
         }
-        #currentTime {
-            font-size: 16px;
-            color: white;
-        }
-        #shortcuts {
+
+        /* 统计面板 */
+        #stats-panel {
             position: absolute;
             right: 20px;
             top: 20px;
-            text-align: left;
-            font-size: 14px;
-            color: #555;
-            background-color: #fff3e0;
-            padding: 10px;
+            background: var(--card-bg);
+            padding: 15px;
             border-radius: 10px;
-            width: 150px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow);
+            width: 200px;
+        }
+
+        .stat-item {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        /* 预设计时器 */
+        #preset-timers {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .preset-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--accent-color);
+            background: transparent;
+            color: var(--text-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .preset-btn:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* 项目分类 */
+        #project-selector {
+            margin: 10px 0;
+        }
+
+        #project-select {
+            padding: 8px 12px;
+            border: 1px solid var(--accent-color);
+            border-radius: 5px;
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            #top-controls {
+                position: static;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+
+            #stats-panel {
+                position: static;
+                width: 100%;
+                margin: 20px 0;
+            }
+
+            #timer {
+                font-size: 36px;
+            }
+
+            #records {
+                width: 100%;
+            }
+        }
+
+        /* 迷你统计面板样式 */
+        .stats-mini {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            /* 减少间距 */
+            background: var(--card-bg);
+            padding: 6px 12px;
+            /* 减少内边距 */
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            margin: 0 5px;
+            /* 添加左右边距 */
+        }
+
+        .stat-item-mini {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            /* 进一步减小字体 */
+            line-height: 1.2;
+            min-width: 35px;
+            /* 确保每个项目有最小宽度 */
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .stat-item-mini span:last-child {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .stats-mini {
+                gap: 8px;
+                padding: 6px 12px;
+            }
+
+            .control-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .stat-item-mini {
+                font-size: 9px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-mini {
+                order: 0;
+                width: auto;
+                justify-content: space-around;
+                margin-bottom: 0;
+            }
+
+            #top-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* 公告栏样式 */
+        .announcement-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            max-height: 80vh;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+
+        .announcement-panel.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .announcement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .announcement-header h4 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .announcement-content {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .announcement-section {
+            margin-bottom: 20px;
+        }
+
+        .announcement-section h5 {
+            margin: 0 0 12px 0;
+            color: var(--accent-color);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .shortcut-item:last-child {
+            border-bottom: none;
+        }
+
+        .key {
+            background: var(--accent-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .desc {
+            font-size: 13px;
+            color: var(--text-color);
+        }
+
+        .feature-list {
+            margin: 0;
+            padding-left: 16px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .feature-list li {
+            margin-bottom: 6px;
+            color: var(--text-color);
+        }
+
+        .announcement-footer {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .announcement-toggle {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .announcement-toggle:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+
+        /* 公告栏触发按钮 */
+        #announcement-toggle-btn {
+            background: #ff9800;
+        }
+
+        #announcement-toggle-btn:hover {
+            background: #f57c00;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .announcement-panel {
+                width: 90vw;
+                right: 5vw;
+                left: 5vw;
+            }
+
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-100%);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
         }
     </style>
 </head>
+
 <body>
+    <!-- 公告栏 -->
+    <div id="announcement-panel" class="announcement-panel">
+        <div class="announcement-header">
+            <h4>📢 使用说明</h4>
+            <button class="close-btn" onclick="toggleAnnouncement()">×</button>
+        </div>
+        <div class="announcement-content">
+            <div class="announcement-section">
+                <h5>🎯 快捷键</h5>
+                <div class="shortcut-item">
+                    <span class="key">空格键</span>
+                    <span class="desc">开始/暂停计时</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">C 键</span>
+                    <span class="desc">添加计数记录</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">M 键</span>
+                    <span class="desc">切换毫秒显示</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">S 键</span>
+                    <span class="desc">声音开关</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">1/2/3 键</span>
+                    <span class="desc">切换模式</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="key">Ctrl + R</span>
+                    <span class="desc">重置计时器</span>
+                </div>
+            </div>
+
+            <div class="announcement-section">
+                <h5>📝 基本功能</h5>
+                <ul class="feature-list">
+                    <li>支持秒表、倒计时、间隔计时三种模式</li>
+                    <li>自动统计会话时长和次数</li>
+                    <li>支持项目分类和时间记录</li>
+                    <li>数据导出和本地保存</li>
+                    <li>深色/浅色主题切换</li>
+                </ul>
+            </div>
+
+            <div class="announcement-section">
+                <h5>💡 使用技巧</h5>
+                <ul class="feature-list">
+                    <li>双击记录备注可编辑内容</li>
+                    <li>使用预设按钮快速设置倒计时</li>
+                    <li>统计面板显示工作效率分析</li>
+                    <li>支持声音反馈和浏览器通知</li>
+                </ul>
+            </div>
+        </div>
+        <div class="announcement-footer">
+            <button class="announcement-toggle" onclick="toggleAnnouncement()">
+                📋 隐藏说明
+            </button>
+        </div>
+    </div>
 
     <div id="top-controls">
-        <button id="currentTimeBtn">
+        <button id="currentTimeBtn" class="control-btn">
             <span id="currentTime"></span>
         </button>
-        <button id="exportBtn">导出至 TXT</button>
-        <button id="toggleMsBtn">毫秒 | <span id="msStatus">OFF</span></button>
+        <button id="exportBtn" class="control-btn">导出数据</button>
+        <button id="toggleMsBtn" class="control-btn">毫秒 | <span id="msStatus">OFF</span></button>
+        <button id="soundToggle" class="control-btn">🔊 声音</button>
+
+        <!-- 统计信息集成到控制栏 -->
+        <div id="stats-mini" class="stats-mini">
+            <div class="stat-item-mini">
+                <span class="stat-label">总时长:</span>
+                <span id="total-time-mini">00:00:00</span>
+            </div>
+            <div class="stat-item-mini">
+                <span class="stat-label">会话:</span>
+                <span id="session-count-mini">0</span>
+            </div>
+            <div class="stat-item-mini">
+                <span class="stat-label">平均:</span>
+                <span id="avg-time-mini">00:00</span>
+            </div>
+            <div class="stat-item-mini">
+                <span class="stat-label">最长:</span>
+                <span id="longest-time-mini">00:00</span>
+            </div>
+        </div>
+
+        <!-- 公告栏触发按钮 -->
+        <button id="announcement-toggle-btn" class="control-btn" onclick="toggleAnnouncement()">
+            📢 说明
+        </button>
+
+        <!-- 主题切换 -->
+        <button id="theme-toggle" class="control-btn">🌙 暗色模式</button>
+    </div>
+
+    <!-- 模式选择 -->
+    <div id="mode-selector">
+        <button class="mode-btn active" data-mode="stopwatch">秒表模式</button>
+        <button class="mode-btn" data-mode="countdown">倒计时</button>
+        <button class="mode-btn" data-mode="interval">间隔计时</button>
+    </div>
+
+    <!-- 项目分类 -->
+    <div id="project-selector">
+        <select id="project-select">
+            <option value="work">工作</option>
+            <option value="study">学习</option>
+            <option value="sports">运动</option>
+            <option value="other">其他</option>
+        </select>
+    </div>
+
+    <!-- 预设计时器 -->
+    <div id="preset-timers">
+        <button class="preset-btn" data-time="300000">5分钟</button>
+        <button class="preset-btn" data-time="900000">15分钟</button>
+        <button class="preset-btn" data-time="1800000">30分钟</button>
+        <button class="preset-btn" data-time="2700000">45分钟</button>
+        <button class="preset-btn" data-time="3600000">60分钟</button>
     </div>
 
     <div id="timer">00:00:00</div>
+
+    <!-- 倒计时输入 -->
+    <div id="countdown-input" style="display: none; margin: 10px 0;">
+        <input type="number" id="minutes-input" placeholder="分钟" min="0" style="width: 80px; padding: 8px;">
+        <input type="number" id="seconds-input" placeholder="秒" min="0" max="59" style="width: 80px; padding: 8px;">
+        <button class="control-button" onclick="setCountdown()">设置</button>
+    </div>
+
     <button class="control-button" id="startBtn">开始</button>
     <button class="control-button" id="pauseBtn" style="display:none;">暂停</button>
     <button class="control-button" id="resetBtn">重置</button>
@@ -165,12 +666,183 @@
     <div id="records"></div>
 
     <script>
-        let timerInterval;
-        let milliseconds = 0;
-        let isRunning = false;
-        let recordCount = 0;
-        let showMilliseconds = false;
-        let lastRecordTime = 0; // 用于记录上一次计数的时间
+        // 配置和状态管理
+        const CONFIG = {
+            sounds: {
+                start: 'https://assets.mixkit.co/active_storage/sfx/286/286-preview.mp3',
+                pause: 'https://assets.mixkit.co/active_storage/sfx/257/257-preview.mp3',
+                count: 'https://assets.mixkit.co/active_storage/sfx/250/250-preview.mp3',
+                complete: 'https://assets.mixkit.co/active_storage/sfx/269/269-preview.mp3'
+            },
+            themes: {
+                light: {
+                    '--bg-color': '#e0f7fa',
+                    '--text-color': '#00796b',
+                    '--accent-color': '#42a5f5',
+                    '--card-bg': '#ffffff'
+                },
+                dark: {
+                    '--bg-color': '#1a1a1a',
+                    '--text-color': '#ffffff',
+                    '--accent-color': '#bb86fc',
+                    '--card-bg': '#2d2d2d'
+                }
+            }
+        };
+
+        const MODES = {
+            STOPWATCH: 'stopwatch',
+            COUNTDOWN: 'countdown',
+            INTERVAL: 'interval'
+        };
+
+        // 全局状态
+        let state = {
+            timerInterval: null,
+            milliseconds: 0,
+            countdownTime: 0,
+            isRunning: false,
+            recordCount: 0,
+            showMilliseconds: false,
+            lastRecordTime: 0,
+            currentMode: MODES.STOPWATCH,
+            soundEnabled: true,
+            currentProject: 'work',
+            stats: {
+                totalTime: 0,
+                sessionCount: 0,
+                avgSessionTime: 0,
+                longestSession: 0
+            },
+            sessions: []
+        };
+
+        // 音频上下文
+        let audioContext = null;
+
+        // 初始化
+        function init() {
+            loadSettings();
+            setupEventListeners();
+            updateCurrentTime();
+            updateStats();
+            setupAudio();
+
+            // 自动显示公告栏（首次使用）
+            const firstTime = !localStorage.getItem('announcementShown');
+            if (firstTime) {
+                setTimeout(() => {
+                    toggleAnnouncement();
+                    localStorage.setItem('announcementShown', 'true');
+                }, 1000);
+            }
+
+            // 设置快捷键
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+
+            // 检查快捷键是否绑定成功
+            console.log('快捷键绑定状态:', {
+                space: '开始/暂停',
+                c: '计数',
+                m: '毫秒切换',
+                s: '声音开关',
+                '1/2/3': '模式切换',
+                'ctrl+r': '重置'
+            });
+
+            setInterval(updateCurrentTime, 1000);
+        }
+
+        function setupAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.log('音频上下文不支持');
+            }
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled || !audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            let frequency = 440;
+            switch (type) {
+                case 'start': frequency = 523; break; // C5
+                case 'pause': frequency = 392; break; // G4
+                case 'count': frequency = 659; break; // E5
+                case 'complete': frequency = 784; break; // G5
+            }
+
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        function handleKeyboardShortcuts(event) {
+            // 排除输入框
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            // 防止默认行为
+            event.preventDefault();
+
+            switch (event.code) {
+                case 'Space':
+                    console.log('空格键按下 - 切换计时器');
+                    toggleTimer();
+                    break;
+                case 'KeyR':
+                    if (event.ctrlKey) {
+                        console.log('Ctrl+R 按下 - 重置');
+                        resetTimer();
+                    } else {
+                        console.log('R键按下 - 添加记录');
+                        addRecord();
+                    }
+                    break;
+                case 'KeyC':
+                    console.log('C键按下 - 添加记录');
+                    addRecord();
+                    break;
+                case 'KeyM':
+                    console.log('M键按下 - 切换毫秒');
+                    toggleMilliseconds();
+                    break;
+                case 'KeyS':
+                    console.log('S键按下 - 切换声音');
+                    toggleSound();
+                    break;
+                case 'Digit1':
+                    console.log('1键按下 - 切换到秒表模式');
+                    switchMode(MODES.STOPWATCH);
+                    break;
+                case 'Digit2':
+                    console.log('2键按下 - 切换到倒计时模式');
+                    switchMode(MODES.COUNTDOWN);
+                    break;
+                case 'Digit3':
+                    console.log('3键按下 - 切换到间隔计时模式');
+                    switchMode(MODES.INTERVAL);
+                    break;
+            }
+        }
+
+        function toggleTimer() {
+            if (state.isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
 
         function formatTime(ms) {
             const totalSeconds = Math.floor(ms / 1000);
@@ -178,7 +850,8 @@
             const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
             const milli = Math.floor((ms % 1000) / 10);
-            if (showMilliseconds) {
+
+            if (state.showMilliseconds) {
                 return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milli).padStart(2, '0')}`;
             } else {
                 return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -192,69 +865,223 @@
             return `${minutes}min${seconds}s`;
         }
 
+        function updateDisplay() {
+            let displayTime = state.milliseconds;
+
+            if (state.currentMode === MODES.COUNTDOWN) {
+                displayTime = Math.max(0, state.countdownTime - state.milliseconds);
+                if (displayTime === 0 && state.isRunning) {
+                    timerComplete();
+                }
+            }
+
+            document.getElementById('timer').innerText = formatTime(displayTime);
+
+            // 倒计时警告
+            if (state.currentMode === MODES.COUNTDOWN && displayTime < 30000 && displayTime > 0) {
+                document.getElementById('timer').style.color = '#ff4444';
+            } else {
+                document.getElementById('timer').style.color = '';
+            }
+        }
+
+        function startTimer() {
+            if (state.currentMode === MODES.COUNTDOWN && state.countdownTime === 0) {
+                alert('请先设置倒计时时间');
+                return;
+            }
+
+            state.isRunning = true;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'inline-block';
+            document.getElementById('countBtn').style.display = 'inline-block';
+
+            const startTime = Date.now() - state.milliseconds;
+
+            function tick() {
+                if (state.isRunning) {
+                    state.milliseconds = Date.now() - startTime;
+                    updateDisplay();
+                    setTimeout(tick, 10);
+                }
+            }
+
+            tick();
+            playSound('start');
+
+            // 记录会话开始
+            state.sessions.push({
+                startTime: new Date(),
+                project: state.currentProject,
+                mode: state.currentMode
+            });
+        }
+
+        function pauseTimer() {
+            state.isRunning = false;
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('startBtn').innerText = '继续';
+            document.getElementById('startBtn').style.display = 'inline-block';
+            playSound('pause');
+
+            // 更新会话统计
+            if (state.sessions.length > 0) {
+                const currentSession = state.sessions[state.sessions.length - 1];
+                currentSession.endTime = new Date();
+                currentSession.duration = state.milliseconds;
+                updateStats();
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(state.timerInterval);
+            state.milliseconds = 0;
+            state.recordCount = 0;
+            state.lastRecordTime = 0;
+            updateDisplay();
+            state.isRunning = false;
+            document.getElementById('countBtn').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('startBtn').innerText = '开始';
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('records').innerHTML = '';
+            document.getElementById('timer').style.color = '';
+        }
+
         function addRecord() {
             const recordsDiv = document.getElementById('records');
             const recordDiv = document.createElement('div');
             recordDiv.className = 'record';
-            recordCount++;
-            const timeText = formatTime(milliseconds);
-            
-            // 计算间隔时间
+            state.recordCount++;
+            const timeText = formatTime(state.milliseconds);
+
             let intervalText = '';
-            if (recordCount > 1) {
-                const intervalMs = milliseconds - lastRecordTime;
+            if (state.recordCount > 1) {
+                const intervalMs = state.milliseconds - state.lastRecordTime;
                 intervalText = formatInterval(intervalMs);
             } else {
                 intervalText = '首次记录';
             }
-            lastRecordTime = milliseconds;
+            state.lastRecordTime = state.milliseconds;
 
-            const index = document.createElement('div');
-            index.className = 'index';
-            index.innerText = recordCount;
-
-            const separator = document.createElement('div');
-            separator.className = 'separator';
-            separator.innerText = '|';
-
-            const timeDisplay = document.createElement('div');
-            timeDisplay.className = 'time';
-            timeDisplay.innerText = timeText;
-
-            const intervalDisplay = document.createElement('div');
-            intervalDisplay.className = 'interval';
-            intervalDisplay.innerText = intervalText;
-
-            const remarkInput = document.createElement('input');
-            remarkInput.className = 'remark';
-            remarkInput.placeholder = '输入备注...';
-            remarkInput.readOnly = false;
-
-            remarkInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    remarkInput.readOnly = true;
-                }
-            });
-
-            remarkInput.addEventListener('dblclick', () => {
-                remarkInput.readOnly = false;
-            });
-
-            recordDiv.appendChild(index);
-            recordDiv.appendChild(separator);
-            recordDiv.appendChild(timeDisplay);
-            recordDiv.appendChild(intervalDisplay);
-            recordDiv.appendChild(remarkInput);
+            recordDiv.innerHTML = `
+                <div class="index">${state.recordCount}</div>
+                <div class="separator">|</div>
+                <div class="time">${timeText}</div>
+                <div class="interval">${intervalText}</div>
+                <input class="remark" placeholder="输入备注..." onkeydown="if(event.key==='Enter') this.blur()" ondblclick="this.readOnly=false">
+            `;
 
             recordsDiv.appendChild(recordDiv);
             recordsDiv.scrollTop = recordsDiv.scrollHeight;
+            playSound('count');
         }
 
-        function exportToTXT() {
+        function toggleMilliseconds() {
+            state.showMilliseconds = !state.showMilliseconds;
+            const toggleBtn = document.getElementById('toggleMsBtn');
+            const msStatus = document.getElementById('msStatus');
+            if (state.showMilliseconds) {
+                toggleBtn.classList.add('on');
+                msStatus.innerText = 'ON';
+            } else {
+                toggleBtn.classList.remove('on');
+                msStatus.innerText = 'OFF';
+            }
+            updateDisplay();
+        }
+
+        function toggleSound() {
+            state.soundEnabled = !state.soundEnabled;
+            const soundBtn = document.getElementById('soundToggle');
+            soundBtn.innerHTML = state.soundEnabled ? '🔊 声音' : '🔇 静音';
+        }
+
+        function switchMode(mode, event) {  // 添加 event 参数
+            state.currentMode = mode;
+            resetTimer();
+
+            // 更新UI
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // 确保 event 存在再使用
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // 如果没有 event，通过 dataset 找到对应的按钮
+                const targetBtn = document.querySelector(`.mode-btn[data-mode="${mode}"]`);
+                if (targetBtn) {
+                    targetBtn.classList.add('active');
+                }
+            }
+
+            // 显示/隐藏相关控件
+            const countdownInput = document.getElementById('countdown-input');
+            countdownInput.style.display = mode === MODES.COUNTDOWN ? 'block' : 'none';
+        }
+
+        function setCountdown() {
+            const minutes = parseInt(document.getElementById('minutes-input').value) || 0;
+            const seconds = parseInt(document.getElementById('seconds-input').value) || 0;
+            state.countdownTime = (minutes * 60 + seconds) * 1000;
+            updateDisplay();
+        }
+
+        function setPresetTimer(time) {
+            state.countdownTime = parseInt(time);
+            document.getElementById('minutes-input').value = Math.floor(state.countdownTime / 60000);
+            document.getElementById('seconds-input').value = Math.floor((state.countdownTime % 60000) / 1000);
+            updateDisplay();
+        }
+
+        function timerComplete() {
+            state.isRunning = false;
+            playSound('complete');
+            alert('倒计时结束！');
+            resetTimer();
+
+            // 显示浏览器通知
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('计时器', {
+                    body: '倒计时已结束！',
+                    icon: '../icons/jsq.ico'
+                });
+            }
+        }
+
+        function updateStats() {
+            // 更新总时间
+            state.stats.totalTime = state.sessions.reduce((total, session) => total + (session.duration || 0), 0);
+
+            // 更新会话数
+            state.stats.sessionCount = state.sessions.length;
+
+            // 更新平均时长（避免除以零）
+            state.stats.avgSessionTime = state.stats.sessionCount > 0 ?
+                state.stats.totalTime / state.stats.sessionCount : 0;
+
+            // 更新最长会话
+            state.stats.longestSession = state.sessions.length > 0 ?
+                Math.max(...state.sessions.map(s => s.duration || 0)) : 0;
+
+            // 更新迷你统计面板显示
+            document.getElementById('total-time-mini').textContent = formatTimeShort(state.stats.totalTime);
+            document.getElementById('session-count-mini').textContent = state.stats.sessionCount;
+            document.getElementById('avg-time-mini').textContent = formatTimeShort(state.stats.avgSessionTime);
+            document.getElementById('longest-time-mini').textContent = formatTimeShort(state.stats.longestSession);
+
+            console.log('统计更新:', state.stats);
+        }
+
+        function exportData() {
             const recordsDiv = document.getElementById('records');
             let content = `计时记录 (${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}):\n\n`;
-            const records = recordsDiv.getElementsByClassName('record');
+            content += `模式: ${state.currentMode}\n`;
+            content += `项目: ${document.getElementById('project-select').options[document.getElementById('project-select').selectedIndex].text}\n\n`;
 
+            const records = recordsDiv.getElementsByClassName('record');
             for (let i = 0; i < records.length; i++) {
                 const time = records[i].getElementsByClassName('time')[0].innerText;
                 const interval = records[i].getElementsByClassName('interval')[0].innerText;
@@ -262,15 +1089,24 @@
                 content += `记录 ${i + 1}: ${time} (间隔: ${interval}) - ${remark}\n`;
             }
 
-            // 添加结束时间记录
-            const endTime = formatTime(milliseconds);
-            content += `\n结束时间: ${endTime}\n`;
+            content += `\n统计信息:\n`;
+            content += `总计时: ${formatTime(state.stats.totalTime)}\n`;
+            content += `会话次数: ${state.stats.sessionCount}\n`;
+            content += `平均时长: ${formatTime(state.stats.avgSessionTime)}\n`;
+            content += `最长会话: ${formatTime(state.stats.longestSession)}\n`;
 
             const blob = new Blob([content], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = '计时记录.txt';
+            link.download = `计时记录_${new Date().toISOString().slice(0, 10)}.txt`;
             link.click();
+        }
+        // 短时间格式显示（去掉小时）
+        function formatTimeShort(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
 
         function updateCurrentTime() {
@@ -279,99 +1115,139 @@
             document.getElementById('currentTime').innerText = `${beijingTime}`;
         }
 
-        function startTimer() {
-            isRunning = true;
-            document.getElementById('startBtn').style.display = 'none';
-            document.getElementById('pauseBtn').style.display = 'inline-block';
-            document.getElementById('countBtn').style.display = 'inline-block';
+        function toggleTheme() {
+            const isDark = document.body.getAttribute('data-theme') === 'dark';
+            const newTheme = isDark ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', newTheme);
 
-            const startTime = Date.now() - milliseconds;
+            const themeBtn = document.getElementById('theme-toggle');
+            themeBtn.textContent = newTheme === 'dark' ? '☀️ 亮色模式' : '🌙 暗色模式';
 
-            function tick() {
-                if (isRunning) {
-                    milliseconds = Date.now() - startTime;
-                    document.getElementById('timer').innerText = formatTime(milliseconds);
-                    setTimeout(tick, 10);
+            saveSettings();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('startBtn').addEventListener('click', startTimer);
+            document.getElementById('pauseBtn').addEventListener('click', pauseTimer);
+            document.getElementById('resetBtn').addEventListener('click', resetTimer);
+            document.getElementById('countBtn').addEventListener('click', addRecord);
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+            document.getElementById('toggleMsBtn').addEventListener('click', toggleMilliseconds);
+            document.getElementById('soundToggle').addEventListener('click', toggleSound);
+            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+            // 模式切换
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => switchMode(e.target.dataset.mode, e));
+            });
+
+            // 预设计时器
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => setPresetTimer(e.target.dataset.time));
+            });
+
+            // 项目选择
+            document.getElementById('project-select').addEventListener('change', (e) => {
+                state.currentProject = e.target.value;
+            });
+
+            // 请求通知权限
+            if ('Notification' in window) {
+                Notification.requestPermission();
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                theme: document.body.getAttribute('data-theme') || 'light',
+                soundEnabled: state.soundEnabled,
+                showMilliseconds: state.showMilliseconds,
+                currentProject: state.currentProject
+            };
+            localStorage.setItem('timerSettings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('timerSettings') || '{}');
+
+            if (settings.theme) {
+                document.body.setAttribute('data-theme', settings.theme);
+                const themeBtn = document.getElementById('theme-toggle');
+                themeBtn.textContent = settings.theme === 'dark' ? '☀️ 亮色模式' : '🌙 暗色模式';
+            }
+
+            if (settings.soundEnabled !== undefined) {
+                state.soundEnabled = settings.soundEnabled;
+                const soundBtn = document.getElementById('soundToggle');
+                soundBtn.innerHTML = state.soundEnabled ? '🔊 声音' : '🔇 静音';
+            }
+
+            if (settings.showMilliseconds !== undefined) {
+                state.showMilliseconds = settings.showMilliseconds;
+                const msStatus = document.getElementById('msStatus');
+                msStatus.innerText = state.showMilliseconds ? 'ON' : 'OFF';
+                if (state.showMilliseconds) {
+                    document.getElementById('toggleMsBtn').classList.add('on');
                 }
             }
 
-            tick();
+            if (settings.currentProject) {
+                state.currentProject = settings.currentProject;
+                document.getElementById('project-select').value = state.currentProject;
+            }
         }
 
-        document.getElementById('startBtn').addEventListener('click', () => {
-            startTimer();
-        });
-
-        document.getElementById('pauseBtn').addEventListener('click', () => {
-            isRunning = false;
-            document.getElementById('pauseBtn').style.display = 'none';
-            document.getElementById('startBtn').innerText = '继续';
-            document.getElementById('startBtn').style.display = 'inline-block';
-        });
-
-        document.getElementById('resetBtn').addEventListener('click', () => {
-            clearInterval(timerInterval);
-            milliseconds = 0;
-            recordCount = 0;
-            lastRecordTime = 0;
-            document.getElementById('timer').innerText = formatTime(milliseconds);
-            document.getElementById('records').innerHTML = '';
-            isRunning = false;
-            document.getElementById('countBtn').style.display = 'none';
-            document.getElementById('pauseBtn').style.display = 'none';
-            document.getElementById('startBtn').innerText = '开始';
-            document.getElementById('startBtn').style.display = 'inline-block';
-        });
-
-        document.getElementById('countBtn').addEventListener('click', addRecord);
-        document.getElementById('exportBtn').addEventListener('click', exportToTXT);
-
-        document.getElementById('toggleMsBtn').addEventListener('click', () => {
-            showMilliseconds = !showMilliseconds;
-            const toggleBtn = document.getElementById('toggleMsBtn');
-            const msStatus = document.getElementById('msStatus');
-            if (showMilliseconds) {
-                toggleBtn.classList.add('on');
-                msStatus.innerText = 'ON';
-            } else {
-                toggleBtn.classList.remove('on');
-                msStatus.innerText = 'OFF';
-            }
-            document.getElementById('timer').innerText = formatTime(milliseconds);
-        });
-
-        setInterval(updateCurrentTime, 1000);
-        
-        // 防伪信息 - 兼容深色/浅色模式
+        // 控制台防伪信息
         window.addEventListener('load', () => {
-            // 简单的分隔线
-            console.log("%c====================================", 
-                "color: #888; font-size: 12px;");
-            
-            // 标题
-            console.log("%c计时器控制台信息", 
-                "color: white; background: #333; font-size: 18px; font-weight: bold; padding: 5px 15px; border-radius: 4px;");
-            
-            // 版权信息
-            console.log("%c版权所有 © 2025 廖工", 
-                "color: white; background: #ff5722; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
-            
-            // 联系方式
-            console.log("%c如有任何问题，请联系: 84376722", 
-                "color: white; background: #2196F3; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
-            
-            // 版本信息
-            console.log("%c版本 V3.2", 
-                "color: white; background: #4CAF50; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
-            
-            // 安全警告
-            console.log("%c请勿在此处输入任何代码，以防安全风险", 
-                "color: #ffeb3b; background: #f44336; font-size: 14px; font-weight: bold; padding: 5px 10px; border-radius: 3px;");
-            
-            // 结束分隔线
-            console.log("%c====================================", 
-                "color: #888; font-size: 12px;"); });
-    </script>
+            console.log("%c====================================", "color: #888; font-size: 12px;");
+            console.log("%c高级计时器控制台", "color: white; background: #333; font-size: 18px; font-weight: bold; padding: 5px 15px; border-radius: 4px;");
+            console.log("%c版本 v4.0 - 专业版", "color: white; background: #4CAF50; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
+            console.log("%c快捷键: 空格=开始/暂停, C=计数, M=毫秒切换", "color: #2196F3; font-size: 14px;");
+            console.log("%c====================================", "color: #888; font-size: 12px;");
 
+            init();
+        });
+
+        // 公告栏功能
+        function toggleAnnouncement() {
+            const panel = document.getElementById('announcement-panel');
+            panel.classList.toggle('show');
+
+            // 更新按钮文本
+            const toggleBtn = document.getElementById('announcement-toggle-btn');
+            const footerBtn = document.querySelector('.announcement-toggle');
+
+            if (panel.classList.contains('show')) {
+                toggleBtn.innerHTML = '📢 隐藏';
+                footerBtn.textContent = '📋 隐藏说明';
+            } else {
+                toggleBtn.innerHTML = '📢 说明';
+                footerBtn.textContent = '📋 显示说明';
+            }
+        }
+
+        // 点击外部关闭公告栏
+        document.addEventListener('click', function (event) {
+            const panel = document.getElementById('announcement-panel');
+            const toggleBtn = document.getElementById('announcement-toggle-btn');
+
+            if (panel.classList.contains('show') &&
+                !panel.contains(event.target) &&
+                !toggleBtn.contains(event.target)) {
+                toggleAnnouncement();
+            }
+        });
+
+        // ESC键关闭公告栏
+        document.addEventListener('keydown', function (event) {
+            if (event.code === 'Escape') {
+                const panel = document.getElementById('announcement-panel');
+                if (panel.classList.contains('show')) {
+                    toggleAnnouncement();
+                }
+            }
+        });
+    </script>
 </body>
+
 </html>

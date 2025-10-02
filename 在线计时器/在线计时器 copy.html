@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线秒表</title>
+    <link rel="icon" type="image/x-icon" href="../icons/jsq.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #e0f7fa;
+            margin: 0;
+            padding: 20px;
+            position: relative;
+        }
+        #top-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+        }
+        #currentTimeBtn, #exportBtn, #toggleMsBtn {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+        #currentTimeBtn {
+            background-color: #00796b;
+            color: white;
+        }
+        #exportBtn {
+            background-color: #42a5f5;
+            color: white;
+        }
+        #toggleMsBtn {
+            background-color: #f44336;
+            color: white;
+        }
+        #toggleMsBtn.on {
+            background-color: #4caf50;
+        }
+        #currentTimeBtn:hover, #exportBtn:hover, #toggleMsBtn:hover {
+            opacity: 0.8;
+        }
+        #timer {
+            font-size: 48px;
+            color: #00796b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .control-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(90deg, #42a5f5, #478ed1);
+            color: white;
+            transition: background 0.3s, transform 0.2s;
+        }
+        .control-button:hover {
+            background: linear-gradient(90deg, #478ed1, #42a5f5);
+            transform: scale(1.05);
+        }
+        #records {
+            margin-top: 20px;
+            width: 350px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .record {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        .record:hover {
+            background-color: #f1f1f1;
+        }
+        .record:last-child {
+            border-bottom: none;
+        }
+        .index {
+            font-weight: bold;
+            color: #00796b;
+            margin-right: 10px;
+            min-width: 20px;
+        }
+        .separator {
+            margin: 0 5px;
+            color: #00796b;
+        }
+        .time {
+            font-size: 14px;
+            color: #00796b;
+            margin-right: 10px;
+            min-width: 80px;
+        }
+        .interval {
+            font-size: 12px;
+            color: #ff5722;
+            margin-right: 10px;
+            min-width: 60px;
+            font-style: italic;
+        }
+        .remark {
+            flex-grow: 1;
+            border: none;
+            outline: none;
+            padding: 0 5px;
+            font-size: 14px;
+            color: #333;
+        }
+        #currentTime {
+            font-size: 16px;
+            color: white;
+        }
+        #shortcuts {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            text-align: left;
+            font-size: 14px;
+            color: #555;
+            background-color: #fff3e0;
+            padding: 10px;
+            border-radius: 10px;
+            width: 150px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="top-controls">
+        <button id="currentTimeBtn">
+            <span id="currentTime"></span>
+        </button>
+        <button id="exportBtn">导出至 TXT</button>
+        <button id="toggleMsBtn">毫秒 | <span id="msStatus">OFF</span></button>
+    </div>
+
+    <div id="timer">00:00:00</div>
+    <button class="control-button" id="startBtn">开始</button>
+    <button class="control-button" id="pauseBtn" style="display:none;">暂停</button>
+    <button class="control-button" id="resetBtn">重置</button>
+    <button class="control-button" id="countBtn" style="display:none;">计数</button>
+
+    <div id="records"></div>
+
+    <script>
+        let timerInterval;
+        let milliseconds = 0;
+        let isRunning = false;
+        let recordCount = 0;
+        let showMilliseconds = false;
+        let lastRecordTime = 0; // 用于记录上一次计数的时间
+
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const milli = Math.floor((ms % 1000) / 10);
+            if (showMilliseconds) {
+                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milli).padStart(2, '0')}`;
+            } else {
+                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+        }
+
+        function formatInterval(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes}min${seconds}s`;
+        }
+
+        function addRecord() {
+            const recordsDiv = document.getElementById('records');
+            const recordDiv = document.createElement('div');
+            recordDiv.className = 'record';
+            recordCount++;
+            const timeText = formatTime(milliseconds);
+            
+            // 计算间隔时间
+            let intervalText = '';
+            if (recordCount > 1) {
+                const intervalMs = milliseconds - lastRecordTime;
+                intervalText = formatInterval(intervalMs);
+            } else {
+                intervalText = '首次记录';
+            }
+            lastRecordTime = milliseconds;
+
+            const index = document.createElement('div');
+            index.className = 'index';
+            index.innerText = recordCount;
+
+            const separator = document.createElement('div');
+            separator.className = 'separator';
+            separator.innerText = '|';
+
+            const timeDisplay = document.createElement('div');
+            timeDisplay.className = 'time';
+            timeDisplay.innerText = timeText;
+
+            const intervalDisplay = document.createElement('div');
+            intervalDisplay.className = 'interval';
+            intervalDisplay.innerText = intervalText;
+
+            const remarkInput = document.createElement('input');
+            remarkInput.className = 'remark';
+            remarkInput.placeholder = '输入备注...';
+            remarkInput.readOnly = false;
+
+            remarkInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    remarkInput.readOnly = true;
+                }
+            });
+
+            remarkInput.addEventListener('dblclick', () => {
+                remarkInput.readOnly = false;
+            });
+
+            recordDiv.appendChild(index);
+            recordDiv.appendChild(separator);
+            recordDiv.appendChild(timeDisplay);
+            recordDiv.appendChild(intervalDisplay);
+            recordDiv.appendChild(remarkInput);
+
+            recordsDiv.appendChild(recordDiv);
+            recordsDiv.scrollTop = recordsDiv.scrollHeight;
+        }
+
+        function exportToTXT() {
+            const recordsDiv = document.getElementById('records');
+            let content = `计时记录 (${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}):\n\n`;
+            const records = recordsDiv.getElementsByClassName('record');
+
+            for (let i = 0; i < records.length; i++) {
+                const time = records[i].getElementsByClassName('time')[0].innerText;
+                const interval = records[i].getElementsByClassName('interval')[0].innerText;
+                const remark = records[i].getElementsByClassName('remark')[0].value || '无备注';
+                content += `记录 ${i + 1}: ${time} (间隔: ${interval}) - ${remark}\n`;
+            }
+
+            // 添加结束时间记录
+            const endTime = formatTime(milliseconds);
+            content += `\n结束时间: ${endTime}\n`;
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = '计时记录.txt';
+            link.click();
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            const beijingTime = now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+            document.getElementById('currentTime').innerText = `${beijingTime}`;
+        }
+
+        function startTimer() {
+            isRunning = true;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'inline-block';
+            document.getElementById('countBtn').style.display = 'inline-block';
+
+            const startTime = Date.now() - milliseconds;
+
+            function tick() {
+                if (isRunning) {
+                    milliseconds = Date.now() - startTime;
+                    document.getElementById('timer').innerText = formatTime(milliseconds);
+                    setTimeout(tick, 10);
+                }
+            }
+
+            tick();
+        }
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            startTimer();
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            isRunning = false;
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('startBtn').innerText = '继续';
+            document.getElementById('startBtn').style.display = 'inline-block';
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            clearInterval(timerInterval);
+            milliseconds = 0;
+            recordCount = 0;
+            lastRecordTime = 0;
+            document.getElementById('timer').innerText = formatTime(milliseconds);
+            document.getElementById('records').innerHTML = '';
+            isRunning = false;
+            document.getElementById('countBtn').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('startBtn').innerText = '开始';
+            document.getElementById('startBtn').style.display = 'inline-block';
+        });
+
+        document.getElementById('countBtn').addEventListener('click', addRecord);
+        document.getElementById('exportBtn').addEventListener('click', exportToTXT);
+
+        document.getElementById('toggleMsBtn').addEventListener('click', () => {
+            showMilliseconds = !showMilliseconds;
+            const toggleBtn = document.getElementById('toggleMsBtn');
+            const msStatus = document.getElementById('msStatus');
+            if (showMilliseconds) {
+                toggleBtn.classList.add('on');
+                msStatus.innerText = 'ON';
+            } else {
+                toggleBtn.classList.remove('on');
+                msStatus.innerText = 'OFF';
+            }
+            document.getElementById('timer').innerText = formatTime(milliseconds);
+        });
+
+        setInterval(updateCurrentTime, 1000);
+        
+        // 防伪信息 - 兼容深色/浅色模式
+        window.addEventListener('load', () => {
+            // 简单的分隔线
+            console.log("%c====================================", 
+                "color: #888; font-size: 12px;");
+            
+            // 标题
+            console.log("%c计时器控制台信息", 
+                "color: white; background: #333; font-size: 18px; font-weight: bold; padding: 5px 15px; border-radius: 4px;");
+            
+            // 版权信息
+            console.log("%c版权所有 © 2025 ", 
+                "color: white; background: #ff5722; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
+            
+            // 联系方式
+            //console.log("%c如有任何问题，请联系: *******", 
+            //    "color: white; background: #2196F3; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
+            
+            // 版本信息
+            console.log("%c版本 V3.2", 
+                "color: white; background: #4CAF50; font-size: 16px; font-weight: bold; padding: 3px 10px; border-radius: 3px;");
+            
+            // 安全警告
+            console.log("%c请勿在此处输入任何代码，以防安全风险", 
+                "color: #ffeb3b; background: #f44336; font-size: 14px; font-weight: bold; padding: 5px 10px; border-radius: 3px;");
+            
+            // 结束分隔线
+            console.log("%c====================================", 
+                "color: #888; font-size: 12px;"); });
+    </script>
+
+</body>
+</html>

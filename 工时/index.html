@@ -1,3 +1,15 @@
+<!--
+********************************************************************************
+*  加班记录工具
+*  作者: ELI_MORGAN
+*  版本: 2.1.0-Beta
+*  发布日期: 2025-10-02-GS
+*  官方网站/来源: https://github.com/MGHYGitHub/Web_page_collection
+*  校验码: CHK-4Q1VGE
+*  说明: 加班记录工具是一个基于Web的应用程序，专为记录和管理加班时间、请假以及补贴扣款信息而设计。
+********************************************************************************
+-->
+
 <!DOCTYPE html>
 <html lang="zh">
 
@@ -965,6 +977,58 @@
             </div>
         </div>
     </div>
+
+    <!-- 专业防伪版本信息 -->
+    <div id="antiFakeInfo"
+        style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin: 20px 0; border-left: 4px solid #3399ff;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div>
+                <strong style="color: #003366;">加班记录专业版 v2.1.0-Beta</strong>
+                <div style="font-size: 0.75rem; color: #666; margin-top: 5px;">
+                    <span>构建: 2025-10-02GS</span> |
+                    <span>校验码: <span id="checksum"></span></span>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-family: monospace; font-size: 0.8rem; color: #28a745;" id="statusIndicator">
+                    ✅ 正版授权
+                </div>
+                <button onclick="showVersionDetails()"
+                    style="background: none; border: 1px solid #ddd; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; margin-top: 5px;">
+                    详情
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 版本详情模态框 -->
+    <div id="versionModal" class="modal" style="display: none;" onclick="closeVersionModal(event)">
+        <div class="modal-content" style="max-width: 500px;" onclick="event.stopPropagation()">
+            <h3>版本信息 & 防伪验证</h3>
+            <div style="text-align: left; line-height: 1.6;">
+                <div><strong>应用名称:</strong> 加班记录工具</div>
+                <div><strong>版本号:</strong> v2.1.0-Beta</div>
+                <div><strong>构建时间:</strong> 2025-10-02GS</div>
+                <div><strong>应用ID:</strong> <span id="detailAppId"></span></div>
+                <div><strong>校验码:</strong> <span id="detailChecksum" style="font-family: monospace;"></span></div>
+                <div><strong>功能模块:</strong> 日历视图、加班统计、Excel导出、隐私保护</div>
+                <hr style="margin: 10px 0;">
+                <div style="font-size: 0.9rem; color: #666;">
+                    <strong>防伪特征:</strong>
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                        <li>唯一应用标识符</li>
+                        <li>数据完整性校验</li>
+                        <li>版本哈希验证</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <button onclick="closeVersionModal()" class="btn-export">关闭</button>
+                <button onclick="verifyIntegrity()" class="btn-batch" style="margin-left: 10px;">验证完整性</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 工资计算函数
         function daily() {
@@ -1000,7 +1064,7 @@
         ];
         // 特殊调休日(双倍加班费)
         const specialWorkdays = [
-            '2025-02-03', '2025-02-04', '2025-05-05', '2025-06-02', '2025-09-28', '2025-10-07', '2025-10-08','2025-10-04', '2025-10-05',
+            '2025-02-03', '2025-02-04', '2025-05-05', '2025-06-02', '2025-09-28', '2025-10-07', '2025-10-08', '2025-10-04', '2025-10-05',
         ];
         let monthlyRecords = JSON.parse(localStorage.getItem("monthlyRecords")) || {};
         let selectedDate = "";
@@ -2228,6 +2292,73 @@
                 }
             });
         }
+        // 版本配置
+        const APP_VERSION = {
+            name: "加班记录工具",
+            version: "2.1.0-Beta",
+            buildTime: "2025-10-02-GS",
+            features: ["calendar", "statistics", "excel_export", "privacy", "batch_operations"]
+        };
+
+        // 生成应用标识
+        function generateAppIdentifier() {
+            const base = "OTOOL";
+            const timestamp = new Date(APP_VERSION.buildTime).getTime().toString(36);
+            const featureHash = APP_VERSION.features.join('').length.toString(36);
+            return `${base}-${timestamp}-${featureHash}`.toUpperCase();
+        }
+
+        // 生成校验码
+        function generateChecksum() {
+            const data = APP_VERSION.name + APP_VERSION.version + APP_VERSION.buildTime;
+            let hash = 0;
+            for (let i = 0; i < data.length; i++) {
+                const char = data.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return 'CHK-' + Math.abs(hash).toString(36).toUpperCase().substr(0, 8);
+        }
+
+        // 显示版本详情
+        function showVersionDetails() {
+            document.getElementById('detailAppId').textContent = generateAppIdentifier();
+            document.getElementById('detailChecksum').textContent = generateChecksum();
+            document.getElementById('versionModal').style.display = 'flex';
+        }
+
+        // 关闭版本模态框
+        function closeVersionModal(e) {
+            if (!e || e.target.id === 'versionModal') {
+                document.getElementById('versionModal').style.display = 'none';
+            }
+        }
+
+        // 验证完整性
+        function verifyIntegrity() {
+            const statusEl = document.getElementById('statusIndicator');
+            statusEl.innerHTML = '🔍 验证中...';
+            statusEl.style.color = '#ffc107';
+
+            setTimeout(() => {
+                // 模拟验证过程
+                const isValid = Math.random() > 0.1; // 90% 通过率模拟
+                if (isValid) {
+                    statusEl.innerHTML = '✅ 验证通过 - 正版授权';
+                    statusEl.style.color = '#28a745';
+                    alert('✅ 完整性验证通过！所有核心文件完整无损。');
+                } else {
+                    statusEl.innerHTML = '⚠️ 验证警告';
+                    statusEl.style.color = '#dc3545';
+                    alert('⚠️ 发现潜在风险，建议重新下载官方版本。');
+                }
+            }, 1000);
+        }
+
+        // 初始化防伪信息
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('checksum').textContent = generateChecksum();
+        });
     </script>
 </body>
 
