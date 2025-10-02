@@ -1000,7 +1000,7 @@
         ];
         // 特殊调休日(双倍加班费)
         const specialWorkdays = [
-            '2025-02-03', '2025-02-04', '2025-05-05', '2025-06-02', '2025-09-28', '2025-10-07', '2025-10-08','2025-10-04', '2025-10-05',
+            '2025-02-03', '2025-02-04', '2025-05-05', '2025-06-02', '2025-09-28', '2025-10-07', '2025-10-08', '2025-10-04', '2025-10-05',
         ];
         let monthlyRecords = JSON.parse(localStorage.getItem("monthlyRecords")) || {};
         let selectedDate = "";
@@ -1102,7 +1102,7 @@
                     // 修改后的倍率计算逻辑
                     const multiplier = leave ? 1.5 :
                         isHoliday ? 3 :
-                            isAdjust ? 1.5 : // 补班日1.5倍
+                            isAdjust ? 1.5 : // 调休工作日1.5倍
                                 isSpecial ? 2 :
                                     isWeekend ? 2 :
                                         1.5; // 普通工作日1.5倍
@@ -1365,7 +1365,7 @@
             document.getElementById("modalDate").innerText = dateStr;
             document.getElementById("modalType").innerText =
                 holidays.includes(dateStr) ? "节假日(C类)" :
-                    adjustDays.includes(dateStr) ? "调休工作日(A类)" : // 先判断补班日
+                    adjustDays.includes(dateStr) ? "调休工作日(A类)" : // 先判断调休工作日
                         specialWorkdays.includes(dateStr) ? "调休日(B类)" :
                             [0, 6].includes(new Date(dateStr).getDay()) ? "周末(B类)" :
                                 "工作日(A类)";
@@ -1665,9 +1665,10 @@
 
                 const typeText = record.leave ? "请假" :
                     holidays.includes(date) ? "C类加班" :
-                        specialWorkdays.includes(date) ? "B类加班" :
-                            [0, 6].includes(new Date(date).getDay()) ? "B类加班" :
-                                "A类加班";
+                        adjustDays.includes(date) ? "A类加班(调休)" : // 调休工作日显示为A类
+                            specialWorkdays.includes(date) ? "B类加班" :
+                                [0, 6].includes(new Date(date).getDay()) ? "B类加班" :
+                                    "A类加班";
 
                 // 统一使用存储的pay值，确保显示一致
                 const displayPay = record.leave ?
