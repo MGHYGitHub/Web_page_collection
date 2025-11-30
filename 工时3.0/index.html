@@ -374,31 +374,52 @@
             font-weight: 600;
         }
 
+        /* 优化手机端加班输入框 */
         .overtime-input {
-            margin-top: 8px;
+            margin-top: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 2px solid #3498db;
+            width: 140px;
         }
 
         .overtime-input input {
-            width: 80px;
-            padding: 6px;
-            border: 2px solid #3498db;
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #e1e5eb;
             border-radius: 6px;
             text-align: center;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
         }
 
+        /* 优化加班/请假时长显示标签 */
         .overtime-badge {
             position: absolute;
             bottom: 2px;
             right: 2px;
-            font-size: 0.6rem;
+            font-size: 0.5rem;
+            /* 减小字体大小 */
             font-weight: 600;
-            padding: 1px 4px;
-            border-radius: 3px;
+            padding: 1px 3px;
+            /* 减小内边距 */
+            border-radius: 2px;
+            /* 减小圆角 */
             z-index: 2;
+            max-width: 40px;
+            /* 限制最大宽度 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .overtime-badge.overtime {
@@ -537,7 +558,9 @@
             flex-wrap: wrap;
         }
 
-        .export-btn, .import-btn, .clear-btn {
+        .export-btn,
+        .import-btn,
+        .clear-btn {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
@@ -551,7 +574,9 @@
             font-size: 0.8rem;
         }
 
-        .export-btn:hover, .import-btn:hover, .clear-btn:hover {
+        .export-btn:hover,
+        .import-btn:hover,
+        .clear-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
@@ -724,7 +749,7 @@
             color: white;
             padding: 12px 15px;
             border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             z-index: 10000;
             animation: slideInRight 0.3s ease-out;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -752,6 +777,7 @@
                 transform: translateX(100%);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(0);
                 opacity: 1;
@@ -763,6 +789,7 @@
                 transform: translateX(0);
                 opacity: 1;
             }
+
             to {
                 transform: translateX(100%);
                 opacity: 0;
@@ -774,7 +801,7 @@
             .container {
                 max-width: 1200px;
             }
-            
+
             .main-content {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
@@ -782,82 +809,120 @@
                 gap: 20px;
                 padding: 25px;
             }
-            
+
             .salary-card {
                 grid-column: 1;
             }
-            
+
             .calendar-container {
                 grid-column: 1 / -1;
             }
-            
+
             .excel-table-header {
                 flex-direction: row;
                 align-items: center;
                 justify-content: space-between;
             }
-            
+
             .excel-table-actions {
                 justify-content: flex-end;
             }
-            
+
             .calendar-header {
                 flex-direction: row;
                 justify-content: space-between;
                 align-items: center;
             }
-            
+
             .calendar-controls {
                 justify-content: flex-end;
             }
-            
+
             .multiselect-controls {
                 flex-direction: row;
                 align-items: center;
                 justify-content: center;
             }
-            
+
             .batch-hours-input {
                 width: 150px;
             }
         }
 
+        /* 在超小屏幕上进一步优化 */
         @media (max-width: 480px) {
+            .overtime-badge {
+                font-size: 0.45rem;
+                /* 更小的字体 */
+                padding: 1px 2px;
+                max-width: 35px;
+                bottom: 1px;
+                right: 1px;
+            }
+
+
+            .overtime-input input {
+                padding: 6px 8px;
+                font-size: 0.85rem;
+            }
+
             .rates-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .stats-container {
                 grid-template-columns: 1fr;
             }
-            
+
             .salary-display {
                 flex-direction: column;
                 gap: 8px;
             }
-            
+
             .legend {
                 gap: 8px;
             }
-            
+
             .legend-item {
                 font-size: 0.7rem;
             }
-            
+
+            /* 确保日历格子有足够的空间显示标签 */
             .calendar-day {
+                position: relative;
                 min-height: 60px;
-                font-size: 0.8rem;
+                padding: 6px 2px;
+                /* 调整内边距 */
+                overflow: visible;
+                /* 确保标签不会被裁剪 */
             }
-            
+
+            /* 添加遮罩层，提升输入体验 */
+            .calendar-day.selected-input::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(52, 152, 219, 0.1);
+                z-index: 5;
+                border-radius: 6px;
+            }
+
+            /* 调整日期数字的位置，为标签腾出空间 */
             .day-number {
                 font-size: 0.9rem;
+                margin-bottom: 8px;
+                /* 增加底部间距 */
             }
-            
+
             .excel-table {
                 font-size: 0.7rem;
             }
-            
-            .excel-table th, .excel-table td {
+
+            .excel-table th,
+            .excel-table td {
                 padding: 8px 5px;
             }
         }
@@ -987,7 +1052,8 @@
                 <div class="multiselect-controls" id="multiselect-controls">
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
                         <div class="multiselect-info" id="multiselect-count">已选择 0 个日期</div>
-                        <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%;">
+                        <div
+                            style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%;">
                             <input type="number" class="batch-hours-input" id="batch-hours" step="0.5"
                                 placeholder="正数加班，负数请假，0清除">
                             <div class="multiselect-actions">
@@ -1158,10 +1224,10 @@
             });
 
             exportExcelBtn.addEventListener('click', exportToExcel);
-            
+
             // 添加导入Excel事件监听
             importExcelBtn.addEventListener('change', importFromExcel);
-            
+
             // 添加清除数据事件监听
             clearDataBtn.addEventListener('click', clearCurrentMonthData);
         }
@@ -1423,21 +1489,21 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    
+
                     // 获取第一个工作表
                     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                    
+
                     // 处理导入的数据
                     processImportedData(jsonData);
-                    
+
                     // 重置文件输入
                     event.target.value = '';
-                    
+
                     showNotification('Excel数据导入成功！', 'success');
                 } catch (error) {
                     console.error('导入Excel失败:', error);
@@ -1451,39 +1517,39 @@
         function processImportedData(data) {
             const overtimeData = getCurrentOvertimeData();
             const hourlySalary = parseFloat(hourlySalaryEl.textContent);
-            
+
             // 从第二行开始（跳过表头）
             for (let i = 1; i < data.length; i++) {
                 const row = data[i];
                 if (!row || row.length < 5) continue;
-                
+
                 const [dateStr, typeStr, hoursStr, multiplierStr, amountStr] = row;
-                
+
                 // 解析日期 (格式如: 10月15日)
                 const dateMatch = dateStr.match(/(\d+)月(\d+)日/);
                 if (!dateMatch) continue;
-                
+
                 const month = parseInt(dateMatch[1]);
                 const day = parseInt(dateMatch[2]);
                 const year = currentDate.getFullYear();
-                
+
                 const date = new Date(year, month - 1, day);
                 const dateString = formatDateForInput(date);
-                
+
                 // 解析类型和时长
                 const isLeave = typeStr.includes('请假');
                 const hoursMatch = hoursStr.match(/(加班|请假)\s*([\d.]+)H/);
                 if (!hoursMatch) continue;
-                
+
                 const hours = parseFloat(hoursMatch[2]);
-                
+
                 // 保存数据
                 overtimeData[dateString] = {
                     hours: hours,
                     isLeave: isLeave
                 };
             }
-            
+
             // 更新界面
             renderCalendar();
             updateStats();
@@ -1497,16 +1563,16 @@
                 const year = currentDate.getFullYear();
                 const month = String(currentDate.getMonth() + 1).padStart(2, '0');
                 const monthKey = `${year}-${month}`;
-                
+
                 // 清除当前月份数据
                 allOvertimeData[monthKey] = {};
-                
+
                 // 更新界面
                 renderCalendar();
                 updateStats();
                 updateExcelTable();
                 saveToLocalStorage();
-                
+
                 showNotification('当前月份数据已清除', 'success');
             }
         }
@@ -1691,6 +1757,8 @@
 
         // 显示加班输入框
         function showOvertimeInput(date, dayElement) {
+            // 添加选中输入状态
+            dayElement.classList.add('selected-input');
             // 修复时区问题：使用本地日期格式
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1722,6 +1790,7 @@
 
             // 自动保存逻辑
             hoursInput.addEventListener('blur', function () {
+                dayElement.classList.remove('selected-input');
                 const hours = parseFloat(hoursInput.value) || 0;
 
                 console.log(`保存数据: 日期=${dateString}, 小时=${hours}, 现有数据:`, overtimeData[dateString]);
