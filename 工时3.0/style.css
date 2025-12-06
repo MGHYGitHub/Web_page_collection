@@ -2374,3 +2374,165 @@ footer p {
         max-width: 85%;
     }
 }
+/* ========== 手机端专用样式 ========== */
+@media (max-width: 768px) {
+    /* 手机端日历格子调整 */
+    .calendar-day {
+        min-height: 60px !important;
+        padding: 4px 2px !important;
+    }
+    
+    .day-number {
+        font-size: 0.9rem !important;
+        margin-bottom: 2px !important;
+    }
+    
+    /* 手机端小圆点方案 */
+    .mobile-overtime-dot {
+        position: absolute;
+        bottom: 3px;
+        right: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.5rem;
+        font-weight: 900;
+        color: white;
+        z-index: 3;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    .mobile-overtime-dot.workday {
+        background: #3498db;
+    }
+    
+    .mobile-overtime-dot.weekend {
+        background: #2ecc71;
+    }
+    
+    .mobile-overtime-dot.holiday {
+        background: #e74c3c;
+    }
+    
+    .mobile-overtime-dot.extra-work {
+        background: #9b59b6;
+    }
+    
+    .mobile-overtime-dot.leave {
+        background: #f39c12;
+        transform: rotate(180deg); /* 请假用倒三角 */
+    }
+    
+    .mobile-overtime-dot.long-hours {
+        width: 18px;
+        height: 18px;
+        font-size: 0.6rem;
+        border: 2px solid white;
+    }
+    
+    .mobile-overtime-dot.extra-long-hours {
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+        border: 2px solid white;
+        background: #e74c3c !important;
+        animation: pulse 1s infinite;
+    }
+    
+    /* 隐藏桌面端的标签 */
+    .overtime-badge {
+        display: none !important;
+    }
+    
+    /* 手机端指示器方案 */
+    .mobile-indicator {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        min-width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.5rem;
+        font-weight: 900;
+        color: white;
+        z-index: 3;
+        padding: 1px;
+    }
+    
+    .mobile-indicator.mobile-leave {
+        background: #e67e22;
+        border-radius: 3px;
+        font-size: 0.4rem;
+    }
+    
+    .mobile-indicator.mobile-overtime {
+        background: #27ae60;
+    }
+    
+    .mobile-indicator.holiday-rate {
+        background: #c0392b;
+    }
+    
+    .mobile-indicator.double-rate {
+        background: #2980b9;
+    }
+    
+    .mobile-indicator.normal-rate {
+        background: #2ecc71;
+    }
+    
+    .mobile-indicator.long-hours {
+        min-width: 16px;
+        height: 16px;
+        font-size: 0.6rem;
+        border: 1px solid white;
+    }
+    
+    .mobile-indicator.extra-hours {
+        min-width: 18px;
+        height: 18px;
+        font-size: 0.5rem;
+        border: 2px solid white;
+        background: #8e44ad !important;
+    }
+}
+
+/* ========== 桌面端保持原有样式 ========== */
+@media (min-width: 769px) {
+    /* 桌面端优化标签显示 */
+    .overtime-badge {
+        font-size: 0.7rem;
+        padding: 3px 6px;
+        max-width: 80%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* 长文本自动换行 */
+    .overtime-badge[data-hours*="10"],
+    .overtime-badge[data-hours*="11"],
+    .overtime-badge[data-hours*="12"] {
+        word-break: break-all;
+        white-space: normal;
+        line-height: 1.2;
+        padding: 2px 4px;
+    }
+    
+    /* 隐藏手机端元素 */
+    .mobile-overtime-dot,
+    .mobile-indicator {
+        display: none !important;
+    }
+}
+
+/* 通用的动画效果 */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.9; }
+}

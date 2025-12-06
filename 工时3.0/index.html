@@ -1086,7 +1086,46 @@
                 badge.style.animation = 'pulse-long-hours 2s infinite';
             }
         }
+        // 专门为移动端优化的显示函数
+        function updateMobileDisplay(dayElement, hours, isLeave, dateType) {
+            const indicator = document.createElement('div');
+            indicator.className = 'mobile-indicator';
 
+            if (isLeave) {
+                indicator.classList.add('mobile-leave');
+                // 请假使用三角形
+                indicator.innerHTML = '▼';
+                indicator.title = `请假 ${hours}小时`;
+
+                // 根据时长调整大小
+                if (hours >= 10) {
+                    indicator.classList.add('large-leave');
+                }
+            } else {
+                indicator.classList.add('mobile-overtime');
+                // 加班使用圆形数字
+                indicator.textContent = hours <= 99 ? hours : '99+';
+                indicator.title = `加班 ${hours}小时`;
+
+                // 根据倍率添加颜色
+                if (dateType === 'holiday') {
+                    indicator.classList.add('holiday-rate');
+                } else if (dateType === 'weekend' || dateType === 'extraWork') {
+                    indicator.classList.add('double-rate');
+                } else {
+                    indicator.classList.add('normal-rate');
+                }
+
+                // 根据时长调整样式
+                if (hours >= 20) {
+                    indicator.classList.add('extra-hours');
+                } else if (hours >= 10) {
+                    indicator.classList.add('long-hours');
+                }
+            }
+
+            dayElement.appendChild(indicator);
+        }
         // 保存到本地存储
         function saveToLocalStorage() {
             localStorage.setItem('allOvertimeData', JSON.stringify(allOvertimeData));
