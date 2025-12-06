@@ -10,923 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- 引用节假日配置文件 -->
     <script src="holiday-config.js"></script>
-    <style>
-        /* 基础样式 */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            color: #333;
-            line-height: 1.6;
-            padding: 10px;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        header {
-            background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
-            color: white;
-            padding: 20px 15px;
-            text-align: center;
-        }
-
-        header h1 {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        header p {
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-
-        .main-content {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding: 15px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            transition: transform 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-3px);
-        }
-
-        .card-title {
-            font-size: 1.2rem;
-            color: #2c3e50;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 8px;
-        }
-
-        /* 工资设置区域样式 */
-        .salary-card {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            color: #555;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e1e5eb;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-
-        .input-group input:focus {
-            border-color: #3498db;
-            outline: none;
-        }
-
-        .salary-display {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-        }
-
-        .salary-item {
-            text-align: center;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            flex: 1;
-            margin: 0 5px;
-        }
-
-        .salary-item .value {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .salary-item .label {
-            font-size: 0.8rem;
-            color: #7f8c8d;
-            margin-top: 3px;
-        }
-
-        .overtime-rates {
-            margin-top: 15px;
-            padding: 12px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 10px;
-            border-left: 4px solid #3498db;
-        }
-
-        .rates-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .rate-item {
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e9ecef;
-        }
-
-        .rate-type {
-            font-size: 0.8rem;
-            color: #7f8c8d;
-            margin-bottom: 3px;
-        }
-
-        .rate-value {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 2px;
-        }
-
-        .rate-multiplier {
-            font-size: 0.7rem;
-            color: #95a5a6;
-        }
-
-        /* 统计区域样式 */
-        .stats-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .stat-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            border-left: 4px solid #3498db;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: #7f8c8d;
-            margin-top: 3px;
-        }
-
-        .stat-subtext {
-            font-size: 0.75rem;
-            color: #95a5a6;
-            margin-top: 5px;
-        }
-
-        /* 日历区域样式 */
-        .calendar-header {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .calendar-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .calendar-nav button {
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 12px;
-            cursor: pointer;
-            transition: background 0.3s;
-            font-size: 0.9rem;
-        }
-
-        .calendar-nav button:hover {
-            background: #2980b9;
-        }
-
-        .calendar-nav h3 {
-            font-size: 1.1rem;
-            color: #2c3e50;
-        }
-
-        .calendar-controls {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-        }
-
-        .save-btn {
-            background: #2ecc71;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .save-btn:hover {
-            background: #27ae60;
-        }
-
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-        }
-
-        .calendar-day {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 8px 3px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            min-height: 70px;
-            border: 2px solid transparent;
-            font-size: 0.9rem;
-        }
-
-        .calendar-day:hover {
-            background: #e9ecef;
-        }
-
-        .calendar-day.weekend {
-            background: #fff5f5;
-            color: #e74c3c;
-            border-left: 4px solid #e74c3c;
-        }
-
-        .calendar-day.selected {
-            border-color: #3498db;
-            background: #f8f9fa;
-            color: inherit;
-        }
-
-        .calendar-day.holiday {
-            background: #ffeaa7;
-            color: #e74c3c;
-            font-weight: bold;
-            border-left: 4px solid #e74c3c;
-        }
-
-        .calendar-day.extra-work {
-            background: #fd79a8;
-            color: white;
-            border-left: 4px solid #f39c12;
-        }
-
-        .calendar-day.make-up-work {
-            background: #a29bfe;
-            color: white;
-            border-left: 4px solid #6c5ce7;
-        }
-
-        .calendar-day.today {
-            border: 2px solid #e74c3c !important;
-            position: relative;
-        }
-
-        .calendar-day.today::before {
-            content: '今';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            background: #e74c3c;
-            color: white;
-            font-size: 0.6rem;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            z-index: 3;
-        }
-
-        .calendar-day.multiselect {
-            border: 3px solid #3498db !important;
-            background: #e3f2fd !important;
-        }
-
-        .calendar-day-header {
-            text-align: center;
-            font-weight: 600;
-            color: #7f8c8d;
-            padding: 8px 3px;
-            font-size: 0.9rem;
-        }
-
-        .day-number {
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        /* 优化手机端加班输入框 */
-        .overtime-input {
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            background: white;
-            padding: 8px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            border: 2px solid #3498db;
-            width: 140px;
-        }
-
-        .overtime-input input {
-            width: 100%;
-            padding: 8px 10px;
-            border: 1px solid #e1e5eb;
-            border-radius: 6px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        /* 优化加班/请假时长显示标签 */
-        .overtime-badge {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            font-size: 0.5rem;
-            /* 减小字体大小 */
-            font-weight: 600;
-            padding: 1px 3px;
-            /* 减小内边距 */
-            border-radius: 2px;
-            /* 减小圆角 */
-            z-index: 2;
-            max-width: 40px;
-            /* 限制最大宽度 */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .overtime-badge.overtime {
-            background: #2ecc71;
-            color: white;
-        }
-
-        .overtime-badge.leave {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .legend {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 3px;
-            font-size: 0.8rem;
-        }
-
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
-        }
-
-        .weekend-color {
-            background: #fff5f5;
-        }
-
-        .selected-color {
-            background: #3498db;
-        }
-
-        /* 多选控制区域样式 */
-        .multiselect-controls {
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .multiselect-active .multiselect-controls {
-            display: flex;
-        }
-
-        .multiselect-info {
-            text-align: center;
-            color: #3498db;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .batch-hours-input {
-            padding: 10px 12px;
-            border: 2px solid #3498db;
-            border-radius: 8px;
-            font-size: 1rem;
-            width: 100%;
-            text-align: center;
-        }
-
-        .multiselect-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-        }
-
-        .multiselect-btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-        }
-
-        .multiselect-cancel {
-            background: #95a5a6;
-            color: white;
-        }
-
-        .multiselect-cancel:hover {
-            background: #7f8c8d;
-        }
-
-        .multiselect-apply {
-            background: #2ecc71;
-            color: white;
-        }
-
-        .multiselect-apply:hover {
-            background: #27ae60;
-        }
-
-        /* Excel表格样式 */
-        .excel-table-container {
-            margin-top: 20px;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-        }
-
-        .excel-table-header {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white;
-            padding: 12px 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .excel-table-header h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .excel-table-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .export-btn,
-        .import-btn,
-        .clear-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.8rem;
-        }
-
-        .export-btn:hover,
-        .import-btn:hover,
-        .clear-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-1px);
-        }
-
-        .clear-btn {
-            background: rgba(231, 76, 60, 0.3);
-        }
-
-        .clear-btn:hover {
-            background: rgba(231, 76, 60, 0.4);
-        }
-
-        .excel-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border: 1px solid #e0e0e0;
-            font-size: 0.8rem;
-        }
-
-        .excel-table th {
-            background: #f8f9fa;
-            padding: 10px 8px;
-            text-align: left;
-            font-weight: 600;
-            color: #2c3e50;
-            border: 1px solid #e0e0e0;
-        }
-
-        .excel-table td {
-            padding: 10px 8px;
-            border: 1px solid #e0e0e0;
-            color: #555;
-        }
-
-        /* 交替行颜色 */
-        .excel-table tr:nth-child(even) {
-            background: #f8fafc;
-        }
-
-        .excel-table tr:nth-child(odd) {
-            background: #ffffff;
-        }
-
-        .excel-table tr:hover {
-            background: #e3f2fd;
-        }
-
-        .date-column {
-            font-weight: 500;
-            color: #2c3e50;
-        }
-
-        .type-column {
-            text-align: center;
-        }
-
-        .type-badge {
-            display: inline-block;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            min-width: 18px;
-        }
-
-        .type-a {
-            background: #e8f5e8;
-            color: #27ae60;
-            border: 1px solid #c8e6c9;
-        }
-
-        .type-b {
-            background: #e8f4fd;
-            color: #3498db;
-            border: 1px solid #bbdefb;
-        }
-
-        .type-c {
-            background: #fef7e8;
-            color: #f39c12;
-            border: 1px solid #ffe0b2;
-        }
-
-        .type-leave {
-            background: #feecf0;
-            color: #e74c3c;
-            border: 1px solid #fecdd3;
-        }
-
-        .hours-column {
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .multiplier-column {
-            text-align: center;
-        }
-
-        .multiplier-badge {
-            display: inline-block;
-            padding: 3px 6px;
-            border-radius: 4px;
-            background: #f8f9fa;
-            color: #6c757d;
-            font-size: 0.7rem;
-            font-weight: 600;
-            border: 1px solid #e0e0e0;
-        }
-
-        .amount-column {
-            text-align: right;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .overtime-row {
-            border-left: 3px solid #2ecc71;
-        }
-
-        .leave-row {
-            border-left: 3px solid #e74c3c;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 30px 15px;
-            color: #95a5a6;
-            font-style: italic;
-            border: 1px solid #e0e0e0;
-        }
-
-        .no-data i {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-            opacity: 0.5;
-        }
-
-        /* 文件上传输入框样式 */
-        .file-input-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        .file-input {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        footer {
-            text-align: center;
-            padding: 15px;
-            color: #7f8c8d;
-            font-size: 0.8rem;
-            border-top: 1px solid #eee;
-        }
-
-        /* 通知样式 */
-        .custom-notification {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            left: 10px;
-            background: #2ecc71;
-            color: white;
-            padding: 12px 15px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            z-index: 10000;
-            animation: slideInRight 0.3s ease-out;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
-
-        .notification-content {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .notification-icon {
-            font-size: 0.9rem;
-            flex-shrink: 0;
-        }
-
-        .notification-message {
-            flex: 1;
-        }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOutRight {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-
-        /* 响应式设计 */
-        @media (min-width: 768px) {
-            .container {
-                max-width: 1200px;
-            }
-
-            .main-content {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: auto auto;
-                gap: 20px;
-                padding: 25px;
-            }
-
-            .salary-card {
-                grid-column: 1;
-            }
-
-            .calendar-container {
-                grid-column: 1 / -1;
-            }
-
-            .excel-table-header {
-                flex-direction: row;
-                align-items: center;
-                justify-content: space-between;
-            }
-
-            .excel-table-actions {
-                justify-content: flex-end;
-            }
-
-            .calendar-header {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .calendar-controls {
-                justify-content: flex-end;
-            }
-
-            .multiselect-controls {
-                flex-direction: row;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .batch-hours-input {
-                width: 150px;
-            }
-        }
-
-        /* 在超小屏幕上进一步优化 */
-        @media (max-width: 480px) {
-            .overtime-badge {
-                font-size: 0.45rem;
-                /* 更小的字体 */
-                padding: 1px 2px;
-                max-width: 35px;
-                bottom: 1px;
-                right: 1px;
-            }
-
-
-            .overtime-input input {
-                padding: 6px 8px;
-                font-size: 0.85rem;
-            }
-
-            .rates-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
-
-            .salary-display {
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            .legend {
-                gap: 8px;
-            }
-
-            .legend-item {
-                font-size: 0.7rem;
-            }
-
-            /* 确保日历格子有足够的空间显示标签 */
-            .calendar-day {
-                position: relative;
-                min-height: 60px;
-                padding: 6px 2px;
-                /* 调整内边距 */
-                overflow: visible;
-                /* 确保标签不会被裁剪 */
-            }
-
-            /* 添加遮罩层，提升输入体验 */
-            .calendar-day.selected-input::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(52, 152, 219, 0.1);
-                z-index: 5;
-                border-radius: 6px;
-            }
-
-            /* 调整日期数字的位置，为标签腾出空间 */
-            .day-number {
-                font-size: 0.9rem;
-                margin-bottom: 8px;
-                /* 增加底部间距 */
-            }
-
-            .excel-table {
-                font-size: 0.7rem;
-            }
-
-            .excel-table th,
-            .excel-table td {
-                padding: 8px 5px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -996,8 +80,8 @@
                     <!-- 第一行：加班时长和请假时长 -->
                     <div class="stat-item">
                         <div class="stat-value" id="total-overtime">0.0H</div>
-                        <div class="stat-label">总加班时长</div>
-                        <div class="stat-subtext">实际加班时长: <span id="actual-overtime">0.0H</span></div>
+                        <div class="stat-label">加班总时长</div>
+                        <div class="stat-subtext">扣除请假后: <span id="actual-overtime">0.0H</span></div>
                     </div>
 
                     <div class="stat-item">
@@ -1049,17 +133,30 @@
                     <!-- 日历将通过JavaScript动态生成 -->
                 </div>
                 <!-- 修改多选控制区域 -->
-                <div class="multiselect-controls" id="multiselect-controls">
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                        <div class="multiselect-info" id="multiselect-count">已选择 0 个日期</div>
+                <div class="multiselect-controls" id="multiselect-controls" style="display: none;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
+                        <!-- 添加操作提示 -->
+                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                            <div class="multiselect-info" id="multiselect-count">已选择 0 个日期</div>
+                            <div style="font-size: 0.8rem; color: #7f8c8d; text-align: right;">
+                                点击日期选择/取消
+                            </div>
+                        </div>
+
                         <div
                             style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%;">
                             <input type="number" class="batch-hours-input" id="batch-hours" step="0.5"
                                 placeholder="正数加班，负数请假，0清除">
+
+                            <!-- 添加操作说明 -->
+                            <div style="font-size: 0.75rem; color: #95a5a6; text-align: center; margin-top: -5px;">
+                                应用后将清空选择，可继续选择其他日期
+                            </div>
+
                             <div class="multiselect-actions">
                                 <button class="multiselect-btn multiselect-clear" id="multiselect-clear">清空选择</button>
                                 <button class="multiselect-btn multiselect-cancel" id="multiselect-cancel">退出多选</button>
-                                <button class="multiselect-btn multiselect-apply" id="multiselect-apply">应用</button>
+                                <button class="multiselect-btn multiselect-apply" id="multiselect-apply">应用设置</button>
                             </div>
                         </div>
                     </div>
@@ -1201,6 +298,7 @@
             renderCalendar();
             updateExcelTable();
             initMultiselect();
+            initKeyboardShortcuts();
 
             // 事件监听
             salaryInput.addEventListener('input', function () {
@@ -1588,49 +686,65 @@
             const overtimeData = getCurrentOvertimeData();
             console.log('当前月份加班数据:', overtimeData);
 
-            let totalOvertime = 0;
-            let actualOvertime = 0;
-            let totalLeave = 0;
-            let overtimeA = 0; // 工作日1.5倍
-            let overtimeB = 0; // 周末2倍
-            let overtimeC = 0; // 节假日3倍
+            let totalOvertimeHours = 0;      // 总加班时长（未扣除请假）
+            let totalLeaveHours = 0;         // 总请假时长
+            let actualOvertimeHours = 0;     // 实际加班时长（扣除请假后）
+            let overtimeA = 0;               // 工作日1.5倍
+            let overtimeB = 0;               // 周末2倍
+            let overtimeC = 0;               // 节假日3倍
 
             const hourlySalary = parseFloat(hourlySalaryEl.textContent);
 
-            // 遍历当前月份的加班数据
+            // 先统计总时长
             for (const date in overtimeData) {
                 const hours = parseFloat(overtimeData[date].hours) || 0;
                 const isLeave = overtimeData[date].isLeave || false;
 
                 if (isLeave) {
-                    totalLeave += hours;
+                    totalLeaveHours += hours;
                 } else {
-                    totalOvertime += hours;
-
-                    // 使用新的节假日配置系统
-                    const dateObj = new Date(date);
-                    const dateType = getDateType(dateObj);
-                    const multiplier = getOvertimeMultiplier(dateObj);
-
-                    console.log(`日期: ${date}, 类型: ${dateType}, 倍率: ${multiplier}, 小时: ${hours}`);
-
-                    // 根据倍率分类统计
-                    if (multiplier === 3) {
-                        overtimeC += hours; // 节假日3倍
-                        console.log(`  -> 归入C类`);
-                    } else if (multiplier === 2) {
-                        overtimeB += hours; // 周末和调休日2倍
-                        console.log(`  -> 归入B类`);
-                    } else if (multiplier === 1.5) {
-                        overtimeA += hours; // 工作日和补班日1.5倍
-                        console.log(`  -> 归入A类`);
-                    }
-
-                    actualOvertime += hours * multiplier;
+                    totalOvertimeHours += hours;
                 }
             }
 
-            console.log(`统计结果: A=${overtimeA}H, B=${overtimeB}H, C=${overtimeC}H, 请假=${totalLeave}H`);
+            // 计算实际加班时长：总加班时长 - 请假时长
+            actualOvertimeHours = Math.max(0, totalOvertimeHours - totalLeaveHours);
+
+            console.log(`统计结果: 总加班=${totalOvertimeHours}H, 请假=${totalLeaveHours}H, 实际加班=${actualOvertimeHours}H`);
+
+            // 重新分配实际加班时长到各类型（按时间顺序）
+            let remainingActualHours = actualOvertimeHours;
+
+            // 按日期顺序处理，先处理低倍率的日期
+            const dates = Object.keys(overtimeData).sort();
+
+            for (const dateString of dates) {
+                const dataItem = overtimeData[dateString];
+                const hours = parseFloat(dataItem.hours) || 0;
+                const isLeave = dataItem.isLeave || false;
+
+                if (!isLeave && hours > 0 && remainingActualHours > 0) {
+                    const dateObj = new Date(dateString);
+                    const multiplier = getOvertimeMultiplier(dateObj);
+
+                    // 分配实际加班时长
+                    const assignedHours = Math.min(hours, remainingActualHours);
+                    remainingActualHours -= assignedHours;
+
+                    // 根据倍率分类统计
+                    if (multiplier === 3) {
+                        overtimeC += assignedHours;
+                    } else if (multiplier === 2) {
+                        overtimeB += assignedHours;
+                    } else if (multiplier === 1.5) {
+                        overtimeA += assignedHours;
+                    }
+
+                    console.log(`日期: ${dateString}, 原加班: ${hours}H, 分配: ${assignedHours}H, 倍率: ${multiplier}`);
+                }
+            }
+
+            console.log(`分类统计: A=${overtimeA}H, B=${overtimeB}H, C=${overtimeC}H`);
             console.log('=== 结束统计计算 ===');
 
             // 计算加班工资
@@ -1640,16 +754,16 @@
             const totalOvertimePay = (parseFloat(overtimePayA) + parseFloat(overtimePayB) + parseFloat(overtimePayC)).toFixed(2);
 
             // 计算请假扣款 - 修改为1.5倍
-            const leaveDeduction = (totalLeave * hourlySalary * 1.5).toFixed(2);
-            console.log(`请假扣款计算: ${totalLeave}H × ${hourlySalary}元 × 1.5 = ${leaveDeduction}元`);
+            const leaveDeduction = (totalLeaveHours * hourlySalary * 1.5).toFixed(2);
+            console.log(`请假扣款计算: ${totalLeaveHours}H × ${hourlySalary}元 × 1.5 = ${leaveDeduction}元`);
 
             // 计算净收入
             const netIncome = (parseFloat(salary) + parseFloat(totalOvertimePay) - parseFloat(leaveDeduction)).toFixed(2);
 
             // 更新DOM
-            totalOvertimeEl.textContent = totalOvertime.toFixed(1) + 'H';
-            actualOvertimeEl.textContent = actualOvertime.toFixed(1) + 'H';
-            totalLeaveEl.textContent = totalLeave.toFixed(1) + 'H (' + (totalLeave / 8).toFixed(1) + '天)';
+            totalOvertimeEl.textContent = totalOvertimeHours.toFixed(1) + 'H';
+            actualOvertimeEl.textContent = actualOvertimeHours.toFixed(1) + 'H';
+            totalLeaveEl.textContent = totalLeaveHours.toFixed(1) + 'H (' + (totalLeaveHours / 8).toFixed(1) + '天)';
             leaveDeductionEl.textContent = leaveDeduction;
             totalOvertimePayEl.textContent = totalOvertimePay;
             overtimeAEl.textContent = overtimePayA;
@@ -1721,8 +835,9 @@
                 // 判断是否是今天
                 const isToday = (year === todayYear && month === todayMonth && day === todayDay);
 
+                // 移除hasOvertime的选中状态
                 const dayElement = document.createElement('div');
-                dayElement.className = `calendar-day ${isWeekend ? 'weekend' : ''} ${isHolidayType ? 'holiday' : ''} ${isExtraWork ? 'extra-work' : ''} ${isMakeUpWork ? 'make-up-work' : ''} ${hasOvertime ? 'selected' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'multiselect' : ''}`;
+                dayElement.className = `calendar-day ${isWeekend ? 'weekend' : ''} ${isHolidayType ? 'holiday' : ''} ${isExtraWork ? 'extra-work' : ''} ${isMakeUpWork ? 'make-up-work' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'multiselect' : ''}`;
 
                 // 添加日期类型提示
                 const dayNumber = document.createElement('div');
@@ -1846,23 +961,130 @@
             hoursInput.select();
         }
 
-        // 更新日期显示
         function updateDayDisplay(dayElement, dateString, hours, isLeave) {
-            // 移除现有的标签
+            // 移除现有的标签和小圆点
             const existingBadge = dayElement.querySelector('.overtime-badge');
             if (existingBadge) {
                 existingBadge.remove();
             }
 
-            // 创建新的标签
+            const existingDot = dayElement.querySelector('.overtime-dot');
+            if (existingDot) {
+                existingDot.remove();
+            }
+
+            // 如果没有小时数，直接返回
+            if (hours <= 0) {
+                // 移除选中状态
+                if (!isMultiselectMode || !selectedDates.has(dateString)) {
+                    dayElement.classList.remove('selected');
+                }
+                return;
+            }
+
+            // 智能生成显示文本
+            function getDisplayText(hours, isLeave) {
+                const leavePrefix = isLeave ? '假' : '加';
+
+                // 根据小时数决定显示格式
+                if (hours >= 100) {
+                    // 100小时以上：只显示数字
+                    return `${hours}`;
+                } else if (hours >= 20) {
+                    // 20-99小时：简写+数字
+                    return `${leavePrefix}${hours}`;
+                } else if (hours >= 10) {
+                    // 10-19小时：显示完整但紧凑
+                    return `${leavePrefix}班${hours}`;
+                } else if (hours >= 5) {
+                    // 5-9小时：正常显示
+                    return `${isLeave ? '请假' : '加班'}${hours}`;
+                } else {
+                    // 1-4小时：带H后缀
+                    return `${isLeave ? '请假' : '加班'}${hours}H`;
+                }
+            }
+
+            // 根据小时数获取标题提示
+            function getTitleText(hours, isLeave, dateType) {
+                const baseText = isLeave ? `请假 ${hours}小时` : `加班 ${hours}小时`;
+
+                if (!isLeave) {
+                    const multiplierText =
+                        dateType === 'holiday' ? ' (3倍工资)' :
+                            dateType === 'weekend' || dateType === 'extraWork' ? ' (2倍工资)' :
+                                ' (1.5倍工资)';
+                    return baseText + multiplierText;
+                }
+                return baseText;
+            }
+
+            // 根据小时数获取样式类
+            function getHoursClass(hours) {
+                if (hours >= 20) return 'hours-xxl';
+                if (hours >= 15) return 'hours-xl';
+                if (hours >= 10) return 'hours-lg';
+                if (hours >= 5) return 'hours-md';
+                return 'hours-sm';
+            }
+
+            // 获取日期类型
+            const date = new Date(dateString);
+            const dateType = getDateType(date);
+
+            // 创建加班/请假标签
             const badge = document.createElement('div');
-            badge.className = `overtime-badge ${isLeave ? 'leave' : 'overtime'}`;
-            badge.textContent = isLeave ? `请假${hours}H` : `加班${hours}H`;
+            badge.className = `overtime-badge ${isLeave ? 'leave' : 'overtime'} ${getHoursClass(hours)}`;
 
+            // 设置显示文本
+            badge.textContent = getDisplayText(hours, isLeave);
+
+            // 设置完整提示信息
+            badge.title = getTitleText(hours, isLeave, dateType);
+
+            // 添加数据属性，用于可能的CSS定制
+            badge.setAttribute('data-hours', hours);
+            badge.setAttribute('data-type', isLeave ? 'leave' : 'overtime');
+            badge.setAttribute('data-date-type', dateType);
+
+            // 创建小圆点
+            const dot = document.createElement('div');
+            dot.className = 'overtime-dot';
+
+            if (isLeave) {
+                dot.classList.add('leave');
+                dot.title = `请假 ${hours}小时`;
+            } else {
+                // 根据日期类型设置不同颜色的小圆点
+                const dotClassMap = {
+                    'holiday': 'holiday',
+                    'weekend': 'weekend',
+                    'extraWork': 'extra-work'
+                };
+
+                const dotClass = dotClassMap[dateType] || 'workday';
+                dot.classList.add(dotClass);
+
+                // 设置小圆点标题
+                const multiplierText =
+                    dateType === 'holiday' ? '3倍' :
+                        dateType === 'weekend' || dateType === 'extraWork' ? '2倍' : '1.5倍';
+                dot.title = `${isLeave ? '请假' : '加班'} ${hours}小时 (${multiplierText})`;
+            }
+
+            // 添加元素到DOM
             dayElement.appendChild(badge);
+            dayElement.appendChild(dot);
 
-            // 添加选中状态（只添加边框，不改变背景色）
-            dayElement.classList.add('selected');
+            // 移除选中状态（只保留多选状态）
+            if (!isMultiselectMode || !selectedDates.has(dateString)) {
+                dayElement.classList.remove('selected');
+            }
+
+            // 添加超长时长的特殊样式
+            if (hours >= 20) {
+                badge.style.animation = 'pulse-long-hours 2s infinite';
+            }
         }
 
         // 保存到本地存储
@@ -1878,7 +1100,7 @@
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
-        // 在initMultiselect函数中添加清空选择按钮的事件监听
+        // 在initMultiselect函数中添加样式强制控制
         function initMultiselect() {
             multiselectToggle.addEventListener('click', toggleMultiselectMode);
             multiselectCancel.addEventListener('click', cancelMultiselect);
@@ -1887,17 +1109,25 @@
             // 添加清空选择按钮
             const multiselectClear = document.getElementById('multiselect-clear');
             multiselectClear.addEventListener('click', clearMultiselect);
-        }
 
+            // 初始隐藏多选控制区域
+            if (multiselectControls) {
+                multiselectControls.style.display = 'none';
+            }
+        }
         // 清空选择但不退出多选模式
         function clearMultiselect() {
             selectedDates.clear();
             updateMultiselectCount();
             renderCalendar();
+
+            // 保持输入框聚焦
+            batchHoursInput.focus();
+
             showNotification('已清空选择，可以继续选择其他日期', 'info');
         }
 
-        // 切换多选模式
+        // 修改切换多选模式函数
         function toggleMultiselectMode() {
             isMultiselectMode = !isMultiselectMode;
 
@@ -1905,9 +1135,17 @@
                 // 进入多选模式
                 multiselectToggle.innerHTML = '<i class="fas fa-times"></i> 退出多选';
                 multiselectToggle.style.background = '#e74c3c';
-                document.querySelector('.calendar-container').classList.add('multiselect-active');
+
+                // 直接显示多选控制区域
+                multiselectControls.style.display = 'flex';
+
                 selectedDates.clear();
                 updateMultiselectCount();
+
+                // 自动聚焦到批量输入框
+                setTimeout(() => {
+                    batchHoursInput.focus();
+                }, 100);
             } else {
                 // 退出多选模式
                 exitMultiselectMode();
@@ -1916,17 +1154,52 @@
             // 重新渲染日历以更新样式
             renderCalendar();
         }
-
-        // 退出多选模式
+        // 确保多选控制区域显示状态正确
+        function updateMultiselectControlsVisibility() {
+            if (multiselectControls) {
+                if (isMultiselectMode) {
+                    multiselectControls.style.display = 'flex';
+                } else {
+                    multiselectControls.style.display = 'none';
+                }
+            }
+        }
+        // 修改退出多选模式函数
         function exitMultiselectMode() {
             isMultiselectMode = false;
             multiselectToggle.innerHTML = '<i class="fas fa-mouse-pointer"></i> 多选模式';
             multiselectToggle.style.background = '';
-            document.querySelector('.calendar-container').classList.remove('multiselect-active');
+
+            // 直接隐藏多选控制区域
+            multiselectControls.style.display = 'none';
+
             selectedDates.clear();
             updateMultiselectCount();
-        }
 
+            // 清空输入框
+            batchHoursInput.value = '';
+
+            showNotification('已退出多选模式', 'info');
+        }
+        // 添加键盘事件监听
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', function (e) {
+                // 只有在多选模式下才响应
+                if (!isMultiselectMode) return;
+
+                // Enter键应用设置
+                if (e.key === 'Enter' && document.activeElement === batchHoursInput) {
+                    e.preventDefault();
+                    applyMultiselect();
+                }
+
+                // Escape键清空选择
+                if (e.key === 'Escape' && selectedDates.size > 0) {
+                    e.preventDefault();
+                    clearMultiselect();
+                }
+            });
+        }
         // 更新多选计数显示
         function updateMultiselectCount() {
             multiselectCount.textContent = `已选择 ${selectedDates.size} 个日期`;
@@ -1963,7 +1236,7 @@
             showNotification('已退出多选模式', 'info');
         }
 
-        // 应用多选设置
+        // 应用多选设置 - 修复版
         function applyMultiselect() {
             const hours = parseFloat(batchHoursInput.value);
 
@@ -1991,12 +1264,17 @@
                 const existingData = overtimeData[dateString];
 
                 if (hours === 0) {
-                    // 删除数据
-                    if (overtimeData[dateString]) {
-                        delete overtimeData[dateString];
-                        deleteCount++;
-                        count++;
+                    // 清除数据时也清除小圆点
+                    const existingDot = dayElement.querySelector('.overtime-dot');
+                    if (existingDot) {
+                        existingDot.remove();
                     }
+                    const existingBadge = dayElement.querySelector('.overtime-badge');
+                    if (existingBadge) {
+                        existingBadge.remove();
+                    }
+                    dayElement.classList.remove('selected');
+                    return;
                 } else {
                     const isLeave = hours < 0;
                     const absoluteHours = Math.abs(hours);
@@ -2016,34 +1294,33 @@
                 }
             });
 
-            // 更新界面但不退出多选模式
+            // 清空选择状态（但不退出多选模式）
+            selectedDates.clear();
+
+            // 更新界面
             renderCalendar();
             updateStats();
             updateExcelTable();
             saveToLocalStorage();
 
-            // 清空输入框但保持多选模式
+            // 清空输入框
             batchHoursInput.value = '';
+            batchHoursInput.focus(); // 自动聚焦到输入框，方便继续输入
 
-            // 显示更友好的提示信息
+            // 更新多选计数显示
+            updateMultiselectCount();
+
+            // 显示友好的提示信息
             let message = '';
             if (hours === 0) {
                 message = `已清除 ${deleteCount} 个日期的加班/请假记录`;
             } else if (hours > 0) {
-                if (leaveCount > 0) {
-                    message = `操作完成：为 ${overtimeCount} 个日期设置加班 ${hours}小时，${leaveCount} 个日期因已有请假记录未修改`;
-                } else {
-                    message = `成功为 ${overtimeCount} 个日期设置加班 ${hours} 小时`;
-                }
+                message = `成功为 ${overtimeCount} 个日期设置加班 ${hours} 小时`;
             } else {
                 message = `成功为 ${leaveCount} 个日期设置请假 ${Math.abs(hours)} 小时`;
             }
 
-            showNotification(message, 'success');
-
-            // 不清空选择，保持多选模式，但可以继续选择其他日期
-            // selectedDates.clear(); // 注释掉这行，不清空选择
-            // updateMultiselectCount(); // 更新计数显示
+            showNotification(message + '（选择已清空，可继续选择其他日期）', 'success');
         }
 
         // 显示美化通知的函数（修复重复问题）
