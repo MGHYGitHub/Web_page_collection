@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机数据生成与导出Excel系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .config-panel {
+            flex: 1;
+            min-width: 350px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .preview-panel {
+            flex: 1;
+            min-width: 350px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            color: #3498db;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f1f1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-title i {
+            color: #3498db;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .range-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .range-inputs input {
+            flex: 1;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 14px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            box-shadow: 0 5px 15px rgba(149, 165, 166, 0.3);
+        }
+        
+        .btn-success {
+            background: #2ecc71;
+        }
+        
+        .btn-success:hover {
+            background: #27ae60;
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        }
+        
+        .buttons-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .buttons-row .btn {
+            flex: 1;
+        }
+        
+        .column-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .column-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .column-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .delete-column {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .delete-column:hover {
+            background: #c0392b;
+        }
+        
+        .data-preview {
+            flex: 1;
+            overflow: auto;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .data-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            min-width: 150px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .range-inputs {
+                flex-direction: column;
+            }
+            
+            .buttons-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-random"></i> 随机数据生成系统</h1>
+            <p class="subtitle">自定义生成随机数据，支持设置范围、标准值和分布模式，一键导出为Excel文件</p>
+        </header>
+        
+        <div class="app-container">
+            <div class="config-panel">
+                <h2 class="panel-title"><i class="fas fa-sliders-h"></i> 数据配置</h2>
+                
+                <div class="form-group">
+                    <label for="rowCount">生成数据行数</label>
+                    <input type="number" id="rowCount" min="1" max="10000" value="50">
+                </div>
+                
+                <div class="form-group">
+                    <label>数据列配置</label>
+                    <div class="column-controls">
+                        <button type="button" id="addColumn" class="btn btn-secondary">
+                            <i class="fas fa-plus"></i> 添加数据列
+                        </button>
+                        <button type="button" id="resetColumns" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> 重置所有列
+                        </button>
+                    </div>
+                    
+                    <div id="columnsContainer">
+                        <!-- 列配置将动态添加到这里 -->
+                    </div>
+                </div>
+                
+                <div class="buttons-row">
+                    <button type="button" id="generateData" class="btn">
+                        <i class="fas fa-play"></i> 生成数据
+                    </button>
+                    <button type="button" id="exportExcel" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> 导出Excel
+                    </button>
+                </div>
+            </div>
+            
+            <div class="preview-panel">
+                <h2 class="panel-title"><i class="fas fa-table"></i> 数据预览</h2>
+                
+                <div class="data-preview">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <!-- 表头将动态生成 -->
+                            </tr>
+                        </thead>
+                        <tbody id="dataBody">
+                            <!-- 数据行将动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="data-info">
+                    <p><i class="fas fa-info-circle"></i> 生成的随机数据将显示在此处。使用"生成数据"按钮创建数据，然后可以导出为Excel文件。</p>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="statRows">0</div>
+                        <div class="stat-label">数据行数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statCols">0</div>
+                        <div class="stat-label">数据列数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statCells">0</div>
+                        <div class="stat-label">总数据量</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>随机数据生成系统 &copy; 2023 | 支持生成靠近或分散于标准值的数据，并导出为Excel文件</p>
+        </footer>
+    </div>
+
+    <script>
+        // 默认列配置
+        const defaultColumns = [
+            {
+                id: 1,
+                name: "温度",
+                min: 15,
+                max: 30,
+                standard: 22,
+                distribution: "near",
+                threshold: 3
+            },
+            {
+                id: 2,
+                name: "湿度",
+                min: 40,
+                max: 80,
+                standard: 60,
+                distribution: "near",
+                threshold: 10
+            },
+            {
+                id: 3,
+                name: "压力",
+                min: 900,
+                max: 1100,
+                standard: 1013,
+                distribution: "scatter",
+                threshold: 50
+            }
+        ];
+        
+        // 当前数据
+        let columns = JSON.parse(JSON.stringify(defaultColumns));
+        let generatedData = [];
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderColumns();
+            generateRandomData();
+            
+            // 事件监听
+            document.getElementById('addColumn').addEventListener('click', addColumn);
+            document.getElementById('resetColumns').addEventListener('click', resetColumns);
+            document.getElementById('generateData').addEventListener('click', generateRandomData);
+            document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+            document.getElementById('rowCount').addEventListener('change', generateRandomData);
+        });
+        
+        // 渲染列配置
+        function renderColumns() {
+            const container = document.getElementById('columnsContainer');
+            container.innerHTML = '';
+            
+            columns.forEach((column, index) => {
+                const columnElement = document.createElement('div');
+                columnElement.className = 'column-item';
+                columnElement.innerHTML = `
+                    <div class="column-header">
+                        <span class="column-name">${column.name}</span>
+                        <button type="button" class="delete-column" data-id="${column.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label for="colName${column.id}">列名</label>
+                        <input type="text" id="colName${column.id}" value="${column.name}" data-field="name" data-id="${column.id}">
+                    </div>
+                    <div class="form-group">
+                        <label for="colRange${column.id}">数据范围 (下限 - 上限)</label>
+                        <div class="range-inputs">
+                            <input type="number" id="colMin${column.id}" value="${column.min}" data-field="min" data-id="${column.id}" placeholder="最小值">
+                            <input type="number" id="colMax${column.id}" value="${column.max}" data-field="max" data-id="${column.id}" placeholder="最大值">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="colStandard${column.id}">标准值</label>
+                        <input type="number" id="colStandard${column.id}" value="${column.standard}" data-field="standard" data-id="${column.id}">
+                    </div>
+                    <div class="form-group">
+                        <label for="colDistribution${column.id}">分布模式</label>
+                        <select id="colDistribution${column.id}" data-field="distribution" data-id="${column.id}">
+                            <option value="near" ${column.distribution === 'near' ? 'selected' : ''}>靠近标准值</option>
+                            <option value="scatter" ${column.distribution === 'scatter' ? 'selected' : ''}>分散分布</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="colThreshold${column.id}">靠近阈值 (仅对"靠近标准值"有效)</label>
+                        <input type="number" id="colThreshold${column.id}" value="${column.threshold}" data-field="threshold" data-id="${column.id}" min="1">
+                    </div>
+                `;
+                container.appendChild(columnElement);
+            });
+            
+            // 为所有输入添加事件监听
+            document.querySelectorAll('#columnsContainer input, #columnsContainer select').forEach(element => {
+                element.addEventListener('change', updateColumnFromInput);
+            });
+            
+            // 为删除按钮添加事件监听
+            document.querySelectorAll('.delete-column').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    deleteColumn(id);
+                });
+            });
+            
+            // 更新统计
+            updateStats();
+        }
+        
+        // 从输入更新列数据
+        function updateColumnFromInput(event) {
+            const element = event.target;
+            const id = parseInt(element.getAttribute('data-id'));
+            const field = element.getAttribute('data-field');
+            const value = field === 'name' ? element.value : parseFloat(element.value);
+            
+            const column = columns.find(col => col.id === id);
+            if (column) {
+                column[field] = value;
+            }
+        }
+        
+        // 添加新列
+        function addColumn() {
+            const newId = columns.length > 0 ? Math.max(...columns.map(col => col.id)) + 1 : 1;
+            columns.push({
+                id: newId,
+                name: `列${newId}`,
+                min: 0,
+                max: 100,
+                standard: 50,
+                distribution: "near",
+                threshold: 10
+            });
+            renderColumns();
+        }
+        
+        // 删除列
+        function deleteColumn(id) {
+            if (columns.length <= 1) {
+                alert('至少需要保留一列数据');
+                return;
+            }
+            
+            columns = columns.filter(col => col.id !== id);
+            renderColumns();
+        }
+        
+        // 重置所有列
+        function resetColumns() {
+            columns = JSON.parse(JSON.stringify(defaultColumns));
+            renderColumns();
+        }
+        
+        // 生成随机数据
+        function generateRandomData() {
+            const rowCount = parseInt(document.getElementById('rowCount').value) || 50;
+            generatedData = [];
+            
+            // 为每一行生成数据
+            for (let i = 0; i < rowCount; i++) {
+                const row = { id: i + 1 };
+                
+                columns.forEach(column => {
+                    let value;
+                    
+                    if (column.distribution === 'near') {
+                        // 生成靠近标准值的数据
+                        const threshold = column.threshold || 10;
+                        const min = Math.max(column.min, column.standard - threshold);
+                        const max = Math.min(column.max, column.standard + threshold);
+                        
+                        // 使用正态分布生成更靠近标准值的数据
+                        value = gaussianRandom(column.standard, threshold/3, min, max);
+                    } else {
+                        // 生成分散分布的数据
+                        value = randomInRange(column.min, column.max);
+                    }
+                    
+                    // 保留两位小数
+                    row[column.name] = Math.round(value * 100) / 100;
+                });
+                
+                generatedData.push(row);
+            }
+            
+            renderDataTable();
+            updateStats();
+        }
+        
+        // 生成指定范围内的随机数
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+        
+        // 生成符合正态分布的随机数（限制在指定范围内）
+        function gaussianRandom(mean, stdDev, min, max) {
+            // Box-Muller变换生成正态分布随机数
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random();
+            while(v === 0) v = Math.random();
+            
+            let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            num = num * stdDev + mean;
+            
+            // 限制在指定范围内
+            return Math.max(min, Math.min(max, num));
+        }
+        
+        // 渲染数据表格
+        function renderDataTable() {
+            const tableHead = document.querySelector('#dataTable thead tr');
+            const tableBody = document.getElementById('dataBody');
+            
+            // 生成表头
+            let headerHTML = '<th>#</th>';
+            columns.forEach(column => {
+                headerHTML += `<th>${column.name}</th>`;
+            });
+            tableHead.innerHTML = headerHTML;
+            
+            // 生成表格数据
+            let bodyHTML = '';
+            generatedData.forEach(row => {
+                let rowHTML = `<td>${row.id}</td>`;
+                columns.forEach(column => {
+                    rowHTML += `<td>${row[column.name]}</td>`;
+                });
+                bodyHTML += `<tr>${rowHTML}</tr>`;
+            });
+            
+            tableBody.innerHTML = bodyHTML;
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            const rowCount = generatedData.length;
+            const colCount = columns.length;
+            const cellCount = rowCount * colCount;
+            
+            document.getElementById('statRows').textContent = rowCount;
+            document.getElementById('statCols').textContent = colCount;
+            document.getElementById('statCells').textContent = cellCount;
+        }
+        
+        // 导出为Excel
+        function exportToExcel() {
+            if (generatedData.length === 0) {
+                alert('请先生成数据再导出！');
+                return;
+            }
+            
+            try {
+                // 准备数据
+                const exportData = [];
+                
+                // 添加表头
+                const headers = ['序号', ...columns.map(col => col.name)];
+                exportData.push(headers);
+                
+                // 添加数据行
+                generatedData.forEach(row => {
+                    const rowData = [row.id];
+                    columns.forEach(column => {
+                        rowData.push(row[column.name]);
+                    });
+                    exportData.push(rowData);
+                });
+                
+                // 创建工作簿
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(exportData);
+                
+                // 设置列宽
+                const colWidths = headers.map(h => ({ wch: Math.max(h.length, 10) }));
+                ws['!cols'] = colWidths;
+                
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '随机数据');
+                
+                // 生成文件名
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const fileName = `随机数据_${timestamp}.xlsx`;
+                
+                // 导出文件
+                XLSX.writeFile(wb, fileName);
+                
+                // 显示成功消息
+                alert(`数据已成功导出为 ${fileName}`);
+            } catch (error) {
+                console.error('导出Excel时出错:', error);
+                alert('导出失败，请检查数据或重试！');
+            }
+        }
+    </script>
+</body>
+</html>

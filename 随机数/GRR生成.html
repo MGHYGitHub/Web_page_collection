@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>严格 GRR 数据生成与分析器（升级版）</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+body { font-family: Arial; padding: 20px; }
+.card { padding: 15px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+table, th, td { border: 1px solid #aaa; padding: 5px; }
+th { background: #eee; }
+.good { color: green; font-weight: bold; }
+.warn { color: orange; font-weight: bold; }
+.bad { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>📊 严格 GRR 数据生成与分析器（升级版）</h1>
+
+<div class="card">
+<h2>配置生成数据</h2>
+<label>生成条数: <input type="number" id="numRows" value="10" min="1"></label><br><br>
+<label>Part数量: <input type="number" id="numParts" value="1" min="1"></label><br><br>
+<label>Operator数量: <input type="number" id="numOps" value="1" min="1"></label><br><br>
+<label>GRR类型:
+  <select id="grrType">
+    <option value="excellent">优秀 (≤10%)</option>
+    <option value="good">良好 (10~30%)</option>
+    <option value="acceptable">合格 (30~50%)</option>
+  </select>
+</label><br><br>
+<label>通道名称及范围 (格式: CH1,-5,5;CH2,40,60):</label><br>
+<textarea id="channels" rows="3" cols="80">CH1,-5,5;CH2,40,60;CH3,60,80;CH4,900,1100</textarea><br><br>
+<button onclick="generateData()">生成数据并分析</button>
+<button onclick="exportExcel()">导出 Excel</button>
+</div>
+
+<div id="preview"></div>
+<div id="report"></div>
+
+<script>
+let generatedData = [];
+let allReports = [];
+
+function generateData() {
+    const numRows = parseInt(document.getElementById("numRows").value);
+    const numParts = parseInt(document.getElementById("numParts").value);
+    const numOps = parseInt(document.getElementById("numOps").value);
+    const grrType = document.getElementById("grrType").value;
+    const channelInput = document.getElementById("channels").value.trim();
+    if (!channelInput) { alert("请填写通道信息"); return; }
+
+    const channels = channelInput.split(";").map(s => {
+        const [name, lsl, usl] = s.split(",");
+        return {name: name.trim(), lsl: parseFloat(lsl), usl: parseFloat(usl)};
+    });
+
+    generatedData = [];
+    allReports = [];
+
+    // GRR 目标比例
+    let targetGRR;
+    if (grrType === "excellent") targetGRR = 0.1;
+    else if (grrType === "good") targetGRR = 0.2;
+    else targetGRR = 0.4;
+
+    // 生成数据
+    for (let p = 1; p <= numParts; p++) {
+        for (let o = 1; o <= numOps; o++) {
+            for (let r = 0; r < numRows; r++) {
+                let row = {Part: p, Operator: o};
+                channels.forEach(ch => {
+                    const mean = (ch.lsl + ch.usl)/2;
+                    const tol = (ch.usl - ch.lsl)/2;
+
+                    // 控制总 SD = tol / 3, GRR SD = targetGRR * totalSD
+                    const totalSD = tol/3;
+                    const grrSD = totalSD * targetGRR;
+
+                    // Repeat SD 占 70%，Repro SD 占 30%
+                    const repeatSD = grrSD * 0.7;
+
+                    // 每个 Part 均值微调（避免 PV 过大）
+                    const partMean = mean + (Math.random()-0.5)*grrSD*0.2;
+                    const val = partMean + (Math.random()-0.5)*repeatSD*2;
+
+                    row[ch.name] = parseFloat(val.toFixed(2));
+                });
+                generatedData.push(row);
+            }
+        }
+    }
+
+    previewTable();
+    analyzeGRR(channels, numParts, numOps, numRows);
+}
+
+function previewTable() {
+    if (generatedData.length === 0) return;
+    let html = "<table><tr>";
+    for (let key in generatedData[0]) html += `<th>${key}</th>`;
+    html += "</tr>";
+    generatedData.forEach(row => {
+        html += "<tr>";
+        for (let key in row) html += `<td>${row[key]}</td>`;
+        html += "</tr>";
+    });
+    html += "</table>";
+    document.getElementById("preview").innerHTML = html;
+}
+
+function calcGRR(data, partKey="Part", opKey="Operator", valKey) {
+    const parts = [...new Set(data.map(d=>d[partKey]))];
+    const ops = [...new Set(data.map(d=>d[opKey]))];
+
+    let partOpMean = {};
+    parts.forEach(p=>{
+        partOpMean[p] = {};
+        ops.forEach(o=>{
+            const arr = data.filter(d=>d[partKey]==p && d[opKey]==o).map(d=>d[valKey]);
+            const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
+            partOpMean[p][o] = mean;
+        });
+    });
+
+    const overall = data.map(d=>d[valKey]);
+    const grandMean = overall.reduce((a,b)=>a+b,0)/overall.length;
+    const totalVar = overall.reduce((s,v)=>s+(v-grandMean)**2,0)/(overall.length-1);
+    const totalSD = Math.sqrt(totalVar);
+
+    let repeatVar=0;
+    data.forEach(d=>repeatVar += (d[valKey]-partOpMean[d[partKey]][d[opKey]])**2);
+    repeatVar /= (overall.length - parts.length*ops.length);
+    const repeatSD = Math.sqrt(repeatVar);
+
+    let opMean = {};
+    ops.forEach(o=>{
+        const arr = data.filter(d=>d[opKey]==o).map(d=>d[valKey]);
+        opMean[o] = arr.reduce((a,b)=>a+b,0)/arr.length;
+    });
+    const opGrand = Object.values(opMean).reduce((a,b)=>a+b,0)/ops.length;
+    const reproVar = Object.values(opMean).reduce((s,m)=>s+(m-opGrand)**2,0)/(ops.length-1);
+    const reproSD = Math.sqrt(reproVar);
+
+    const grrSD = Math.sqrt(repeatSD**2 + reproSD**2);
+
+    let partMeanVals = {};
+    parts.forEach(p=>{
+        const arr = ops.map(o=>partOpMean[p][o]);
+        partMeanVals[p] = arr.reduce((a,b)=>a+b,0)/arr.length;
+    });
+    const pvVar = parts.reduce((s,p)=>s+(partMeanVals[p]-grandMean)**2,0)/(parts.length-1);
+    const pvSD = Math.sqrt(pvVar);
+
+    return {repeatSD,reproSD,grrSD,pvSD,totalSD};
+}
+
+function analyzeGRR(channels, numParts, numOps, numRows) {
+    let html = "";
+    allReports = [];
+
+    channels.forEach(ch=>{
+        const data = generatedData.map(row=>({Part: row.Part, Operator: row.Operator, value: row[ch.name]}));
+        const res = calcGRR(data, "Part","Operator","value");
+        const percentGRR = res.grrSD/res.totalSD;
+        const cls = percentGRR<=0.1?"good":percentGRR<=0.3?"warn":"bad";
+        const conclusion = percentGRR<=0.1?"优秀":percentGRR<=0.3?"良好":"合格";
+
+        allReports.push({
+            channel: ch.name,
+            repeatSD: res.repeatSD,
+            reproSD: res.reproSD,
+            grrSD: res.grrSD,
+            pvSD: res.pvSD,
+            percentGRR: (percentGRR*100).toFixed(2),
+            conclusion
+        });
+
+        html += `<div class="card">
+            <h2>📌 ${ch.name} GRR 报告</h2>
+            <table>
+            <tr><td>重复性 Repeat SD</td><td>${res.repeatSD.toFixed(4)}</td></tr>
+            <tr><td>再现性 Repro SD</td><td>${res.reproSD.toFixed(4)}</td></tr>
+            <tr><td>GRR SD</td><td>${res.grrSD.toFixed(4)}</td></tr>
+            <tr><td>零件变差 PV SD</td><td>${res.pvSD.toFixed(4)}</td></tr>
+            <tr><td>%GRR</td><td class="${cls}">${(percentGRR*100).toFixed(2)}%</td></tr>
+            <tr><td>结论</td><td class="${cls}">${conclusion}</td></tr>
+            </table>
+        </div>`;
+    });
+
+    document.getElementById("report").innerHTML = html;
+}
+
+function exportExcel() {
+    if (generatedData.length===0) { alert("请先生成数据"); return; }
+
+    const ws1 = XLSX.utils.json_to_sheet(generatedData);
+    const reportRows = [["Channel","Repeat SD","Repro SD","GRR SD","PV SD","%GRR","结论"]];
+    allReports.forEach(r=>reportRows.push([r.channel,r.repeatSD,r.reproSD,r.grrSD,r.pvSD,r.percentGRR,r.conclusion]));
+    const ws2 = XLSX.utils.aoa_to_sheet(reportRows);
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1,"Generated_Data");
+    XLSX.utils.book_append_sheet(wb, ws2,"GRR_Report");
+    XLSX.writeFile(wb,"GRR_Strict_Analysis_Upgrade.xlsx");
+}
+</script>
+</body>
+</html>
