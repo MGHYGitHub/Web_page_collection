@@ -20,232 +20,224 @@
             <p>精确计算加班时长与加班费用，数据本地保存不丢失</p>
         </header>
 
-        <div class="main-content">
-            <!-- 工资设置区域 - 合并为一个卡片 -->
-            <div class="card salary-card">
-                <!-- 左侧：基本工资设置 -->
-                <div class="salary-basic">
-                    <h2 class="card-title"><i class="fas fa-money-bill-wave"></i> 工资设置</h2>
-                    <div class="input-group">
-                        <label for="salary">月标准工资 (元)</label>
-                        <input type="number" id="salary" value="4900" min="0">
-                    </div>
-
-                    <div class="salary-display">
-                        <div class="salary-item">
-                            <div class="value" id="daily-salary">215.52</div>
-                            <div class="label">日薪 (元)</div>
-                        </div>
-                        <div class="salary-item">
-                            <div class="value" id="hourly-salary">26.94</div>
-                            <div class="label">时薪 (元)</div>
-                        </div>
-                    </div>
+        <!-- 工资设置区域 - 合并为一个卡片 -->
+        <div class="card compact-salary-card">
+            <!-- 第一行：基本工资设置 -->
+            <div class="salary-basic-compact">
+                <h2 class="compact-title"><i class="fas fa-money-bill-wave"></i> 工资设置</h2>
+                <div class="input-group-compact">
+                    <label for="salary">月标准工资 (元)</label>
+                    <input type="number" id="salary" value="4900" min="0">
                 </div>
-
-                <!-- 右侧：加班时薪标准 -->
-                <div class="salary-rates">
-                    <h2 class="card-title"><i class="fas fa-info-circle"></i> 加班时薪标准</h2>
-                    <div class="overtime-rates">
-                        <div class="rates-grid">
-                            <div class="rate-item">
-                                <div class="rate-type">工作日</div>
-                                <div class="rate-value" id="workday-rate">40.41元/时</div>
-                                <div class="rate-multiplier">(1.5倍)</div>
-                            </div>
-                            <div class="rate-item">
-                                <div class="rate-type">周末</div>
-                                <div class="rate-value" id="weekend-rate">53.88元/时</div>
-                                <div class="rate-multiplier">(2倍)</div>
-                            </div>
-                            <div class="rate-item">
-                                <div class="rate-type">节假日</div>
-                                <div class="rate-value" id="holiday-rate">80.82元/时</div>
-                                <div class="rate-multiplier">(3倍)</div>
-                            </div>
-                            <div class="rate-item">
-                                <div class="rate-type">调休日</div>
-                                <div class="rate-value" id="extra-work-rate">53.88元/时</div>
-                                <div class="rate-multiplier">(2倍)</div>
-                            </div>
-                        </div>
+                <div class="salary-display-compact">
+                    <div class="salary-item-compact">
+                        <div class="label-sm">日薪</div>
+                        <div class="value-sm" id="daily-salary">215.52</div>
+                    </div>
+                    <div class="salary-item-compact">
+                        <div class="label-sm">时薪</div>
+                        <div class="value-sm" id="hourly-salary">26.94</div>
                     </div>
                 </div>
             </div>
 
-            <!-- 加班统计 -->
-            <div class="card">
-                <h2 class="card-title"><i class="fas fa-chart-bar"></i> 加班统计</h2>
-                <div class="stats-container">
-                    <!-- 第一行：加班时长和请假时长 -->
-                    <div class="stat-item">
-                        <div class="stat-value" id="total-overtime">0.0H</div>
-                        <div class="stat-label">加班总时长</div>
-                        <div class="stat-subtext">扣除请假后: <span id="actual-overtime">0.0H</span></div>
+            <!-- 第二行：加班时薪标准 -->
+            <div class="overtime-rates-compact">
+                <h2 class="compact-title"><i class="fas fa-info-circle"></i> 加班时薪标准</h2>
+                <div class="rates-grid-compact">
+                    <div class="rate-item-compact workday">
+                        <div class="rate-type-sm">工作日</div>
+                        <div class="rate-value-sm" id="workday-rate">40.41</div>
+                        <div class="rate-multiplier-sm">(1.5倍)</div>
                     </div>
-
-                    <div class="stat-item">
-                        <div class="stat-value" id="total-leave">0.0H (0.0天)</div>
-                        <div class="stat-label">总请假时长</div>
-                        <div class="stat-subtext">请假扣款(1.5倍): <span id="leave-deduction">0.00</span>元</div>
+                    <div class="rate-item-compact weekend">
+                        <div class="rate-type-sm">周末</div>
+                        <div class="rate-value-sm" id="weekend-rate">53.88</div>
+                        <div class="rate-multiplier-sm">(2倍)</div>
                     </div>
-
-                    <!-- 第二行：加班工资和净收入 -->
-                    <div class="stat-item">
-                        <div class="stat-value" id="total-overtime-pay">0.00</div>
-                        <div class="stat-label">加班工资 (元)</div>
-                        <div class="stat-subtext">
-                            A: <span id="overtime-a">0.00</span>元
-                            B: <span id="overtime-b">0.00</span>元
-                            C: <span id="overtime-c">0.00</span>元
-                        </div>
+                    <div class="rate-item-compact holiday">
+                        <div class="rate-type-sm">节假日</div>
+                        <div class="rate-value-sm" id="holiday-rate">80.82</div>
+                        <div class="rate-multiplier-sm">(3倍)</div>
                     </div>
-
-                    <div class="stat-item">
-                        <div class="stat-value" id="net-income">4900.00</div>
-                        <div class="stat-label">净收入 (元)</div>
-                        <div class="stat-subtext">工资 + 加班费 - 请假扣款</div>
+                    <div class="rate-item-compact extra-work">
+                        <div class="rate-type-sm">调休日</div>
+                        <div class="rate-value-sm" id="extra-work-rate">53.88</div>
+                        <div class="rate-multiplier-sm">(2倍)</div>
                     </div>
                 </div>
             </div>
 
-            <!-- 加班日历 -->
-            <div class="card calendar-container">
-                <h2 class="card-title"><i class="far fa-calendar-alt"></i> 加班日历</h2>
-
-                <div class="calendar-header">
-                    <div class="calendar-nav">
-                        <button id="prev-month"><i class="fas fa-chevron-left"></i> 上月</button>
-                        <h3 id="current-month">2023年10月</h3>
-                        <button id="next-month">下月 <i class="fas fa-chevron-right"></i></button>
+            <!-- 第三行：加班统计 -->
+            <div class="stats-compact-container">
+                <div class="stat-row-compact">
+                    <div class="stat-item-compact">
+                        <div class="stat-value-compact" id="total-overtime">0.0H</div>
+                        <div class="stat-label-compact">加班总时长</div>
+                        <div class="stat-subtext-compact">实际: <span id="actual-overtime">0.0H</span></div>
                     </div>
-                    <div class="calendar-controls">
-                        <button class="save-btn" id="multiselect-toggle">
-                            <i class="fas fa-mouse-pointer"></i> 多选模式
-                        </button>
-                        <button class="save-btn" id="save-data" style="display: none;">
-                            <i class="fas fa-save"></i> 保存数据
-                        </button>
+                    <div class="stat-item-compact">
+                        <div class="stat-value-compact" id="total-leave">0.0H</div>
+                        <div class="stat-label-compact">总请假</div>
+                        <div class="stat-subtext-compact">扣款: <span id="leave-deduction">0.00</span></div>
                     </div>
                 </div>
 
-                <div class="calendar" id="calendar">
-                    <!-- 日历将通过JavaScript动态生成 -->
-                </div>
-                <!-- 修改多选控制区域 -->
-                <div class="multiselect-controls" id="multiselect-controls" style="display: none;">
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
-                        <!-- 添加操作提示 -->
-                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                            <div class="multiselect-info" id="multiselect-count">已选择 0 个日期</div>
-                            <div style="font-size: 0.8rem; color: #7f8c8d; text-align: right;">
-                                点击日期选择/取消
-                            </div>
-                        </div>
-
-                        <div
-                            style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%;">
-                            <input type="number" class="batch-hours-input" id="batch-hours" step="0.5"
-                                placeholder="正数加班，负数请假，0清除">
-
-                            <!-- 添加操作说明 -->
-                            <div style="font-size: 0.75rem; color: #95a5a6; text-align: center; margin-top: -5px;">
-                                应用后将清空选择，可继续选择其他日期
-                            </div>
-
-                            <div class="multiselect-actions">
-                                <button class="multiselect-btn multiselect-clear" id="multiselect-clear">清空选择</button>
-                                <button class="multiselect-btn multiselect-cancel" id="multiselect-cancel">退出多选</button>
-                                <button class="multiselect-btn multiselect-apply" id="multiselect-apply">应用设置</button>
-                            </div>
+                <div class="stat-row-compact">
+                    <div class="stat-item-compact">
+                        <div class="stat-value-compact" id="total-overtime-pay">0.00</div>
+                        <div class="stat-label-compact">加班工资</div>
+                        <div class="stat-subtext-compact">
+                            <span id="overtime-a">A0.00</span> |
+                            <span id="overtime-b">B0.00</span> |
+                            <span id="overtime-c">C0.00</span>
                         </div>
                     </div>
-                </div>
-
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color weekend-color"></div>
-                        <span>周末</span>
+                    <div class="stat-item-compact">
+                        <div class="stat-value-compact" id="net-income">4900.00</div>
+                        <div class="stat-label-compact">净收入</div>
+                        <div class="stat-subtext-compact">工资+加班费-请假</div>
                     </div>
-                    <div class="legend-item">
-                        <div style="border: 2px solid #3498db; width: 12px; height: 12px; border-radius: 3px;"></div>
-                        <span>已设置</span>
-                    </div>
-                    <div class="legend-item">
-                        <div style="background: #2ecc71; width: 12px; height: 12px; border-radius: 3px;"></div>
-                        <span>加班</span>
-                    </div>
-                    <div class="legend-item">
-                        <div style="background: #e74c3c; width: 12px; height: 12px; border-radius: 3px;"></div>
-                        <span>请假</span>
-                    </div>
-                    <div class="legend-item">
-                        <div style="color: #e74c3c; font-weight: bold;">●</div>
-                        <span>节假日(3倍)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div style="color: #f39c12; font-weight: bold;">●</div>
-                        <span>调休日(2倍)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div style="color: #6c5ce7; font-weight: bold;">●</div>
-                        <span>补班日(1.5倍)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div
-                            style="color: #e74c3c; font-weight: bold; border: 2px solid #e74c3c; width: 12px; height: 12px; border-radius: 3px;">
-                        </div>
-                        <span>今日</span>
-                    </div>
-                </div>
-
-                <!-- Excel表格区域 -->
-                <div class="excel-table-container">
-                    <div class="excel-table-header">
-                        <h3><i class="fas fa-table"></i> 加班明细表</h3>
-                        <div class="excel-table-actions">
-                            <div class="file-input-container">
-                                <button class="import-btn">
-                                    <i class="fas fa-upload"></i> 导入Excel
-                                </button>
-                                <input type="file" id="import-excel" class="file-input" accept=".xlsx, .xls">
-                            </div>
-                            <button class="clear-btn" id="clear-data">
-                                <i class="fas fa-trash-alt"></i> 清除数据
-                            </button>
-                            <button class="export-btn" id="export-excel">
-                                <i class="fas fa-download"></i> 导出Excel
-                            </button>
-                        </div>
-                    </div>
-
-                    <table class="excel-table">
-                        <thead>
-                            <tr>
-                                <th width="20%">日期</th>
-                                <th width="15%">类型</th>
-                                <th width="20%">加班/请假时长</th>
-                                <th width="15%">倍数</th>
-                                <th width="30%">金额 (元)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="excel-table-body">
-                            <!-- 表格数据将通过JavaScript动态生成 -->
-                            <tr>
-                                <td colspan="5" class="no-data">
-                                    <i class="fas fa-inbox"></i><br>
-                                    暂无加班或请假记录
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
 
-        <footer>
-            <p>© 2023 加班工时计算系统 | 数据自动保存到本地浏览器</p>
-        </footer>
+        <!-- 加班日历 -->
+        <div class="card calendar-container">
+            <h2 class="card-title"><i class="far fa-calendar-alt"></i> 加班日历</h2>
+
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button id="prev-month"><i class="fas fa-chevron-left"></i> 上月</button>
+                    <h3 id="current-month">2023年10月</h3>
+                    <button id="next-month">下月 <i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-controls">
+                    <button class="save-btn" id="multiselect-toggle">
+                        <i class="fas fa-mouse-pointer"></i> 多选模式
+                    </button>
+                    <button class="save-btn" id="save-data" style="display: none;">
+                        <i class="fas fa-save"></i> 保存数据
+                    </button>
+                </div>
+            </div>
+
+            <div class="calendar" id="calendar">
+                <!-- 日历将通过JavaScript动态生成 -->
+            </div>
+            <!-- 修改多选控制区域 -->
+            <div class="multiselect-controls" id="multiselect-controls" style="display: none;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
+                    <!-- 添加操作提示 -->
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                        <div class="multiselect-info" id="multiselect-count">已选择 0 个日期</div>
+                        <div style="font-size: 0.8rem; color: #7f8c8d; text-align: right;">
+                            点击日期选择/取消
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%;">
+                        <input type="number" class="batch-hours-input" id="batch-hours" step="0.5"
+                            placeholder="正数加班，负数请假，0清除">
+
+                        <!-- 添加操作说明 -->
+                        <div style="font-size: 0.75rem; color: #95a5a6; text-align: center; margin-top: -5px;">
+                            应用后将清空选择，可继续选择其他日期
+                        </div>
+
+                        <div class="multiselect-actions">
+                            <button class="multiselect-btn multiselect-clear" id="multiselect-clear">清空选择</button>
+                            <button class="multiselect-btn multiselect-cancel" id="multiselect-cancel">退出多选</button>
+                            <button class="multiselect-btn multiselect-apply" id="multiselect-apply">应用设置</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color weekend-color"></div>
+                    <span>周末</span>
+                </div>
+                <div class="legend-item">
+                    <div style="border: 2px solid #3498db; width: 12px; height: 12px; border-radius: 3px;"></div>
+                    <span>已设置</span>
+                </div>
+                <div class="legend-item">
+                    <div style="background: #2ecc71; width: 12px; height: 12px; border-radius: 3px;"></div>
+                    <span>加班</span>
+                </div>
+                <div class="legend-item">
+                    <div style="background: #e74c3c; width: 12px; height: 12px; border-radius: 3px;"></div>
+                    <span>请假</span>
+                </div>
+                <div class="legend-item">
+                    <div style="color: #e74c3c; font-weight: bold;">●</div>
+                    <span>节假日(3倍)</span>
+                </div>
+                <div class="legend-item">
+                    <div style="color: #f39c12; font-weight: bold;">●</div>
+                    <span>调休日(2倍)</span>
+                </div>
+                <div class="legend-item">
+                    <div style="color: #6c5ce7; font-weight: bold;">●</div>
+                    <span>补班日(1.5倍)</span>
+                </div>
+                <div class="legend-item">
+                    <div
+                        style="color: #e74c3c; font-weight: bold; border: 2px solid #e74c3c; width: 12px; height: 12px; border-radius: 3px;">
+                    </div>
+                    <span>今日</span>
+                </div>
+            </div>
+
+            <!-- Excel表格区域 -->
+            <div class="excel-table-container">
+                <div class="excel-table-header">
+                    <h3><i class="fas fa-table"></i> 加班明细表</h3>
+                    <div class="excel-table-actions">
+                        <div class="file-input-container">
+                            <button class="import-btn">
+                                <i class="fas fa-upload"></i> 导入Excel
+                            </button>
+                            <input type="file" id="import-excel" class="file-input" accept=".xlsx, .xls">
+                        </div>
+                        <button class="clear-btn" id="clear-data">
+                            <i class="fas fa-trash-alt"></i> 清除数据
+                        </button>
+                        <button class="export-btn" id="export-excel">
+                            <i class="fas fa-download"></i> 导出Excel
+                        </button>
+                    </div>
+                </div>
+
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th width="20%">日期</th>
+                            <th width="15%">类型</th>
+                            <th width="20%">加班/请假时长</th>
+                            <th width="15%">倍数</th>
+                            <th width="30%">金额 (元)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="excel-table-body">
+                        <!-- 表格数据将通过JavaScript动态生成 -->
+                        <tr>
+                            <td colspan="5" class="no-data">
+                                <i class="fas fa-inbox"></i><br>
+                                暂无加班或请假记录
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2023 加班工时计算系统 | 数据自动保存到本地浏览器</p>
+    </footer>
     </div>
 
     <script>
@@ -680,11 +672,8 @@
 
         // 更新统计信息
         function updateStats() {
-            console.log('=== 开始统计计算 ===');
-            console.log('当前年份:', currentDate.getFullYear(), '月份:', currentDate.getMonth() + 1);
 
             const overtimeData = getCurrentOvertimeData();
-            console.log('当前月份加班数据:', overtimeData);
 
             let totalOvertimeHours = 0;      // 总加班时长（未扣除请假）
             let totalLeaveHours = 0;         // 总请假时长
@@ -709,8 +698,6 @@
 
             // 计算实际加班时长：总加班时长 - 请假时长
             actualOvertimeHours = Math.max(0, totalOvertimeHours - totalLeaveHours);
-
-            console.log(`统计结果: 总加班=${totalOvertimeHours}H, 请假=${totalLeaveHours}H, 实际加班=${actualOvertimeHours}H`);
 
             // 重新分配实际加班时长到各类型（按时间顺序）
             let remainingActualHours = actualOvertimeHours;
@@ -740,12 +727,9 @@
                         overtimeA += assignedHours;
                     }
 
-                    console.log(`日期: ${dateString}, 原加班: ${hours}H, 分配: ${assignedHours}H, 倍率: ${multiplier}`);
                 }
             }
 
-            console.log(`分类统计: A=${overtimeA}H, B=${overtimeB}H, C=${overtimeC}H`);
-            console.log('=== 结束统计计算 ===');
 
             // 计算加班工资
             const overtimePayA = (overtimeA * hourlySalary * 1.5).toFixed(2);
@@ -755,20 +739,20 @@
 
             // 计算请假扣款 - 修改为1.5倍
             const leaveDeduction = (totalLeaveHours * hourlySalary * 1.5).toFixed(2);
-            console.log(`请假扣款计算: ${totalLeaveHours}H × ${hourlySalary}元 × 1.5 = ${leaveDeduction}元`);
 
             // 计算净收入
             const netIncome = (parseFloat(salary) + parseFloat(totalOvertimePay) - parseFloat(leaveDeduction)).toFixed(2);
 
-            // 更新DOM
+            // 更新DOM - 适应紧凑格式
             totalOvertimeEl.textContent = totalOvertimeHours.toFixed(1) + 'H';
             actualOvertimeEl.textContent = actualOvertimeHours.toFixed(1) + 'H';
-            totalLeaveEl.textContent = totalLeaveHours.toFixed(1) + 'H (' + (totalLeaveHours / 8).toFixed(1) + '天)';
+            totalLeaveEl.textContent = totalLeaveHours.toFixed(1) + 'H';
             leaveDeductionEl.textContent = leaveDeduction;
             totalOvertimePayEl.textContent = totalOvertimePay;
-            overtimeAEl.textContent = overtimePayA;
-            overtimeBEl.textContent = overtimePayB;
-            overtimeCEl.textContent = overtimePayC;
+            // 更新紧凑格式的加班分类显示
+            overtimeAEl.textContent = 'A' + overtimePayA;
+            overtimeBEl.textContent = 'B' + overtimePayB;
+            overtimeCEl.textContent = 'C' + overtimePayC;
             netIncomeEl.textContent = netIncome;
         }
 
@@ -871,26 +855,40 @@
         }
 
         // 显示加班输入框
+        // 更新 showOvertimeInput 函数
+        // 修复 showOvertimeInput 函数中的事件处理
         function showOvertimeInput(date, dayElement) {
+            const isMobile = window.innerWidth <= 768;
+
             // 添加选中输入状态
             dayElement.classList.add('selected-input');
-            // 修复时区问题：使用本地日期格式
+
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             const dateString = `${year}-${month}-${day}`;
 
-            console.log(`点击的日期: ${dateString}`);
-
             // 获取当前月份的加班数据
             const overtimeData = getCurrentOvertimeData();
             const existingData = overtimeData[dateString];
 
-            // 移除现有的输入框
-            const existingInput = dayElement.querySelector('.overtime-input');
-            if (existingInput) {
+            // 移除现有的输入框和遮罩层
+            const existingInput = document.querySelector('.overtime-input');
+            const existingOverlay = document.querySelector('.input-overlay');
+
+            if (existingInput && existingInput.parentNode) {
                 existingInput.remove();
-                return;
+            }
+            if (existingOverlay && existingOverlay.parentNode) {
+                existingOverlay.remove();
+            }
+
+            // 创建遮罩层（手机端）
+            let overlay = null;
+            if (isMobile) {
+                overlay = document.createElement('div');
+                overlay.className = 'input-overlay';
+                document.body.appendChild(overlay);
             }
 
             // 创建输入框
@@ -903,187 +901,294 @@
             hoursInput.placeholder = '正数加班，负数请假';
             hoursInput.value = existingData ? (existingData.isLeave ? -existingData.hours : existingData.hours) : '';
 
-            // 自动保存逻辑
-            hoursInput.addEventListener('blur', function () {
-                dayElement.classList.remove('selected-input');
+            // 手机端优化 - 输入类型设为数字键盘
+            if (isMobile) {
+                hoursInput.inputMode = 'decimal';
+                hoursInput.pattern = '[0-9]*';
+            }
+
+            // 添加标志位防止重复执行
+            let isSaving = false;
+
+            // 统一的保存函数
+            const saveData = function () {
+                // 防止重复保存
+                if (isSaving) return;
+                isSaving = true;
+
                 const hours = parseFloat(hoursInput.value) || 0;
 
-                console.log(`保存数据: 日期=${dateString}, 小时=${hours}, 现有数据:`, overtimeData[dateString]);
+                // 移除选中输入状态
+                dayElement.classList.remove('selected-input');
 
                 if (hours !== 0) {
                     const isLeave = hours < 0;
                     const absoluteHours = Math.abs(hours);
 
-                    // 保存到当前月份的数据中
                     overtimeData[dateString] = {
                         hours: absoluteHours,
                         isLeave: isLeave
                     };
 
-                    // 更新显示
                     updateDayDisplay(dayElement, dateString, absoluteHours, isLeave);
-                    console.log(`数据已保存: ${dateString} = ${absoluteHours}小时`);
                 } else {
-                    // 如果小时数为0，则删除该日期的数据
                     if (overtimeData[dateString]) {
-                        console.log(`删除数据: ${dateString}`);
                         delete overtimeData[dateString];
                         dayElement.classList.remove('selected');
-
-                        // 移除标签
-                        const badge = dayElement.querySelector('.overtime-badge');
-                        if (badge) {
-                            badge.remove();
-                        }
-                    } else {
-                        console.log(`无需删除: ${dateString} 没有数据`);
+                        updateDayDisplay(dayElement, dateString, 0, false);
                     }
                 }
 
-                inputContainer.remove();
+                // 安全移除元素
+                try {
+                    if (inputContainer && inputContainer.parentNode) {
+                        inputContainer.remove();
+                    }
+                    if (overlay && overlay.parentNode) {
+                        overlay.remove();
+                    }
+                } catch (e) {
+                    // 如果移除失败，忽略错误
+                    console.log('清理元素时发生错误:', e);
+                }
+
                 updateStats();
                 updateExcelTable();
                 saveToLocalStorage();
+            };
+
+            // 移除原有的事件监听器
+            hoursInput.removeEventListener('blur', saveData);
+            hoursInput.removeEventListener('keypress', null);
+
+            // 添加新的事件监听器
+            hoursInput.addEventListener('blur', function () {
+                setTimeout(saveData, 100); // 延迟执行，避免与Enter键冲突
             });
 
-            // 按Enter键也触发保存
+            // 按Enter键触发保存
             hoursInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
-                    hoursInput.blur();
+                    e.preventDefault();
+                    saveData();
+                }
+
+                // 手机端：Escape键关闭
+                if (isMobile && e.key === 'Escape') {
+                    e.preventDefault();
+                    saveData();
                 }
             });
 
+            // 手机端遮罩层点击关闭
+            if (overlay) {
+                overlay.addEventListener('click', function () {
+                    hoursInput.focus(); // 先聚焦到输入框
+                    setTimeout(saveData, 50); // 然后延迟保存
+                });
+            }
+
             inputContainer.appendChild(hoursInput);
-            dayElement.appendChild(inputContainer);
+
+            if (isMobile) {
+                document.body.appendChild(inputContainer);
+            } else {
+                dayElement.appendChild(inputContainer);
+            }
 
             // 自动全选输入框内容
-            hoursInput.focus();
-            hoursInput.select();
+            setTimeout(() => {
+                hoursInput.focus();
+                hoursInput.select();
+            }, 50);
+        }
+        // 添加一个安全的移除函数
+        function safeRemove(element) {
+            if (element && element.parentNode) {
+                try {
+                    element.remove();
+                } catch (e) {
+                    // 如果移除失败，尝试从父节点移除
+                    if (element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                }
+            }
         }
 
-        function updateDayDisplay(dayElement, dateString, hours, isLeave) {
-            // 移除现有的标签和小圆点
-            const existingBadge = dayElement.querySelector('.overtime-badge');
-            if (existingBadge) {
-                existingBadge.remove();
+        // 然后在 saveData 函数中使用
+        const saveData = function () {
+            if (isSaving) return;
+            isSaving = true;
+
+            const hours = parseFloat(hoursInput.value) || 0;
+
+            // 移除选中输入状态
+            dayElement.classList.remove('selected-input');
+
+            if (hours !== 0) {
+                const isLeave = hours < 0;
+                const absoluteHours = Math.abs(hours);
+
+                overtimeData[dateString] = {
+                    hours: absoluteHours,
+                    isLeave: isLeave
+                };
+
+                updateDayDisplay(dayElement, dateString, absoluteHours, isLeave);
+            } else {
+                if (overtimeData[dateString]) {
+                    delete overtimeData[dateString];
+                    dayElement.classList.remove('selected');
+                    updateDayDisplay(dayElement, dateString, 0, false);
+                }
             }
 
-            const existingDot = dayElement.querySelector('.overtime-dot');
-            if (existingDot) {
-                existingDot.remove();
-            }
+            // 安全移除元素
+            safeRemove(inputContainer);
+            safeRemove(overlay);
+
+            updateStats();
+            updateExcelTable();
+            saveToLocalStorage();
+        };
+
+        // 更新 updateDayDisplay 函数，添加手机端特殊处理
+        // 修复 updateDayDisplay 函数
+        // 修复 updateDayDisplay 函数 - 简化移动端显示
+        function updateDayDisplay(dayElement, dateString, hours, isLeave) {
+            // 移除现有的所有标记
+            const existingElements = dayElement.querySelectorAll(
+                '.overtime-badge, .overtime-dot, .mobile-indicator, .mobile-label'
+            );
+            existingElements.forEach(el => el.remove());
 
             // 如果没有小时数，直接返回
             if (hours <= 0) {
-                // 移除选中状态
                 if (!isMultiselectMode || !selectedDates.has(dateString)) {
                     dayElement.classList.remove('selected');
                 }
+                dayElement.classList.remove('has-overtime');
                 return;
             }
 
-            // 智能生成显示文本
-            function getDisplayText(hours, isLeave) {
-                const leavePrefix = isLeave ? '假' : '加';
+            // 检测是否在手机端
+            const isMobile = window.innerWidth <= 768;
 
-                // 根据小时数决定显示格式
-                if (hours >= 100) {
-                    // 100小时以上：只显示数字
-                    return `${hours}`;
-                } else if (hours >= 20) {
-                    // 20-99小时：简写+数字
-                    return `${leavePrefix}${hours}`;
-                } else if (hours >= 10) {
-                    // 10-19小时：显示完整但紧凑
-                    return `${leavePrefix}班${hours}`;
-                } else if (hours >= 5) {
-                    // 5-9小时：正常显示
-                    return `${isLeave ? '请假' : '加班'}${hours}`;
+            if (isMobile) {
+                // 移动端：只显示圆形指示器（包含数字）
+                const indicator = document.createElement('div');
+                indicator.className = 'mobile-indicator';
+
+                // 获取日期类型
+                const date = new Date(dateString);
+                const dateType = getDateType(date);
+
+                if (isLeave) {
+                    // 请假：红色圆点，里面是小时数
+                    indicator.classList.add('mobile-leave');
+                    indicator.textContent = hours <= 99 ? hours : '99+';
+                    indicator.title = `请假 ${hours}小时`;
+
+                    // 长请假特殊样式
+                    if (hours >= 20) {
+                        indicator.classList.add('extra-long-hours');
+                    } else if (hours >= 10) {
+                        indicator.classList.add('long-hours');
+                    }
                 } else {
-                    // 1-4小时：带H后缀
+                    // 加班：根据倍率设置颜色
+                    indicator.classList.add('mobile-overtime');
+                    indicator.textContent = hours <= 99 ? hours : '99+';
+                    indicator.title = `加班 ${hours}小时`;
+
+                    // 根据倍率设置颜色
+                    if (dateType === 'holiday') {
+                        indicator.classList.add('holiday-rate');
+                    } else if (dateType === 'weekend' || dateType === 'extraWork') {
+                        indicator.classList.add('double-rate');
+                    } else {
+                        indicator.classList.add('normal-rate');
+                    }
+
+                    // 长加班特殊样式
+                    if (hours >= 20) {
+                        indicator.classList.add('extra-long-hours');
+                    } else if (hours >= 10) {
+                        indicator.classList.add('long-hours');
+                    }
+                }
+
+                dayElement.appendChild(indicator);
+
+            } else {
+                // 桌面端保持原有逻辑
+                const date = new Date(dateString);
+                const dateType = getDateType(date);
+
+                // 智能生成显示文本
+                function getDisplayText(hours, isLeave) {
+                    const leavePrefix = isLeave ? '假' : '加';
+
+                    if (hours >= 100) return `${hours}`;
+                    if (hours >= 20) return `${leavePrefix}${hours}`;
+                    if (hours >= 10) return `${leavePrefix}班${hours}`;
+                    if (hours >= 5) return `${isLeave ? '请假' : '加班'}${hours}`;
                     return `${isLeave ? '请假' : '加班'}${hours}H`;
                 }
-            }
 
-            // 根据小时数获取标题提示
-            function getTitleText(hours, isLeave, dateType) {
-                const baseText = isLeave ? `请假 ${hours}小时` : `加班 ${hours}小时`;
-
-                if (!isLeave) {
-                    const multiplierText =
-                        dateType === 'holiday' ? ' (3倍工资)' :
-                            dateType === 'weekend' || dateType === 'extraWork' ? ' (2倍工资)' :
-                                ' (1.5倍工资)';
-                    return baseText + multiplierText;
+                // 根据小时数获取样式类
+                function getHoursClass(hours) {
+                    if (hours >= 20) return 'hours-xxl';
+                    if (hours >= 15) return 'hours-xl';
+                    if (hours >= 10) return 'hours-lg';
+                    if (hours >= 5) return 'hours-md';
+                    return 'hours-sm';
                 }
-                return baseText;
+
+                // 创建加班/请假标签
+                const badge = document.createElement('div');
+                badge.className = `overtime-badge ${isLeave ? 'leave' : 'overtime'} ${getHoursClass(hours)}`;
+                badge.textContent = getDisplayText(hours, isLeave);
+
+                // 设置完整提示信息
+                const multiplierText = dateType === 'holiday' ? '3倍' :
+                    dateType === 'weekend' || dateType === 'extraWork' ? '2倍' : '1.5倍';
+                badge.title = `${isLeave ? '请假' : '加班'} ${hours}小时 (${multiplierText})`;
+                badge.setAttribute('data-hours', hours);
+                badge.setAttribute('data-type', isLeave ? 'leave' : 'overtime');
+                badge.setAttribute('data-date-type', dateType);
+
+                // 创建小圆点
+                const dot = document.createElement('div');
+                dot.className = 'overtime-dot';
+
+                if (isLeave) {
+                    dot.classList.add('leave');
+                    dot.title = `请假 ${hours}小时`;
+                } else {
+                    const dotClassMap = {
+                        'holiday': 'holiday',
+                        'weekend': 'weekend',
+                        'extraWork': 'extra-work'
+                    };
+                    dot.classList.add(dotClassMap[dateType] || 'workday');
+                    dot.title = `加班 ${hours}小时 (${multiplierText})`;
+                }
+
+                // 添加元素到DOM
+                dayElement.appendChild(badge);
+                dayElement.appendChild(dot);
+
+                // 添加超长时长的特殊样式
+                if (hours >= 20) {
+                    badge.style.animation = 'pulse-long-hours 2s infinite';
+                }
             }
-
-            // 根据小时数获取样式类
-            function getHoursClass(hours) {
-                if (hours >= 20) return 'hours-xxl';
-                if (hours >= 15) return 'hours-xl';
-                if (hours >= 10) return 'hours-lg';
-                if (hours >= 5) return 'hours-md';
-                return 'hours-sm';
-            }
-
-            // 获取日期类型
-            const date = new Date(dateString);
-            const dateType = getDateType(date);
-
-            // 创建加班/请假标签
-            const badge = document.createElement('div');
-            badge.className = `overtime-badge ${isLeave ? 'leave' : 'overtime'} ${getHoursClass(hours)}`;
-
-            // 设置显示文本
-            badge.textContent = getDisplayText(hours, isLeave);
-
-            // 设置完整提示信息
-            badge.title = getTitleText(hours, isLeave, dateType);
-
-            // 添加数据属性，用于可能的CSS定制
-            badge.setAttribute('data-hours', hours);
-            badge.setAttribute('data-type', isLeave ? 'leave' : 'overtime');
-            badge.setAttribute('data-date-type', dateType);
-
-            // 创建小圆点
-            const dot = document.createElement('div');
-            dot.className = 'overtime-dot';
-
-            if (isLeave) {
-                dot.classList.add('leave');
-                dot.title = `请假 ${hours}小时`;
-            } else {
-                // 根据日期类型设置不同颜色的小圆点
-                const dotClassMap = {
-                    'holiday': 'holiday',
-                    'weekend': 'weekend',
-                    'extraWork': 'extra-work'
-                };
-
-                const dotClass = dotClassMap[dateType] || 'workday';
-                dot.classList.add(dotClass);
-
-                // 设置小圆点标题
-                const multiplierText =
-                    dateType === 'holiday' ? '3倍' :
-                        dateType === 'weekend' || dateType === 'extraWork' ? '2倍' : '1.5倍';
-                dot.title = `${isLeave ? '请假' : '加班'} ${hours}小时 (${multiplierText})`;
-            }
-
-            // 添加元素到DOM
-            dayElement.appendChild(badge);
-            dayElement.appendChild(dot);
 
             // 移除选中状态（只保留多选状态）
             if (!isMultiselectMode || !selectedDates.has(dateString)) {
                 dayElement.classList.remove('selected');
-            }
-
-            // 添加超长时长的特殊样式
-            if (hours >= 20) {
-                badge.style.animation = 'pulse-long-hours 2s infinite';
             }
         }
         // 专门为移动端优化的显示函数
@@ -1275,7 +1380,7 @@
             showNotification('已退出多选模式', 'info');
         }
 
-        // 应用多选设置 - 修复版
+        // 修改 applyMultiselect 函数中的这部分代码
         function applyMultiselect() {
             const hours = parseFloat(batchHoursInput.value);
 
@@ -1303,17 +1408,36 @@
                 const existingData = overtimeData[dateString];
 
                 if (hours === 0) {
-                    // 清除数据时也清除小圆点
-                    const existingDot = dayElement.querySelector('.overtime-dot');
-                    if (existingDot) {
-                        existingDot.remove();
+                    // 删除数据
+                    if (existingData) {
+                        delete overtimeData[dateString];
+                        deleteCount++;
+
+                        // 查找对应的日历元素并清除显示
+                        const year = currentDate.getFullYear();
+                        const month = currentDate.getMonth();
+                        const day = parseInt(dateString.split('-')[2]);
+
+                        // 获取所有日历日元素
+                        const calendarDays = document.querySelectorAll('.calendar-day');
+                        calendarDays.forEach(dayElement => {
+                            const dayNumber = dayElement.querySelector('.day-number');
+                            if (dayNumber && parseInt(dayNumber.textContent) === day) {
+                                // 移除小圆点
+                                const existingDot = dayElement.querySelector('.overtime-dot');
+                                if (existingDot) {
+                                    existingDot.remove();
+                                }
+                                // 移除标签
+                                const existingBadge = dayElement.querySelector('.overtime-badge');
+                                if (existingBadge) {
+                                    existingBadge.remove();
+                                }
+                                // 移除选中状态
+                                dayElement.classList.remove('selected');
+                            }
+                        });
                     }
-                    const existingBadge = dayElement.querySelector('.overtime-badge');
-                    if (existingBadge) {
-                        existingBadge.remove();
-                    }
-                    dayElement.classList.remove('selected');
-                    return;
                 } else {
                     const isLeave = hours < 0;
                     const absoluteHours = Math.abs(hours);
@@ -1333,18 +1457,18 @@
                 }
             });
 
-            // 清空选择状态（但不退出多选模式）
+            // 清空选择状态
             selectedDates.clear();
 
             // 更新界面
-            renderCalendar();
+            renderCalendar(); // 重新渲染整个日历以确保状态正确
             updateStats();
             updateExcelTable();
             saveToLocalStorage();
 
             // 清空输入框
             batchHoursInput.value = '';
-            batchHoursInput.focus(); // 自动聚焦到输入框，方便继续输入
+            batchHoursInput.focus();
 
             // 更新多选计数显示
             updateMultiselectCount();
