@@ -808,10 +808,168 @@
             letter-spacing: 2px;
             user-select: none;
         }
+
+        /* 新增：升级公告弹窗样式 */
+        .upgrade-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .upgrade-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .upgrade-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .upgrade-version {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .upgrade-features {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1.5rem 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .upgrade-features li {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .upgrade-features li:before {
+            content: "✨";
+            position: absolute;
+            left: 0;
+        }
+
+        .upgrade-link {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .upgrade-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .upgrade-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upgrade-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .upgrade-checkbox {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
     </style>
 </head>
 
 <body>
+    <!-- 新增：升级公告弹窗 -->
+    <div id="upgradeModal" class="upgrade-modal" style="display: none;">
+        <div class="upgrade-content">
+            <button class="upgrade-close" onclick="closeUpgradeModal()">×</button>
+            <div class="upgrade-title">🎉 重要公告</div>
+            <div class="upgrade-version">v3.0 正式发布</div>
+
+            <p>系统已全面重构升级至 3.0 版本</p>
+
+            <div class="upgrade-features">
+                <strong>新版本亮点：</strong>
+                <ul>
+                    <li>全新界面设计，更现代化的UI</li>
+                    <li>数据同步功能，多设备无缝切换</li>
+                    <li>智能分析报告，生成月度总结</li>
+                    <li>移动端优化，操作更便捷</li>
+                    <li>数据备份加密，安全性提升</li>
+                </ul>
+            </div>
+
+            <a href="https://mghygithub.github.io/Web_page_collection/%E5%B7%A5%E6%97%B63.0/index.html" target="_blank"
+                class="upgrade-link">
+                立即体验新版本 →
+            </a>
+
+            <div class="upgrade-checkbox">
+                <input type="checkbox" id="dontShowAgain">
+                <label for="dontShowAgain">7天内不再显示此公告</label>
+            </div>
+        </div>
+    </div>
     <div id="salaryCard"
         style="display: flex; gap: 10px; align-items: center; padding: 10px; margin-bottom: 10px; background: #f8f8f8; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1);">
         <label for="salaryInput">标准工资：</label>
@@ -2358,6 +2516,39 @@
         // 初始化防伪信息
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('checksum').textContent = generateChecksum();
+        });
+
+        // 新增：升级公告相关函数
+        function showUpgradeModal() {
+            // 检查是否已经选择了7天内不再显示
+            const dontShowUntil = localStorage.getItem('dontShowUpgradeUntil');
+            if (dontShowUntil && new Date().getTime() < parseInt(dontShowUntil)) {
+                return;
+            }
+
+            setTimeout(() => {
+                document.getElementById('upgradeModal').style.display = 'flex';
+            }, 1000); // 页面加载1秒后显示
+        }
+
+        function closeUpgradeModal() {
+            const dontShowAgain = document.getElementById('dontShowAgain').checked;
+
+            if (dontShowAgain) {
+                // 设置7天内不再显示
+                const sevenDaysLater = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
+                localStorage.setItem('dontShowUpgradeUntil', sevenDaysLater.toString());
+            }
+
+            document.getElementById('upgradeModal').style.display = 'none';
+        }
+
+        // 在DOM加载完成后调用
+        document.addEventListener('DOMContentLoaded', function () {
+            // 其他现有初始化代码...
+
+            // 新增：显示升级公告
+            showUpgradeModal();
         });
     </script>
 </body>
