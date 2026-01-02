@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>加班工时计算系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入SheetJS库用于生成Excel文件 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- 引用节假日配置文件 -->
+    <script src="holiday-config.js"></script>
+    <link rel="stylesheet" href="style1.css">
+    <!-- ✅ 新增：前端加密库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+     <!-- 引入 CryptoJS（可本地打包或 CDN） -->
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+
+
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-clock"></i> 加班工时计算系统</h1>
+            <p>精确计算加班时长与加班费用，数据本地保存不丢失</p>
+        </header>
+
+        <!-- 工资设置区域 - 合并为一个卡片 -->
+        <div class="card compact-salary-card">
+            <!-- 第一行：基本工资设置 -->
+            <div class="salary-basic-compact">
+                <h2 class="compact-title"><i class="fas fa-money-bill-wave"></i> 工资设置</h2>
+                <div class="input-group-compact">
+                    <label for="salary">月标准工资 (元)</label>
+                    <input type="number" id="salary" value="4900" min="0">
+                </div>
+                <div class="salary-display-compact">
+                    <div class="salary-item-compact">
+                        <div class="label-sm">日薪</div>
+                        <div class="value-sm" id="daily-salary">215.52</div>
+                    </div>
+                    <div class="salary-item-compact">
+                        <div class="label-sm">时薪</div>
+                        <div class="value-sm" id="hourly-salary">26.94</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二行：加班时薪标准 -->
+            <div class="overtime-rates-compact">
+                <h2 class="compact-title"><i class="fas fa-info-circle"></i> 加班时薪标准</h2>
+                <div class="rates-grid-compact">
+                    <div class="rate-item-compact workday">
+                        <div class="rate-type-sm">工作日</div>
+                        <div class="rate-value-sm" id="workday-rate">40.41</div>
+                        <div class="rate-multiplier-sm">(1.5倍)</div>
+                    </div>
+                    <div class="rate-item-compact weekend">
+                        <div class="rate-type-sm">周末</div>
+                        <div class="rate-value-sm" id="weekend-rate">53.88</div>
+                        <div class="rate-multiplier-sm">(2倍)</div>
+                    </div>
+                    <div class="rate-item-compact holiday">
+                        <div class="rate-type-sm">节假日</div>
+                        <div class="rate-value-sm" id="holiday-rate">80.82</div>
+                        <div class="rate-multiplier-sm">(3倍)</div>
+                    </div>
+                    <div class="rate-item-compact extra-work">
+                        <div class="rate-type-sm">调休日</div>
+                        <div class="rate-value-sm" id="extra-work-rate">53.88</div>
+                        <div class="rate-multiplier-sm">(2倍)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第三行：加班统计 -->
+            <div class="stats-compact-container">
+                <div class="stat-row-compact">
+                    <div class="stat-item-compact">
+                        <div class="stat-value-compact" id="total-overtime">0.0H</div>
+                        <div class="stat-label-compact">加班总时长</div>
+                        <div class="stat-subtext-compact">实际: <span id="actual-overtime">0.0H</span></div>
+                    </div>
+                    <div class="stat-item-compact">
+                        <div class="stat-value-compact" id="total-leave">0.0H</div>
+                        <div class="stat-label-compact">总请假</div>
+                        <div class="stat-subtext-compact">扣款: <span id="leave-deduction">0.00</span></div>
+                    </div>
+                </div>
+
+                <div class="stat-row-compact">
+                    <div class="stat-item-compact">
+                        <div class="stat-value-compact" id="total-overtime-pay">0.00</div>
+                        <div class="stat-label-compact">加班工资</div>
+                        <div class="stat-subtext-compact">
+                            <span id="overtime-a">A0.00</span> |
+                            <span id="overtime-b">B0.00</span> |
+                            <span id="overtime-c">C0.00</span>
+                        </div>
+                    </div>
+                    <div class="stat-item-compact">
+                        <div class="stat-value-compact" id="net-income">4900.00</div>
+                        <div class="stat-label-compact">净收入</div>
+                        <div class="stat-subtext-compact">工资+加班费-请假</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加班日历 -->
+        <div class="card calendar-container">
+            <h2 class="card-title"><i class="far fa-calendar-alt"></i> 加班日历</h2>
+
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button id="prev-month"><i class="fas fa-chevron-left"></i> 上月</button>
+                    <h3 id="current-month">2023年10月</h3>
+                    <button id="next-month">下月 <i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-controls">
+                    <button class="save-btn" id="multiselect-toggle">
+                        <i class="fas fa-mouse-pointer"></i> 多选模式
+                    </button>
+                    <button class="save-btn" id="save-data" style="display: none;">
+                        <i class="fas fa-save"></i> 保存数据
+                    </button>
+                </div>
+            </div>
+
+            <div class="calendar" id="calendar">
+                <!-- 日历将通过JavaScript动态生成 -->
+            </div>
+            <!-- 修改多选控制区域 -->
+            <div class="multiselect-controls" id="multiselect-controls" style="display: none;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
+                    <!-- 添加操作提示 -->
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                        <div class="multiselect-info" id="multiselect-count">已选择 0 个日期</div>
+                        <div style="font-size: 0.8rem; color: #7f8c8d; text-align: right;">
+                            点击日期选择/取消
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%;">
+                        <input type="number" class="batch-hours-input" id="batch-hours" step="0.5"
+                            placeholder="正数加班，负数请假，0清除">
+
+                        <!-- 添加操作说明 -->
+                        <div style="font-size: 0.75rem; color: #95a5a6; text-align: center; margin-top: -5px;">
+                            应用后将清空选择，可继续选择其他日期
+                        </div>
+
+                        <div class="multiselect-actions">
+                            <button class="multiselect-btn multiselect-clear" id="multiselect-clear">清空选择</button>
+                            <button class="multiselect-btn multiselect-cancel" id="multiselect-cancel">退出多选</button>
+                            <button class="multiselect-btn multiselect-apply" id="multiselect-apply">应用设置</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color weekend-color"></div>
+                    <span>周末</span>
+                </div>
+                <div class="legend-item">
+                    <div style="border: 2px solid #3498db; width: 12px; height: 12px; border-radius: 3px;"></div>
+                    <span>已设置</span>
+                </div>
+                <div class="legend-item">
+                    <div style="background: #2ecc71; width: 12px; height: 12px; border-radius: 3px;"></div>
+                    <span>加班</span>
+                </div>
+                <div class="legend-item">
+                    <div style="background: #e74c3c; width: 12px; height: 12px; border-radius: 3px;"></div>
+                    <span>请假</span>
+                </div>
+                <div class="legend-item">
+                    <div style="color: #e74c3c; font-weight: bold;">●</div>
+                    <span>节假日(3倍)</span>
+                </div>
+                <div class="legend-item">
+                    <div style="color: #f39c12; font-weight: bold;">●</div>
+                    <span>调休日(2倍)</span>
+                </div>
+                <div class="legend-item">
+                    <div style="color: #6c5ce7; font-weight: bold;">●</div>
+                    <span>补班日(1.5倍)</span>
+                </div>
+                <div class="legend-item">
+                    <div
+                        style="color: #e74c3c; font-weight: bold; border: 2px solid #e74c3c; width: 12px; height: 12px; border-radius: 3px;">
+                    </div>
+                    <span>今日</span>
+                </div>
+            </div>
+
+            <!-- Excel表格区域 -->
+            <div class="excel-table-container">
+                <div class="excel-table-header">
+                    <h3><i class="fas fa-table"></i> 加班明细表</h3>
+                    <div class="excel-table-actions">
+                        <div class="file-input-container">
+                            <button class="import-btn">
+                                <i class="fas fa-upload"></i> 导入Excel
+                            </button>
+                            <input type="file" id="import-excel" class="file-input" accept=".xlsx, .xls">
+                        </div>
+                        <button class="clear-btn" id="clear-data">
+                            <i class="fas fa-trash-alt"></i> 清除数据
+                        </button>
+                        <button class="export-btn" id="export-excel">
+                            <i class="fas fa-download"></i> 导出Excel
+                        </button>
+                        <!-- 导出Datalink按钮 -->
+                        <button class="export-btn export-datalink-btn" id="export-datalink">
+                            <i class="fas fa-link"></i> 导出Datalink
+                        </button>
+                        <!-- 自定义设置按钮（独立齿轮图标） -->
+                        <div class="setting-icon-container">
+                            <button id="open-setting-modal" class="setting-btn" aria-label="自定义设置">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <!-- Tooltip 提示框 -->
+                            <span class="tooltip">该设置将影响 Datalink 的参数</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th width="20%">日期</th>
+                            <th width="15%">类型</th>
+                            <th width="20%">加班/请假时长</th>
+                            <th width="15%">倍数</th>
+                            <th width="30%">金额 (元)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="excel-table-body">
+                        <!-- 表格数据将通过JavaScript动态生成 -->
+                        <tr>
+                            <td colspan="5" class="no-data">
+                                <i class="fas fa-inbox"></i><br>
+                                暂无加班或请假记录
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框：设置面板 -->
+    <div id="setting-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3><i class="fas fa-edit"></i> 自定义设置</h3>
+
+            <div class="form-group">
+                <label for="overtime-reason">加班事由：</label>
+                <input type="text" id="overtime-reason" placeholder="如：JHS项目加班工作">
+            </div>
+
+            <div class="form-group">
+                <label for="reporter-info">填报人信息：</label>
+                <input type="text" id="reporter-info" placeholder="如：liaozichen 84376722">
+            </div>
+
+            <div class="form-group">
+                <label for="employee-id">工号：</label>
+                <input type="text" id="employee-id" placeholder="如：84376722">
+            </div>
+
+            <div class="form-group">
+                <label for="employee-name">姓名：</label>
+                <input type="text" id="employee-name" placeholder="如：廖子宸">
+            </div>
+
+            <div class="form-group">
+                <label for="team-group">成员组：</label>
+                <input type="text" id="team-group" placeholder="如：李亮">
+            </div>
+
+            <div class="modal-actions">
+                <button id="save-settings" class="save-btn">
+                    <i class="fas fa-save"></i> 保存设置
+                </button>
+                <button id="reset-settings" class="reset-btn">
+                    <i class="fas fa-undo"></i> 重置为默认
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2025 加班工时计算系统 | 数据自动保存到本地浏览器</p>
+    </footer>
+    </div>
+
+    <script>
+        // 初始化变量
+        let currentDate = new Date();
+        let overtimeData = JSON.parse(localStorage.getItem('overtimeData')) || {};
+        let salary = localStorage.getItem('salary') || 4900;
+        // 多选功能变量
+        let isMultiselectMode = false;
+        let selectedDates = new Set();
+        const multiselectToggle = document.getElementById('multiselect-toggle');
+        const multiselectControls = document.getElementById('multiselect-controls');
+        const multiselectCount = document.getElementById('multiselect-count');
+        const batchHoursInput = document.getElementById('batch-hours');
+        const multiselectCancel = document.getElementById('multiselect-cancel');
+        const multiselectApply = document.getElementById('multiselect-apply');
+
+
+        // 修改数据存储结构：按月份存储
+        let allOvertimeData = JSON.parse(localStorage.getItem('allOvertimeData')) || {};
+
+        // DOM元素 - 更新选择器
+        const salaryInput = document.getElementById('salary');
+        const dailySalaryEl = document.getElementById('daily-salary');
+        const hourlySalaryEl = document.getElementById('hourly-salary');
+        const totalOvertimeEl = document.getElementById('total-overtime');
+        const actualOvertimeEl = document.getElementById('actual-overtime');
+        const totalLeaveEl = document.getElementById('total-leave');
+        const leaveDeductionEl = document.getElementById('leave-deduction');
+        const totalOvertimePayEl = document.getElementById('total-overtime-pay');
+        const overtimeAEl = document.getElementById('overtime-a');
+        const overtimeBEl = document.getElementById('overtime-b');
+        const overtimeCEl = document.getElementById('overtime-c');
+        const netIncomeEl = document.getElementById('net-income');
+        const currentMonthEl = document.getElementById('current-month');
+        const calendarEl = document.getElementById('calendar');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const saveDataBtn = document.getElementById('save-data');
+        const excelTableBody = document.getElementById('excel-table-body');
+        const exportExcelBtn = document.getElementById('export-excel');
+        const importExcelBtn = document.getElementById('import-excel');
+        const clearDataBtn = document.getElementById('clear-data');
+
+        // 添加事件监听器
+        document.getElementById('export-datalink').addEventListener('click', exportToDatalink);
+
+        // 初始化
+        function init() {
+            salaryInput.value = salary;
+            calculateSalaries();
+            updateStats();
+            renderCalendar();
+            updateExcelTable();
+            initMultiselect();
+            initKeyboardShortcuts();
+
+            // 事件监听
+            salaryInput.addEventListener('input', function () {
+                salary = parseFloat(this.value) || 0;
+                calculateSalaries();
+                updateStats();
+                updateExcelTable();
+                saveToLocalStorage();
+            });
+
+            prevMonthBtn.addEventListener('click', function () {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+                updateExcelTable();
+            });
+
+            nextMonthBtn.addEventListener('click', function () {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+                updateExcelTable();
+            });
+
+            exportExcelBtn.addEventListener('click', exportToExcel);
+
+            // 添加导入Excel事件监听
+            importExcelBtn.addEventListener('change', importFromExcel);
+
+            // 添加清除数据事件监听
+            clearDataBtn.addEventListener('click', clearCurrentMonthData);
+        }
+
+        // 获取当前月份的数据
+        function getCurrentMonthData() {
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const monthKey = `${year}-${month}`;
+
+            if (!allOvertimeData[monthKey]) {
+                allOvertimeData[monthKey] = {};
+            }
+
+            return allOvertimeData[monthKey];
+        }
+
+        // 获取当前月份的加班数据
+        function getCurrentOvertimeData() {
+            return getCurrentMonthData();
+        }
+
+        // 计算日薪和时薪
+        function calculateSalaries() {
+            // 按每月21.75个工作日计算
+            const dailySalary = (salary / 21.75).toFixed(2);
+            // 按每天8小时计算
+            const hourlySalary = (dailySalary / 8).toFixed(2);
+
+            dailySalaryEl.textContent = dailySalary;
+            hourlySalaryEl.textContent = hourlySalary;
+
+            // 更新加班时薪标准
+            updateOvertimeRates(hourlySalary);
+        }
+
+        // 更新加班时薪标准
+        function updateOvertimeRates(baseHourlySalary) {
+            const baseSalary = parseFloat(baseHourlySalary);
+
+            // 工作日：1.5倍
+            const workdayRate = (baseSalary * 1.5).toFixed(2);
+            // 周末和调休日：2倍
+            const weekendRate = (baseSalary * 2).toFixed(2);
+            // 节假日：3倍
+            const holidayRate = (baseSalary * 3).toFixed(2);
+
+            // 更新DOM
+            document.getElementById('workday-rate').textContent = `${workdayRate}元/时`;
+            document.getElementById('weekend-rate').textContent = `${weekendRate}元/时`;
+            document.getElementById('holiday-rate').textContent = `${holidayRate}元/时`;
+            document.getElementById('extra-work-rate').textContent = `${weekendRate}元/时`;
+        }
+
+        // 更新Excel表格
+        function updateExcelTable() {
+            const overtimeData = getCurrentOvertimeData();
+            const hourlySalary = parseFloat(hourlySalaryEl.textContent);
+
+            let tableHTML = '';
+            let hasData = false;
+
+            // 获取当前月份的所有日期
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+
+            // 遍历当前月份的所有日期
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const date = new Date(year, month, day);
+                const dateYear = date.getFullYear();
+                const dateMonth = String(date.getMonth() + 1).padStart(2, '0');
+                const dateDay = String(date.getDate()).padStart(2, '0');
+                const dateString = `${dateYear}-${dateMonth}-${dateDay}`;
+
+                const data = overtimeData[dateString];
+
+                if (data) {
+                    hasData = true;
+                    const hours = parseFloat(data.hours) || 0;
+                    const isLeave = data.isLeave || false;
+
+                    // 获取日期类型和倍率
+                    const dateType = getDateType(date);
+                    const multiplier = getOvertimeMultiplier(date);
+
+                    let typeClass = '';
+                    let typeText = '';
+
+                    if (isLeave) {
+                        typeClass = 'type-leave';
+                        typeText = '请假';
+                    } else {
+                        if (multiplier === 3) {
+                            typeClass = 'type-c';
+                            typeText = 'C';
+                        } else if (multiplier === 2) {
+                            typeClass = 'type-b';
+                            typeText = 'B';
+                        } else {
+                            typeClass = 'type-a';
+                            typeText = 'A';
+                        }
+                    }
+
+                    // 计算金额
+                    let amount = 0;
+                    if (isLeave) {
+                        // 请假扣款：1.5倍
+                        amount = -(hours * hourlySalary * 1.5);
+                    } else {
+                        amount = hours * hourlySalary * multiplier;
+                    }
+
+                    // 格式化日期显示
+                    const displayDate = `${dateMonth}月${dateDay}日`;
+
+                    tableHTML += `
+                        <tr class="${isLeave ? 'leave-row' : 'overtime-row'}">
+                            <td class="date-column">${displayDate}</td>
+                            <td class="type-column">
+                                <span class="type-badge ${typeClass}">${typeText}</span>
+                            </td>
+                            <td class="hours-column">${isLeave ? '请假' : '加班'} ${hours}H</td>
+                            <td class="multiplier-column">
+                                <span class="multiplier-badge">${multiplier}倍</span>
+                            </td>
+                            <td class="amount-column">${amount.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }
+            }
+
+            if (!hasData) {
+                tableHTML = `
+                    <tr>
+                        <td colspan="5" class="no-data">
+                            <i class="fas fa-inbox"></i><br>
+                            暂无加班或请假记录
+                        </td>
+                    </tr>
+                `;
+            }
+
+            excelTableBody.innerHTML = tableHTML;
+        }
+        // 导出Excel功能
+        function exportToExcel() {
+            const overtimeData = getCurrentOvertimeData();
+            const hourlySalary = parseFloat(hourlySalaryEl.textContent);
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1;
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+
+            // ==================== 工作表1：加班明细 ====================
+            const detailData = [];
+
+            // 添加表头
+            detailData.push(['日期', '类型', '加班/请假时长', '倍数', '金额(元)']);
+
+            // 添加数据行
+            for (const dateString in overtimeData) {
+                const dataItem = overtimeData[dateString];
+                const date = new Date(dateString);
+                const hours = parseFloat(dataItem.hours) || 0;
+                const isLeave = dataItem.isLeave || false;
+
+                const multiplier = getOvertimeMultiplier(date);
+                let typeText = isLeave ? '请假' :
+                    multiplier === 3 ? 'C类(3倍)' :
+                        multiplier === 2 ? 'B类(2倍)' : 'A类(1.5倍)';
+
+                let amount = 0;
+                if (isLeave) {
+                    amount = -(hours * hourlySalary * 1.5);
+                } else {
+                    amount = hours * hourlySalary * multiplier;
+                }
+
+                // 格式化日期
+                const displayDate = `${date.getMonth() + 1}月${date.getDate()}日`;
+
+                detailData.push([
+                    displayDate,
+                    typeText,
+                    `${isLeave ? '请假' : '加班'} ${hours}H`,
+                    `${multiplier}倍`,
+                    amount.toFixed(2)
+                ]);
+            }
+
+            // 如果没有数据，添加提示行
+            if (detailData.length === 1) {
+                detailData.push(['', '暂无数据', '', '', '']);
+            }
+
+            // 创建工作表1
+            const detailWs = XLSX.utils.aoa_to_sheet(detailData);
+
+            // 设置列宽
+            const detailColWidths = [
+                { wch: 12 }, // 日期
+                { wch: 12 }, // 类型
+                { wch: 15 }, // 时长
+                { wch: 8 },  // 倍数
+                { wch: 12 }  // 金额
+            ];
+            detailWs['!cols'] = detailColWidths;
+
+            // 将工作表1添加到工作簿
+            XLSX.utils.book_append_sheet(wb, detailWs, '加班明细');
+
+            // ==================== 工作表2：统计汇总 ====================
+            const summaryData = [];
+
+            // 获取统计数据
+            const totalOvertime = parseFloat(totalOvertimeEl.textContent) || 0;
+            const totalLeave = parseFloat(totalLeaveEl.textContent.split(' ')[0]) || 0;
+            const totalOvertimePay = parseFloat(totalOvertimePayEl.textContent) || 0;
+            const leaveDeduction = parseFloat(leaveDeductionEl.textContent) || 0;
+            const netIncome = parseFloat(netIncomeEl.textContent) || 0;
+
+            // 添加表头
+            summaryData.push(['统计项', '值']);
+
+            // 添加汇总数据
+            summaryData.push(['标准工资', `¥${salaryInput.value}`]);
+            summaryData.push(['总加班时长', `${totalOvertime.toFixed(1)} 小时`]);
+            summaryData.push(['总请假时长', `${totalLeave.toFixed(1)} 小时 (${(totalLeave / 8).toFixed(1)} 天)`]);
+            summaryData.push(['加班工资', `¥${totalOvertimePay.toFixed(0)}`]);
+            summaryData.push(['请假扣款', `¥${leaveDeduction.toFixed(0)}`]);
+            //summaryData.push(['补贴扣款', '¥0']); // 可以根据需要添加其他扣款项
+            summaryData.push(['实发工资', `¥${netIncome.toFixed(0)}`]);
+            summaryData.push(['导出时间', new Date().toLocaleString('zh-CN')]);
+
+            // 创建工作表2
+            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+
+            // 设置列宽
+            const summaryColWidths = [
+                { wch: 20 }, // 统计项
+                { wch: 25 }  // 值
+            ];
+            summaryWs['!cols'] = summaryColWidths;
+
+            // 将工作表2添加到工作簿
+            XLSX.utils.book_append_sheet(wb, summaryWs, '统计汇总');
+
+            // ==================== 生成Excel文件 ====================
+            XLSX.writeFile(wb, `${year}年${month}月加班明细.xlsx`);
+        }
+
+        // 导入Excel功能
+        function importFromExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    // 获取第一个工作表
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    // 处理导入的数据
+                    processImportedData(jsonData);
+
+                    // 重置文件输入
+                    event.target.value = '';
+
+                    showNotification('Excel数据导入成功！', 'success');
+                } catch (error) {
+                    console.error('导入Excel失败:', error);
+                    showNotification('导入Excel失败，请检查文件格式', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 处理导入的Excel数据
+        function processImportedData(data) {
+            const overtimeData = getCurrentOvertimeData();
+            const hourlySalary = parseFloat(hourlySalaryEl.textContent);
+
+            // 从第二行开始（跳过表头）
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length < 5) continue;
+
+                const [dateStr, typeStr, hoursStr, multiplierStr, amountStr] = row;
+
+                // 解析日期 (格式如: 10月15日)
+                const dateMatch = dateStr.match(/(\d+)月(\d+)日/);
+                if (!dateMatch) continue;
+
+                const month = parseInt(dateMatch[1]);
+                const day = parseInt(dateMatch[2]);
+                const year = currentDate.getFullYear();
+
+                const date = new Date(year, month - 1, day);
+                const dateString = formatDateForInput(date);
+
+                // 解析类型和时长
+                const isLeave = typeStr.includes('请假');
+                const hoursMatch = hoursStr.match(/(加班|请假)\s*([\d.]+)H/);
+                if (!hoursMatch) continue;
+
+                const hours = parseFloat(hoursMatch[2]);
+
+                // 保存数据
+                overtimeData[dateString] = {
+                    hours: hours,
+                    isLeave: isLeave
+                };
+            }
+
+            // 更新界面
+            renderCalendar();
+            updateStats();
+            updateExcelTable();
+            saveToLocalStorage();
+        }
+
+        // 清除当前月份数据
+        function clearCurrentMonthData() {
+            if (confirm('确定要清除当前月份的所有加班和请假数据吗？此操作不可撤销！')) {
+                const year = currentDate.getFullYear();
+                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const monthKey = `${year}-${month}`;
+
+                // 清除当前月份数据
+                allOvertimeData[monthKey] = {};
+
+                // 更新界面
+                renderCalendar();
+                updateStats();
+                updateExcelTable();
+                saveToLocalStorage();
+
+                showNotification('当前月份数据已清除', 'success');
+            }
+        }
+
+        // 更新事件监听器
+        exportExcelBtn.addEventListener('click', exportToExcel);
+
+        // 更新统计信息
+        function updateStats() {
+
+            const overtimeData = getCurrentOvertimeData();
+
+            let totalOvertimeHours = 0;      // 总加班时长（未扣除请假）
+            let totalLeaveHours = 0;         // 总请假时长
+            let actualOvertimeHours = 0;     // 实际加班时长（扣除请假后）
+            let overtimeA = 0;               // 工作日1.5倍
+            let overtimeB = 0;               // 周末2倍
+            let overtimeC = 0;               // 节假日3倍
+
+            const hourlySalary = parseFloat(hourlySalaryEl.textContent);
+
+            // 先统计总时长
+            for (const date in overtimeData) {
+                const hours = parseFloat(overtimeData[date].hours) || 0;
+                const isLeave = overtimeData[date].isLeave || false;
+
+                if (isLeave) {
+                    totalLeaveHours += hours;
+                } else {
+                    totalOvertimeHours += hours;
+                }
+            }
+
+            // 计算实际加班时长：总加班时长 - 请假时长
+            actualOvertimeHours = Math.max(0, totalOvertimeHours - totalLeaveHours);
+
+            // 重新分配实际加班时长到各类型（按时间顺序）
+            let remainingActualHours = actualOvertimeHours;
+
+            // 按日期顺序处理，先处理低倍率的日期
+            const dates = Object.keys(overtimeData).sort();
+
+            for (const dateString of dates) {
+                const dataItem = overtimeData[dateString];
+                const hours = parseFloat(dataItem.hours) || 0;
+                const isLeave = dataItem.isLeave || false;
+
+                if (!isLeave && hours > 0 && remainingActualHours > 0) {
+                    const dateObj = new Date(dateString);
+                    const multiplier = getOvertimeMultiplier(dateObj);
+
+                    // 分配实际加班时长
+                    const assignedHours = Math.min(hours, remainingActualHours);
+                    remainingActualHours -= assignedHours;
+
+                    // 根据倍率分类统计
+                    if (multiplier === 3) {
+                        overtimeC += assignedHours;
+                    } else if (multiplier === 2) {
+                        overtimeB += assignedHours;
+                    } else if (multiplier === 1.5) {
+                        overtimeA += assignedHours;
+                    }
+
+                }
+            }
+
+
+            // 计算加班工资
+            const overtimePayA = (overtimeA * hourlySalary * 1.5).toFixed(2);
+            const overtimePayB = (overtimeB * hourlySalary * 2).toFixed(2);
+            const overtimePayC = (overtimeC * hourlySalary * 3).toFixed(2);
+            const totalOvertimePay = (parseFloat(overtimePayA) + parseFloat(overtimePayB) + parseFloat(overtimePayC)).toFixed(2);
+
+            // 计算请假扣款 - 修改为1.5倍
+            const leaveDeduction = (totalLeaveHours * hourlySalary * 1.5).toFixed(2);
+
+            // 计算净收入
+            const netIncome = (parseFloat(salary) + parseFloat(totalOvertimePay) - parseFloat(leaveDeduction)).toFixed(2);
+
+            // 更新DOM - 适应紧凑格式
+            totalOvertimeEl.textContent = totalOvertimeHours.toFixed(1) + 'H';
+            actualOvertimeEl.textContent = actualOvertimeHours.toFixed(1) + 'H';
+            totalLeaveEl.textContent = totalLeaveHours.toFixed(1) + 'H';
+            leaveDeductionEl.textContent = leaveDeduction;
+            totalOvertimePayEl.textContent = totalOvertimePay;
+            // 更新紧凑格式的加班分类显示
+            overtimeAEl.textContent = 'A' + overtimePayA;
+            overtimeBEl.textContent = 'B' + overtimePayB;
+            overtimeCEl.textContent = 'C' + overtimePayC;
+            netIncomeEl.textContent = netIncome;
+        }
+
+        // 渲染日历
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            // 获取今天的日期
+            const today = new Date();
+            const todayYear = today.getFullYear();
+            const todayMonth = today.getMonth();
+            const todayDay = today.getDate();
+
+            // 更新月份显示
+            currentMonthEl.textContent = `${year}年${month + 1}月`;
+
+            // 清空日历
+            calendarEl.innerHTML = '';
+
+            // 添加星期标题
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            weekdays.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'calendar-day-header';
+                dayHeader.textContent = day;
+                calendarEl.appendChild(dayHeader);
+            });
+
+            // 获取当月第一天和最后一天
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+
+            // 计算第一天是星期几（0-6，0代表星期日）
+            const firstDayOfWeek = firstDay.getDay();
+
+            // 添加空白格子（上个月的日期）
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day';
+                calendarEl.appendChild(emptyDay);
+            }
+
+            // 获取当前月份的加班数据
+            const overtimeData = getCurrentOvertimeData();
+
+            // 添加当月日期
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const date = new Date(year, month, day);
+                // 使用相同的本地日期格式
+                const dateYear = date.getFullYear();
+                const dateMonth = String(date.getMonth() + 1).padStart(2, '0');
+                const dateDay = String(date.getDate()).padStart(2, '0');
+                const dateString = `${dateYear}-${dateMonth}-${dateDay}`;
+
+                const dateType = getDateType(date);
+                const isWeekend = dateType === 'weekend';
+                const isHolidayType = dateType === 'holiday';
+                const isExtraWork = dateType === 'extraWork';
+                const isMakeUpWork = dateType === 'makeUpWork';
+                const hasOvertime = overtimeData[dateString];
+                const isSelected = selectedDates.has(dateString);
+
+                // 判断是否是今天
+                const isToday = (year === todayYear && month === todayMonth && day === todayDay);
+
+                // 移除hasOvertime的选中状态
+                const dayElement = document.createElement('div');
+                dayElement.className = `calendar-day ${isWeekend ? 'weekend' : ''} ${isHolidayType ? 'holiday' : ''} ${isExtraWork ? 'extra-work' : ''} ${isMakeUpWork ? 'make-up-work' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'multiselect' : ''}`;
+
+                // 添加日期类型提示
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = day;
+
+                // 添加特殊日期标识
+                if (isHolidayType) {
+                    dayNumber.innerHTML = day + ' <span style="color:#e74c3c;font-size:0.7em;">假</span>';
+                } else if (isExtraWork) {
+                    dayNumber.innerHTML = day + ' <span style="color:#f39c12;font-size:0.7em;">调</span>';
+                } else if (isMakeUpWork) {
+                    dayNumber.innerHTML = day + ' <span style="color:#6c5ce7;font-size:0.7em;">补</span>';
+                }
+                dayElement.appendChild(dayNumber);
+
+                if (hasOvertime) {
+                    updateDayDisplay(dayElement, dateString, overtimeData[dateString].hours, overtimeData[dateString].isLeave);
+                }
+
+                // 修改点击事件 - 使用新的处理函数
+                dayElement.addEventListener('click', function () {
+                    handleDateClick(date, dayElement);
+                });
+
+                calendarEl.appendChild(dayElement);
+            }
+
+            // 渲染完成后更新统计
+            updateStats();
+        }
+
+        // 显示加班输入框
+        // 更新 showOvertimeInput 函数
+        // 修复 showOvertimeInput 函数中的事件处理
+        function showOvertimeInput(date, dayElement) {
+            const isMobile = window.innerWidth <= 768;
+
+            // 添加选中输入状态
+            dayElement.classList.add('selected-input');
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
+
+            // 获取当前月份的加班数据
+            const overtimeData = getCurrentOvertimeData();
+            const existingData = overtimeData[dateString];
+
+            // 移除现有的输入框和遮罩层
+            const existingInput = document.querySelector('.overtime-input');
+            const existingOverlay = document.querySelector('.input-overlay');
+
+            if (existingInput && existingInput.parentNode) {
+                existingInput.remove();
+            }
+            if (existingOverlay && existingOverlay.parentNode) {
+                existingOverlay.remove();
+            }
+
+            // 创建遮罩层（手机端）
+            let overlay = null;
+            if (isMobile) {
+                overlay = document.createElement('div');
+                overlay.className = 'input-overlay';
+                document.body.appendChild(overlay);
+            }
+
+            // 创建输入框
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'overtime-input';
+
+            const hoursInput = document.createElement('input');
+            hoursInput.type = 'number';
+            hoursInput.step = '0.5';
+            hoursInput.placeholder = '正数加班，负数请假';
+            hoursInput.value = existingData ? (existingData.isLeave ? -existingData.hours : existingData.hours) : '';
+
+            // 手机端优化 - 输入类型设为数字键盘
+            if (isMobile) {
+                hoursInput.inputMode = 'decimal';
+                hoursInput.pattern = '[0-9]*';
+            }
+
+            // 添加标志位防止重复执行
+            let isSaving = false;
+
+            // 统一的保存函数
+            const saveData = function () {
+                // 防止重复保存
+                if (isSaving) return;
+                isSaving = true;
+
+                const hours = parseFloat(hoursInput.value) || 0;
+
+                // 移除选中输入状态
+                dayElement.classList.remove('selected-input');
+
+                if (hours !== 0) {
+                    const isLeave = hours < 0;
+                    const absoluteHours = Math.abs(hours);
+
+                    overtimeData[dateString] = {
+                        hours: absoluteHours,
+                        isLeave: isLeave
+                    };
+
+                    updateDayDisplay(dayElement, dateString, absoluteHours, isLeave);
+                } else {
+                    if (overtimeData[dateString]) {
+                        delete overtimeData[dateString];
+                        dayElement.classList.remove('selected');
+                        updateDayDisplay(dayElement, dateString, 0, false);
+                    }
+                }
+
+                // 安全移除元素
+                try {
+                    if (inputContainer && inputContainer.parentNode) {
+                        inputContainer.remove();
+                    }
+                    if (overlay && overlay.parentNode) {
+                        overlay.remove();
+                    }
+                } catch (e) {
+                    // 如果移除失败，忽略错误
+                    console.log('清理元素时发生错误:', e);
+                }
+
+                updateStats();
+                updateExcelTable();
+                saveToLocalStorage();
+            };
+
+            // 移除原有的事件监听器
+            hoursInput.removeEventListener('blur', saveData);
+            hoursInput.removeEventListener('keypress', null);
+
+            // 添加新的事件监听器
+            hoursInput.addEventListener('blur', function () {
+                setTimeout(saveData, 100); // 延迟执行，避免与Enter键冲突
+            });
+
+            // 按Enter键触发保存
+            hoursInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveData();
+                }
+
+                // 手机端：Escape键关闭
+                if (isMobile && e.key === 'Escape') {
+                    e.preventDefault();
+                    saveData();
+                }
+            });
+
+            // 手机端遮罩层点击关闭
+            if (overlay) {
+                overlay.addEventListener('click', function () {
+                    hoursInput.focus(); // 先聚焦到输入框
+                    setTimeout(saveData, 50); // 然后延迟保存
+                });
+            }
+
+            inputContainer.appendChild(hoursInput);
+
+            if (isMobile) {
+                document.body.appendChild(inputContainer);
+            } else {
+                dayElement.appendChild(inputContainer);
+            }
+
+            // 自动全选输入框内容
+            setTimeout(() => {
+                hoursInput.focus();
+                hoursInput.select();
+            }, 50);
+        }
+        // 添加一个安全的移除函数
+        function safeRemove(element) {
+            if (element && element.parentNode) {
+                try {
+                    element.remove();
+                } catch (e) {
+                    // 如果移除失败，尝试从父节点移除
+                    if (element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                }
+            }
+        }
+
+        // 然后在 saveData 函数中使用
+        const saveData = function () {
+            if (isSaving) return;
+            isSaving = true;
+
+            const hours = parseFloat(hoursInput.value) || 0;
+
+            // 移除选中输入状态
+            dayElement.classList.remove('selected-input');
+
+            if (hours !== 0) {
+                const isLeave = hours < 0;
+                const absoluteHours = Math.abs(hours);
+
+                overtimeData[dateString] = {
+                    hours: absoluteHours,
+                    isLeave: isLeave
+                };
+
+                updateDayDisplay(dayElement, dateString, absoluteHours, isLeave);
+            } else {
+                if (overtimeData[dateString]) {
+                    delete overtimeData[dateString];
+                    dayElement.classList.remove('selected');
+                    updateDayDisplay(dayElement, dateString, 0, false);
+                }
+            }
+
+            // 安全移除元素
+            safeRemove(inputContainer);
+            safeRemove(overlay);
+
+            updateStats();
+            updateExcelTable();
+            saveToLocalStorage();
+        };
+
+        // 更新 updateDayDisplay 函数，添加手机端特殊处理
+        // 修复 updateDayDisplay 函数
+        // 修复 updateDayDisplay 函数 - 简化移动端显示
+        function updateDayDisplay(dayElement, dateString, hours, isLeave) {
+            // 移除现有的所有标记
+            const existingElements = dayElement.querySelectorAll(
+                '.overtime-badge, .overtime-dot, .mobile-indicator, .mobile-label'
+            );
+            existingElements.forEach(el => el.remove());
+
+            // 如果没有小时数，直接返回
+            if (hours <= 0) {
+                if (!isMultiselectMode || !selectedDates.has(dateString)) {
+                    dayElement.classList.remove('selected');
+                }
+                dayElement.classList.remove('has-overtime');
+                return;
+            }
+
+            // 检测是否在手机端
+            const isMobile = window.innerWidth <= 768;
+
+            if (isMobile) {
+                // 移动端：只显示圆形指示器（包含数字）
+                const indicator = document.createElement('div');
+                indicator.className = 'mobile-indicator';
+
+                // 获取日期类型
+                const date = new Date(dateString);
+                const dateType = getDateType(date);
+
+                if (isLeave) {
+                    // 请假：红色圆点，里面是小时数
+                    indicator.classList.add('mobile-leave');
+                    indicator.textContent = hours <= 99 ? hours : '99+';
+                    indicator.title = `请假 ${hours}小时`;
+
+                    // 长请假特殊样式
+                    if (hours >= 20) {
+                        indicator.classList.add('extra-long-hours');
+                    } else if (hours >= 10) {
+                        indicator.classList.add('long-hours');
+                    }
+                } else {
+                    // 加班：根据倍率设置颜色
+                    indicator.classList.add('mobile-overtime');
+                    indicator.textContent = hours <= 99 ? hours : '99+';
+                    indicator.title = `加班 ${hours}小时`;
+
+                    // 根据倍率设置颜色
+                    if (dateType === 'holiday') {
+                        indicator.classList.add('holiday-rate');
+                    } else if (dateType === 'weekend' || dateType === 'extraWork') {
+                        indicator.classList.add('double-rate');
+                    } else {
+                        indicator.classList.add('normal-rate');
+                    }
+
+                    // 长加班特殊样式
+                    if (hours >= 20) {
+                        indicator.classList.add('extra-long-hours');
+                    } else if (hours >= 10) {
+                        indicator.classList.add('long-hours');
+                    }
+                }
+
+                dayElement.appendChild(indicator);
+
+            } else {
+                // 桌面端保持原有逻辑
+                const date = new Date(dateString);
+                const dateType = getDateType(date);
+
+                // 智能生成显示文本
+                function getDisplayText(hours, isLeave) {
+                    const leavePrefix = isLeave ? '假' : '加';
+
+                    if (hours >= 100) return `${hours}`;
+                    if (hours >= 20) return `${leavePrefix}${hours}`;
+                    if (hours >= 10) return `${leavePrefix}班${hours}`;
+                    if (hours >= 5) return `${isLeave ? '请假' : '加班'}${hours}`;
+                    return `${isLeave ? '请假' : '加班'}${hours}H`;
+                }
+
+                // 根据小时数获取样式类
+                function getHoursClass(hours) {
+                    if (hours >= 20) return 'hours-xxl';
+                    if (hours >= 15) return 'hours-xl';
+                    if (hours >= 10) return 'hours-lg';
+                    if (hours >= 5) return 'hours-md';
+                    return 'hours-sm';
+                }
+
+                // 创建加班/请假标签
+                const badge = document.createElement('div');
+                badge.className = `overtime-badge ${isLeave ? 'leave' : 'overtime'} ${getHoursClass(hours)}`;
+                badge.textContent = getDisplayText(hours, isLeave);
+
+                // 设置完整提示信息
+                const multiplierText = dateType === 'holiday' ? '3倍' :
+                    dateType === 'weekend' || dateType === 'extraWork' ? '2倍' : '1.5倍';
+                badge.title = `${isLeave ? '请假' : '加班'} ${hours}小时 (${multiplierText})`;
+                badge.setAttribute('data-hours', hours);
+                badge.setAttribute('data-type', isLeave ? 'leave' : 'overtime');
+                badge.setAttribute('data-date-type', dateType);
+
+                // 创建小圆点
+                const dot = document.createElement('div');
+                dot.className = 'overtime-dot';
+
+                if (isLeave) {
+                    dot.classList.add('leave');
+                    dot.title = `请假 ${hours}小时`;
+                } else {
+                    const dotClassMap = {
+                        'holiday': 'holiday',
+                        'weekend': 'weekend',
+                        'extraWork': 'extra-work'
+                    };
+                    dot.classList.add(dotClassMap[dateType] || 'workday');
+                    dot.title = `加班 ${hours}小时 (${multiplierText})`;
+                }
+
+                // 添加元素到DOM
+                dayElement.appendChild(badge);
+                dayElement.appendChild(dot);
+
+                // 添加超长时长的特殊样式
+                if (hours >= 20) {
+                    badge.style.animation = 'pulse-long-hours 2s infinite';
+                }
+            }
+
+            // 移除选中状态（只保留多选状态）
+            if (!isMultiselectMode || !selectedDates.has(dateString)) {
+                dayElement.classList.remove('selected');
+            }
+        }
+        // 专门为移动端优化的显示函数
+        function updateMobileDisplay(dayElement, hours, isLeave, dateType) {
+            const indicator = document.createElement('div');
+            indicator.className = 'mobile-indicator';
+
+            if (isLeave) {
+                indicator.classList.add('mobile-leave');
+                // 请假使用三角形
+                indicator.innerHTML = '▼';
+                indicator.title = `请假 ${hours}小时`;
+
+                // 根据时长调整大小
+                if (hours >= 10) {
+                    indicator.classList.add('large-leave');
+                }
+            } else {
+                indicator.classList.add('mobile-overtime');
+                // 加班使用圆形数字
+                indicator.textContent = hours <= 99 ? hours : '99+';
+                indicator.title = `加班 ${hours}小时`;
+
+                // 根据倍率添加颜色
+                if (dateType === 'holiday') {
+                    indicator.classList.add('holiday-rate');
+                } else if (dateType === 'weekend' || dateType === 'extraWork') {
+                    indicator.classList.add('double-rate');
+                } else {
+                    indicator.classList.add('normal-rate');
+                }
+
+                // 根据时长调整样式
+                if (hours >= 20) {
+                    indicator.classList.add('extra-hours');
+                } else if (hours >= 10) {
+                    indicator.classList.add('long-hours');
+                }
+            }
+
+            dayElement.appendChild(indicator);
+        }
+        // 保存到本地存储
+        function saveToLocalStorage() {
+            localStorage.setItem('allOvertimeData', JSON.stringify(allOvertimeData));
+            localStorage.setItem('salary', salary);
+        }
+
+        // 格式化日期为输入框格式
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        // 在initMultiselect函数中添加样式强制控制
+        function initMultiselect() {
+            multiselectToggle.addEventListener('click', toggleMultiselectMode);
+            multiselectCancel.addEventListener('click', cancelMultiselect);
+            multiselectApply.addEventListener('click', applyMultiselect);
+
+            // 添加清空选择按钮
+            const multiselectClear = document.getElementById('multiselect-clear');
+            multiselectClear.addEventListener('click', clearMultiselect);
+
+            // 初始隐藏多选控制区域
+            if (multiselectControls) {
+                multiselectControls.style.display = 'none';
+            }
+        }
+        // 清空选择但不退出多选模式
+        function clearMultiselect() {
+            selectedDates.clear();
+            updateMultiselectCount();
+            renderCalendar();
+
+            // 保持输入框聚焦
+            batchHoursInput.focus();
+
+            showNotification('已清空选择，可以继续选择其他日期', 'info');
+        }
+
+        // 修改切换多选模式函数
+        function toggleMultiselectMode() {
+            isMultiselectMode = !isMultiselectMode;
+
+            if (isMultiselectMode) {
+                // 进入多选模式
+                multiselectToggle.innerHTML = '<i class="fas fa-times"></i> 退出多选';
+                multiselectToggle.style.background = '#e74c3c';
+
+                // 直接显示多选控制区域
+                multiselectControls.style.display = 'flex';
+
+                selectedDates.clear();
+                updateMultiselectCount();
+
+                // 自动聚焦到批量输入框
+                setTimeout(() => {
+                    batchHoursInput.focus();
+                }, 100);
+            } else {
+                // 退出多选模式
+                exitMultiselectMode();
+            }
+
+            // 重新渲染日历以更新样式
+            renderCalendar();
+        }
+        // 确保多选控制区域显示状态正确
+        function updateMultiselectControlsVisibility() {
+            if (multiselectControls) {
+                if (isMultiselectMode) {
+                    multiselectControls.style.display = 'flex';
+                } else {
+                    multiselectControls.style.display = 'none';
+                }
+            }
+        }
+        // 修改退出多选模式函数
+        function exitMultiselectMode() {
+            isMultiselectMode = false;
+            multiselectToggle.innerHTML = '<i class="fas fa-mouse-pointer"></i> 多选模式';
+            multiselectToggle.style.background = '';
+
+            // 直接隐藏多选控制区域
+            multiselectControls.style.display = 'none';
+
+            selectedDates.clear();
+            updateMultiselectCount();
+
+            // 清空输入框
+            batchHoursInput.value = '';
+
+            showNotification('已退出多选模式', 'info');
+        }
+        // 添加键盘事件监听
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', function (e) {
+                // 只有在多选模式下才响应
+                if (!isMultiselectMode) return;
+
+                // Enter键应用设置
+                if (e.key === 'Enter' && document.activeElement === batchHoursInput) {
+                    e.preventDefault();
+                    applyMultiselect();
+                }
+
+                // Escape键清空选择
+                if (e.key === 'Escape' && selectedDates.size > 0) {
+                    e.preventDefault();
+                    clearMultiselect();
+                }
+            });
+        }
+        // 更新多选计数显示
+        function updateMultiselectCount() {
+            multiselectCount.textContent = `已选择 ${selectedDates.size} 个日期`;
+        }
+
+        // 处理日期点击（多选模式）
+        function handleDateClick(date, dayElement) {
+            if (!isMultiselectMode) {
+                // 普通模式：显示单个输入框
+                showOvertimeInput(date, dayElement);
+                return;
+            }
+
+            // 多选模式：切换选择状态
+            const dateString = formatDateForInput(date);
+
+            if (selectedDates.has(dateString)) {
+                // 取消选择
+                selectedDates.delete(dateString);
+                dayElement.classList.remove('multiselect');
+            } else {
+                // 选择
+                selectedDates.add(dateString);
+                dayElement.classList.add('multiselect');
+            }
+
+            updateMultiselectCount();
+        }
+
+        // 修改取消按钮的功能
+        function cancelMultiselect() {
+            exitMultiselectMode();
+            renderCalendar();
+            showNotification('已退出多选模式', 'info');
+        }
+
+        // 修改 applyMultiselect 函数中的这部分代码
+        function applyMultiselect() {
+            const hours = parseFloat(batchHoursInput.value);
+
+            // 验证输入 - 允许0和负数
+            if (isNaN(hours)) {
+                showNotification('请输入有效的数字', 'error');
+                batchHoursInput.focus();
+                return;
+            }
+
+            if (selectedDates.size === 0) {
+                showNotification('请至少选择一个日期', 'warning');
+                return;
+            }
+
+            // 获取当前月份的加班数据
+            const overtimeData = getCurrentOvertimeData();
+            let count = 0;
+            let overtimeCount = 0;
+            let leaveCount = 0;
+            let deleteCount = 0;
+
+            // 为每个选中的日期设置数据
+            selectedDates.forEach(dateString => {
+                const existingData = overtimeData[dateString];
+
+                if (hours === 0) {
+                    // 删除数据
+                    if (existingData) {
+                        delete overtimeData[dateString];
+                        deleteCount++;
+
+                        // 查找对应的日历元素并清除显示
+                        const year = currentDate.getFullYear();
+                        const month = currentDate.getMonth();
+                        const day = parseInt(dateString.split('-')[2]);
+
+                        // 获取所有日历日元素
+                        const calendarDays = document.querySelectorAll('.calendar-day');
+                        calendarDays.forEach(dayElement => {
+                            const dayNumber = dayElement.querySelector('.day-number');
+                            if (dayNumber && parseInt(dayNumber.textContent) === day) {
+                                // 移除小圆点
+                                const existingDot = dayElement.querySelector('.overtime-dot');
+                                if (existingDot) {
+                                    existingDot.remove();
+                                }
+                                // 移除标签
+                                const existingBadge = dayElement.querySelector('.overtime-badge');
+                                if (existingBadge) {
+                                    existingBadge.remove();
+                                }
+                                // 移除选中状态
+                                dayElement.classList.remove('selected');
+                            }
+                        });
+                    }
+                } else {
+                    const isLeave = hours < 0;
+                    const absoluteHours = Math.abs(hours);
+
+                    // 设置加班或请假
+                    overtimeData[dateString] = {
+                        hours: absoluteHours,
+                        isLeave: isLeave
+                    };
+
+                    if (isLeave) {
+                        leaveCount++;
+                    } else {
+                        overtimeCount++;
+                    }
+                    count++;
+                }
+            });
+
+            // 清空选择状态
+            selectedDates.clear();
+
+            // 更新界面
+            renderCalendar(); // 重新渲染整个日历以确保状态正确
+            updateStats();
+            updateExcelTable();
+            saveToLocalStorage();
+
+            // 清空输入框
+            batchHoursInput.value = '';
+            batchHoursInput.focus();
+
+            // 更新多选计数显示
+            updateMultiselectCount();
+
+            // 显示友好的提示信息
+            let message = '';
+            if (hours === 0) {
+                message = `已清除 ${deleteCount} 个日期的加班/请假记录`;
+            } else if (hours > 0) {
+                message = `成功为 ${overtimeCount} 个日期设置加班 ${hours} 小时`;
+            } else {
+                message = `成功为 ${leaveCount} 个日期设置请假 ${Math.abs(hours)} 小时`;
+            }
+
+            showNotification(message + '（选择已清空，可继续选择其他日期）', 'success');
+        }
+
+        // 显示美化通知的函数（修复重复问题）
+        function showNotification(message, type = 'info') {
+            // 移除现有的通知
+            const existingNotifications = document.querySelectorAll('.custom-notification');
+            existingNotifications.forEach(notification => {
+                notification.remove();
+            });
+
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `custom-notification custom-notification-${type}`;
+
+            // 根据类型设置图标和颜色
+            let icon = 'ℹ️';
+            let bgColor = '#3498db';
+
+            switch (type) {
+                case 'success':
+                    icon = '✅';
+                    bgColor = '#2ecc71';
+                    break;
+                case 'warning':
+                    icon = '⚠️';
+                    bgColor = '#f39c12';
+                    break;
+                case 'error':
+                    icon = '❌';
+                    bgColor = '#e74c3c';
+                    break;
+                case 'info':
+                default:
+                    icon = 'ℹ️';
+                    bgColor = '#3498db';
+            }
+
+            notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${icon}</span>
+            <span class="notification-message">${message}</span>
+        </div>
+    `;
+
+            // 添加样式
+            notification.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        background: ${bgColor};
+        color: white;
+        padding: 12px 15px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        z-index: 10000;
+        animation: slideInRight 0.3s ease-out;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    `;
+
+            document.body.appendChild(notification);
+
+            // 3秒后自动消失
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 3000);
+
+            // 点击关闭
+            notification.addEventListener('click', () => {
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            });
+        }
+
+        // 在 exportToExcel 函数之后添加以下代码：
+
+        // 导出 Datalink 格式功能
+        // 替换之前的 exportToDatalink 函数为以下版本：
+        // ✅ 正确位置：全局作用域，和 addHours 平级
+        function addHours(timeStr, hours) {
+            const [h, m] = timeStr.split(':').map(Number);
+            let totalMinutes = h * 60 + m + Math.round(hours * 60);
+            totalMinutes = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+            const newH = Math.floor(totalMinutes / 60);
+            const newM = totalMinutes % 60;
+            return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+        }
+
+        // ✅ 新增：全局 formatDate 函数
+        function formatDate(date, format) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+
+            if (format === 'yyyy-MM-dd') {
+                return `${year}-${month}-${day}`;
+            } else if (format === 'yyyy/M/d') {
+                return `${year}/${parseInt(month)}/${parseInt(day)}`;
+            } else if (format === 'yyyy/M/d HH:mm') {
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}/${parseInt(month)}/${parseInt(day)} ${hours}:${minutes}`;
+            }
+            return `${year}-${month}-${day}`;
+        }
+        // 导出 Datalink 格式功能 (Excel格式)
+        // 导出 Datalink 格式功能 (Excel格式)
+        function exportToDatalink() {
+            const overtimeData = getCurrentOvertimeData();
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1;
+
+            const wb = XLSX.utils.book_new();
+            const headers = [
+                '填报人信息', '工号', '姓名', '成员组', '班次选择',
+                '开始日期', '开始加班时间', '结束日期', '结束加班时间', '休息开始时间', '休息结束时间',
+                '考勤日期', '开始时间', '结束时间', '休息开始', '休息结束',
+                '加班类型', '加班事由（最后填写）', '加班时数', '本周总加班', '本月总加班',
+                '备案加班(含月末小周六)', '剩余加班', '填报编号', '归属族', '提交人', '提交时间', '更新人', '更新时间'
+            ];
+
+            const data = [headers];
+            let weeklyTotal = 0;
+            let monthlyTotal = 0;
+            const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+            // 收集并排序有效加班数据（排除请假）
+            const validItems = Object.entries(overtimeData)
+                .filter(([_, data]) => !data.isLeave)
+                .map(([dateStr, data]) => ({
+                    date: new Date(dateStr),
+                    hours: parseFloat(data.hours) || 0
+                }))
+                .sort((a, b) => a.date - b.date);
+
+            validItems.forEach(item => {
+                const { date, hours } = item;
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const isHoliday = getDateType(date) === 'holiday';
+
+                // 更新累计时数（只加一次总时长）
+                weeklyTotal += hours;
+                if (date >= firstDayOfMonth && date <= new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)) {
+                    monthlyTotal += hours;
+                }
+
+                // 拆分逻辑：按规则生成一行或多行
+                const rows = splitOvertimeHours(date, hours, isWeekend || isHoliday);
+                rows.forEach(row => {
+                    // ✅ 显式设置这三个字段为空字符串
+                    row[18] = ''; // 加班时数
+                    row[19] = ''; // 本周总加班
+                    row[20] = ''; // 本月总加班
+
+                    // ✅ 其他字段逻辑保持不变（如 createDayRow/createEveningRow）
+                    data.push(row);
+                });
+
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 15) }));
+            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+            XLSX.writeFile(wb, `${year}年${month}月_datalink数据.xlsx`);
+        }
+
+
+        // 根据日期和加班时长，返回一个或多个数据行（用于 Datalink）
+        function splitOvertimeHours(date, totalHours, isRestDay) {
+            const rows = [];
+
+            // 规则1：小于8小时 → 全部作为晚上加班
+            if (totalHours < 8) {
+                rows.push(createEveningRow(date, totalHours));
+                return rows;
+            }
+
+            // 规则2：8–9.5小时 → 仅白天+午休
+            if (totalHours < 10) {
+                rows.push(createDayRow(date, totalHours));
+                return rows;
+            }
+
+            // 规则3：10小时 → 拆为 8h（白天） + 2h（晚上）
+            if (totalHours === 10) {
+                rows.push(createDayRow(date, 8));
+                rows.push(createEveningRow(date, 2, '19:00', '21:00'));
+                return rows;
+            }
+
+            // 规则4：11小时 → 拆为 8h（白天） + 3h（晚上）
+            if (totalHours === 11) {
+                rows.push(createDayRow(date, 8));
+                rows.push(createEveningRow(date, 3, '19:00', '22:00'));
+                return rows;
+            }
+
+            // 规则5：>11小时 → 按 8+3 拆分，剩余部分按晚上加班（可选扩展）
+            // 例如：12H → 8+3+1 → 三行
+            if (totalHours > 11) {
+                rows.push(createDayRow(date, 8)); // 固定8小时白天
+                rows.push(createEveningRow(date, 3, '19:00', '22:00')); // 固定3小时晚上
+                const remaining = totalHours - 11;
+                if (remaining > 0) {
+                    rows.push(createEveningRow(date, remaining, '22:00', addHours('22:00', remaining)));
+                }
+                return rows;
+            }
+
+            return rows; // 默认（理论上不会执行到这里）
+        }
+        // 创建白天加班行（8:30–18:00，含午休12:00–13:30）
+        // 创建白天加班行（8:30–18:00，含午休12:00–13:30）
+        function createDayRow(date, hours) {
+            const startDate = formatDate(date, 'yyyy-MM-dd');
+            const endDate = startDate;
+            const attendanceDate = startDate;
+
+            // 动态读取设置（优先从 Cookie，否则默认）
+            const settings = {
+                reporterInfo: getCookie('reporterInfo') || defaultSettings.reporterInfo,
+                employeeId: getCookie('employeeId') || defaultSettings.employeeId,
+                employeeName: getCookie('employeeName') || defaultSettings.employeeName,
+                teamGroup: getCookie('teamGroup') || defaultSettings.teamGroup,
+                overtimeReason: getCookie('overtimeReason') || defaultSettings.overtimeReason
+            };
+
+            return [
+                settings.reporterInfo,       // 填报人信息
+                settings.employeeId,         // 工号
+                settings.employeeName,       // 姓名
+                settings.teamGroup,          // 成员组
+                '白班',                         // 班次选择
+                startDate,                      // 开始日期
+                '08:30',                        // 开始加班时间
+                endDate,                        // 结束日期
+                '18:00',                        // 结束加班时间
+                '',                               // 休息开始时间
+                '',                               // 休息结束时间
+                attendanceDate,                 // 考勤日期
+                `${attendanceDate} 08:30`, // 开始时间
+                `${attendanceDate} 18:00`, // 结束时间
+                `${attendanceDate} 12:00`, // 休息开始
+                `${attendanceDate} 13:30`, // 休息结束
+                '转加班费/Overtime For Salary', // 加班类型
+                settings.overtimeReason,      // 动态加班事由
+                '',                                // 备案加班
+                '',                                // 剩余加班
+                '',                                // 填报编号
+                '',                                // 归属族
+                '',                                // 提交人
+                '',                                // 提交时间
+                '',                                // 更新人
+                ''                                 // 更新时间
+            ];
+        }
+
+        // 创建晚上加班行（19:00开始，无午休）
+        function createEveningRow(date, hours, startTime = '19:00', endTime = null) {
+            const startDate = formatDate(date, 'yyyy-MM-dd');
+            const endDate = startDate;
+            const attendanceDate = startDate;
+
+            if (!endTime) {
+                endTime = addHours(startTime, hours);
+            }
+
+            // 动态读取设置
+            const settings = {
+                reporterInfo: getCookie('reporterInfo') || defaultSettings.reporterInfo,
+                employeeId: getCookie('employeeId') || defaultSettings.employeeId,
+                employeeName: getCookie('employeeName') || defaultSettings.employeeName,
+                teamGroup: getCookie('teamGroup') || defaultSettings.teamGroup,
+                overtimeReason: getCookie('overtimeReason') || defaultSettings.overtimeReason
+            };
+
+            return [
+                settings.reporterInfo,       // 填报人信息
+                settings.employeeId,         // 工号
+                settings.employeeName,       // 姓名
+                settings.teamGroup,          // 成员组
+                '白班',                         // 班次选择
+                startDate,                      // 开始日期
+                startTime,                      // 开始加班时间
+                endDate,                        // 结束日期
+                endTime,                        // 结束加班时间
+                '',                               // 休息开始时间
+                '',                               // 休息结束时间
+                attendanceDate,                 // 考勤日期
+                `${attendanceDate} ${startTime}`, // 开始时间
+                `${attendanceDate} ${endTime}`,   // 结束时间
+                `${attendanceDate} 0:00`, // 休息开始（空）
+                `${attendanceDate} 0:00`, // 休息结束（空）
+                '转加班费/Overtime For Salary', // 加班类型
+                settings.overtimeReason,      // 动态加班事由
+                '',                                // 备案加班
+                '',                                // 剩余加班
+                '',                                // 填报编号
+                '',                                // 归属族
+                '',                                // 提交人
+                '',                                // 提交时间
+                '',                                // 更新人
+                ''                                 // 更新时间
+            ];
+        }
+
+        // 默认设置值
+        const defaultSettings = {
+            overtimeReason: "JHS项目加班工作",
+            reporterInfo: "liaozichen 84376722",
+            employeeId: "84376722",
+            employeeName: "廖子宸",
+            teamGroup: "李亮"
+        };
+
+        // Cookie 工具函数
+        function setCookie(name, value, days = 365) {
+            const d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + d.toUTCString();
+            document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+            }
+            return null;
+        }
+
+        // 读取设置并填充表单
+        function loadSettings() {
+            const settings = {
+                overtimeReason: getCookie('overtimeReason') || defaultSettings.overtimeReason,
+                reporterInfo: getCookie('reporterInfo') || defaultSettings.reporterInfo,
+                employeeId: getCookie('employeeId') || defaultSettings.employeeId,
+                employeeName: getCookie('employeeName') || defaultSettings.employeeName,
+                teamGroup: getCookie('teamGroup') || defaultSettings.teamGroup
+            };
+
+            // 填充表单
+            document.getElementById('overtime-reason').value = settings.overtimeReason;
+            document.getElementById('reporter-info').value = settings.reporterInfo;
+            document.getElementById('employee-id').value = settings.employeeId;
+            document.getElementById('employee-name').value = settings.employeeName;
+            document.getElementById('team-group').value = settings.teamGroup;
+
+            return settings;
+        }
+
+        // 保存设置到 Cookie
+        function saveSettings() {
+            const settings = {
+                overtimeReason: document.getElementById('overtime-reason').value.trim() || defaultSettings.overtimeReason,
+                reporterInfo: document.getElementById('reporter-info').value.trim() || defaultSettings.reporterInfo,
+                employeeId: document.getElementById('employee-id').value.trim() || defaultSettings.employeeId,
+                employeeName: document.getElementById('employee-name').value.trim() || defaultSettings.employeeName,
+                teamGroup: document.getElementById('team-group').value.trim() || defaultSettings.teamGroup
+            };
+
+            // 保存到 Cookie
+            setCookie('overtimeReason', settings.overtimeReason);
+            setCookie('reporterInfo', settings.reporterInfo);
+            setCookie('employeeId', settings.employeeId);
+            setCookie('employeeName', settings.employeeName);
+            setCookie('teamGroup', settings.teamGroup);
+
+            alert('✅ 设置已成功保存！');
+        }
+
+        // 重置为默认值
+        function resetSettings() {
+            document.getElementById('overtime-reason').value = defaultSettings.overtimeReason;
+            document.getElementById('reporter-info').value = defaultSettings.reporterInfo;
+            document.getElementById('employee-id').value = defaultSettings.employeeId;
+            document.getElementById('employee-name').value = defaultSettings.employeeName;
+            document.getElementById('team-group').value = defaultSettings.teamGroup;
+
+            alert('🔄 已重置为默认设置');
+        }
+
+        // 模态框显示/隐藏逻辑
+        function setupModal() {
+            const modal = document.getElementById('setting-modal');
+            const openBtn = document.getElementById('open-setting-modal');
+            const closeBtn = document.querySelector('.close');
+            const saveBtn = document.getElementById('save-settings');
+            const resetBtn = document.getElementById('reset-settings');
+
+            openBtn.onclick = () => {
+                modal.style.display = 'block';
+            };
+
+            closeBtn.onclick = () => {
+                modal.style.display = 'none';
+            };
+
+            window.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            };
+
+            saveBtn.onclick = saveSettings;
+            resetBtn.onclick = resetSettings;
+
+            // 页面加载时自动加载设置
+            window.onload = () => {
+                loadSettings();
+            };
+        }
+
+        // 启动模态框功能
+        setupModal();
+
+
+
+
+        // 初始化应用
+        init();
+    </script>
+</body>
+
+</html>
