@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <title>蓝膜 Mapping 工具 - 工业化版</title>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script> -->
+  <script src="./xlsx.full.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #c3d1ff, #f5f7fa);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+      min-height: calc(100vh - 60px);
+    }
+
+    /* 左侧控制面板 */
+    .control-panel {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(15px);
+      border-radius: 16px;
+      padding: 25px;
+      width: 320px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    .control-panel h2 {
+      margin: 0 0 15px 0;
+      color: #222;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .control-group h3 {
+      margin: 0;
+      color: #444;
+      font-size: 16px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .control-btn {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      background: #5c6bc0;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: flex-start;
+    }
+
+    .control-btn:hover {
+      background: #3f51b5;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .control-btn.settings {
+      background: #ff9800;
+    }
+
+    .control-btn.settings:hover {
+      background: #f57c00;
+    }
+
+    .control-btn.lock {
+      background: #9c27b0;
+    }
+
+    .control-btn.lock:hover {
+      background: #7b1fa2;
+    }
+
+    .control-btn.danger {
+      background: #f44336;
+    }
+
+    .control-btn.danger:hover {
+      background: #d32f2f;
+    }
+
+    .control-btn.success {
+      background: #4caf50;
+    }
+
+    .control-btn.success:hover {
+      background: #388e3c;
+    }
+
+    .control-btn.info {
+      background: #2196f3;
+    }
+
+    .control-btn.info:hover {
+      background: #1976d2;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-input {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    /* 中间矩阵区域 */
+    .matrix-area {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(15px);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      min-width: 0;
+      /* 重要：允许内容溢出 */
+    }
+
+    .matrix-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .matrix-header h2 {
+      color: #222;
+      margin-bottom: 10px;
+    }
+
+    .summary {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      margin-bottom: 15px;
+      flex-shrink: 0;
+    }
+
+    #matrix-container {
+      flex: 1;
+      overflow: auto;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.3);
+      padding: 10px;
+      position: relative;
+      min-height: 400px;
+    }
+
+    /* 自定义滚动条样式 */
+    #matrix-container::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    #matrix-container::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 5px;
+    }
+
+    #matrix-container::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+    }
+
+    #matrix-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    #matrix {
+      display: grid;
+      gap: 2px;
+      user-select: none;
+      margin: 0;
+      width: max-content;
+      /* 不要设置 margin 或 padding，让它紧贴容器内边距 */
+    }
+
+
+    .cell {
+      text-align: center;
+      line-height: 30px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      background-color: rgba(255, 255, 255, 0.5);
+      transition: all 0.2s;
+      width: var(--cell-size);
+      height: var(--cell-size);
+      line-height: var(--cell-size);
+      position: relative;
+      cursor: pointer;
+    }
+
+    :root {
+      --cell-size: 30px;
+    }
+
+    .bin-1 {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .bin-2 {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .bin-other {
+      background-color: #2196f3;
+      color: white;
+    }
+
+    .selected {
+      outline: 3px solid #ff9800;
+      outline-offset: -1px;
+      z-index: 10;
+    }
+
+    /* 选择框样式 - 修复 */
+    .selection-box {
+      position: absolute;
+      border: 2px dashed #ff9800;
+      background-color: rgba(255, 152, 0, 0.1);
+      pointer-events: none;
+      z-index: 5;
+      display: none;
+      box-sizing: border-box;
+      box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+      /* ✅ 轻微发光，提升工业感 */
+    }
+
+
+    /* 右侧贴边公告栏 */
+    .announcement-sidebar {
+      position: fixed;
+      right: 0;
+      top: 10px;
+      /* 往上提一点 */
+      bottom: 20px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+    }
+
+    .announcement-toggle {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 12px;
+      border-radius: 12px 0 0 12px;
+      cursor: pointer;
+      text-align: center;
+      font-weight: bold;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: -4px 0 15px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-right: none;
+      height: auto;
+      min-height: 120px;
+      transition: all 0.3s ease;
+    }
+
+    .announcement-toggle:hover {
+      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+      transform: translateX(-5px);
+      box-shadow: -6px 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .announcement-content {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      border-radius: 12px 0 0 12px;
+      padding: 25px;
+      box-shadow: -4px 0 25px rgba(0, 0, 0, 0.2);
+      width: 300px;
+      display: none;
+      flex-direction: column;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-right: none;
+      overflow-y: auto;
+      max-height: 80vh;
+      margin-left: -1px;
+    }
+
+    .announcement-content.show {
+      display: flex;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .announcement-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .announcement-header h3 {
+      color: #222;
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .close-announcement {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #666;
+      transition: color 0.2s;
+    }
+
+    .close-announcement:hover {
+      color: #333;
+    }
+
+    .announcement-content p {
+      margin: 10px 0;
+      color: #444;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .announcement-content ul {
+      padding-left: 20px;
+      margin: 10px 0;
+    }
+
+    .announcement-content li {
+      margin: 5px 0;
+      color: #444;
+      line-height: 1.5;
+    }
+
+    .announcement-content .warning {
+      color: #f44336;
+      font-weight: bold;
+      margin: 15px 0;
+      padding: 10px;
+      background: rgba(244, 67, 54, 0.1);
+      border-radius: 8px;
+      border-left: 4px solid #f44336;
+      font-size: 13px;
+    }
+
+    .got-it-btn {
+      width: 100%;
+      padding: 12px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 15px;
+      transition: all 0.2s;
+    }
+
+    .got-it-btn:hover {
+      background: #388e3c;
+    }
+
+    /* 页脚 */
+    .footer {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 15px;
+      margin-top: 20px;
+      color: #666;
+      font-size: 12px;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .footer a {
+      color: #5c6bc0;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* 右键菜单 */
+    #context-menu {
+      position: fixed;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      padding: 10px 0;
+      display: none;
+      z-index: 1000;
+      min-width: 180px;
+    }
+
+    .menu-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-item:hover {
+      background-color: #e0e0e0;
+    }
+
+    .menu-divider {
+      height: 1px;
+      background-color: #ccc;
+      margin: 5px 0;
+    }
+
+    /* 模态框 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 3000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      min-width: 400px;
+      max-width: 500px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: #333;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+      transition: color 0.2s;
+    }
+
+    .close-btn:hover {
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .form-group input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    .form-actions button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #5c6bc0;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #3f51b5;
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    /* 状态消息 */
+    .status-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      z-index: 2000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+      max-width: 80%;
+      text-align: center;
+    }
+
+    .status-success {
+      background-color: #4caf50;
+    }
+
+    .status-error {
+      background-color: #f44336;
+    }
+
+    .status-info {
+      background-color: #2196f3;
+    }
+
+    .status-warning {
+      background-color: #ff9800;
+    }
+
+    /* 保护单元格样式 */
+    .protected {
+      opacity: 0.7;
+      cursor: not-allowed !important;
+      position: relative;
+      background-color: #f0f0f0 !important;
+    }
+
+    .protected::after {
+      content: "🔒";
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      font-size: 10px;
+    }
+
+    .protected.bin-1 {
+      background-color: #c8e6c9 !important;
+      color: #666;
+    }
+
+    .protected.bin-2 {
+      background-color: #ffcdd2 !important;
+      color: #666;
+    }
+
+    .protected.selected {
+      outline: none !important;
+    }
+
+    /* 性能优化：单元格渲染指示器 */
+    .rendering-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 100;
+      display: none;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 1200px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+
+      .control-panel {
+        width: 100%;
+      }
+
+      .announcement-sidebar {
+        right: 10px;
+        top: auto;
+        bottom: 20px;
+      }
+
+      .announcement-toggle {
+        padding: 15px 10px;
+        min-height: 100px;
+      }
+
+      .announcement-content {
+        width: 280px;
+        max-height: 60vh;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+
+      .modal-content {
+        min-width: 90%;
+        margin: 20px;
+      }
+
+      .matrix-area {
+        padding: 15px;
+      }
+
+      /* 移动端隐藏公告栏，显示浮动按钮 */
+      .announcement-sidebar {
+        display: none;
+      }
+
+      .mobile-announcement-btn {
+        display: block !important;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1001;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+      }
+    }
+
+    /* 移动端公告按钮 */
+    .mobile-announcement-btn {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 主要应用容器 -->
+  <div class="main-container">
+    <!-- 左侧控制面板 -->
+    <div class="control-panel">
+      <h2>蓝膜 Mapping 控制台</h2>
+
+      <div class="control-group">
+        <h3>📐 矩阵设置</h3>
+        <button class="control-btn" onclick="showMatrixSettings()">
+          <span>📏</span> 设置矩阵尺寸
+        </button>
+        <button class="control-btn settings" onclick="showSettingsModal()">
+          <span>⚙️</span> 系统设置
+        </button>
+      </div>
+
+      <div class="control-group">
+        <h3>📁 文件操作</h3>
+        <div class="file-input-wrapper">
+          <button class="control-btn info">
+            <span>📂</span> 导入 Excel 文件
+          </button>
+          <input type="file" id="upload" class="file-input" accept=".xlsx, .xls, .csv" />
+        </div>
+        <!-- <button class="control-btn" onclick="loadSourceFile()">
+          <span>🔄</span> 自动获取源文件
+        </button> -->
+        <button class="control-btn" onclick="downloadTemplate()">
+          <span>📥</span> 下载模板
+        </button>
+        <button class="control-btn" onclick="exportToExcel()">
+          <span>📊</span> 导出 Excel
+        </button>
+      </div>
+
+      <div class="control-group">
+        <h3>🎨 单元格操作</h3>
+        <button class="control-btn success" onclick="setBin(1)">
+          <span>✅</span> 设置为有料 (<span id="bin1-display">1</span>)
+        </button>
+        <button class="control-btn danger" onclick="setBin(2)">
+          <span>❌</span> 设置为无料 (<span id="bin2-display">2</span>)
+        </button>
+        <div class="menu-item danger" onclick="deleteSelectedRows()">
+          <span style="color:#f44336">🗑️</span> 删除选中行
+        </div>
+        <button class="control-btn" onclick="searchCell()">
+          <span>🔍</span> 搜索定位
+        </button>
+      </div>
+
+      <div class="control-group">
+        <h3>🔧 视图控制</h3>
+        <button class="control-btn" onclick="updateCellSize(5)">
+          <span>➕</span> 放大单元格
+        </button>
+        <button class="control-btn" onclick="updateCellSize(-5)">
+          <span>➖</span> 缩小单元格
+        </button>
+        <button id="lock-toggle" class="control-btn lock" onclick="toggleLock()">
+          <span>🔓</span> 可编辑模式
+        </button>
+        <button class="control-btn" onclick="clearAllSelections()">
+          <span>🗑️</span> 清空选择
+        </button>
+        <button class="control-btn" onclick="undoDelete()" disabled id="undo-btn">
+          <span>↩️</span> 撤销删除
+        </button>
+
+      </div>
+    </div>
+
+    <!-- 中间矩阵区域 -->
+    <div class="matrix-area">
+      <div class="matrix-header">
+        <h2>蓝膜矩阵 Mapping 视图</h2>
+        <div class="summary" id="summary">
+          有料 (<span id="bin1-value">1</span>)：0， 无料 (<span id="bin2-value">2</span>)：0， 总数：0
+        </div>
+      </div>
+      <div id="matrix-container">
+        <!-- 渲染指示器 -->
+        <div id="rendering-indicator" class="rendering-indicator">正在渲染矩阵...</div>
+        <div id="matrix"></div>
+        <!-- 选择框 -->
+        <div id="selection-box" class="selection-box"></div>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="footer">
+      <p>
+        🔐 防伪标识：TIA-MAP-2025-PRO |
+        👨‍💻 开发者：廖子宸 |
+        📧 技术支持：<a href="84376722">84376722</a>
+      </p>
+      <p>© 2025 蓝膜 Mapping 工具 v3.0.0 工业化版 - 版权所有</p>
+    </div>
+  </div>
+
+  <!-- 右侧贴边公告栏 -->
+  <div class="announcement-sidebar">
+    <div class="announcement-toggle" onclick="toggleAnnouncement()">
+      📢 系统公告
+    </div>
+    <div class="announcement-content" id="announcement-content">
+      <div class="announcement-header">
+        <h3>蓝膜 Mapping 工具 v3.0</h3>
+        <button class="close-announcement" onclick="closeAnnouncement()">×</button>
+      </div>
+      <p>欢迎使用蓝膜矩阵Mapping专业工具！</p>
+      <p>本工具支持以下功能：</p>
+      <ul>
+        <li>Excel数据导入导出</li>
+        <li>智能框选与多选</li>
+        <li>自定义矩阵尺寸</li>
+        <li>自定义有料/无料数值</li>
+        <li>右键菜单快捷操作</li>
+        <li>状态管理与保护单元格</li>
+      </ul>
+      <div class="warning">
+        ⚠️ 注意：请勿随意修改受保护的单元格
+      </div>
+      <button class="got-it-btn" onclick="closeAnnouncement()">
+        我知道了
+      </button>
+    </div>
+  </div>
+
+  <!-- 移动端公告按钮 -->
+  <div class="mobile-announcement-btn" onclick="toggleAnnouncement()">
+    📢
+  </div>
+
+  <!-- 右键菜单 -->
+  <div id="context-menu">
+    <div class="menu-item" onclick="setBinFromMenu(1)">
+      <span style="color:#4caf50">●</span> 设置为有料 (<span id="context-bin1">1</span>)
+    </div>
+    <div class="menu-item" onclick="setBinFromMenu(2)">
+      <span style="color:#f44336">●</span> 设置为无料 (<span id="context-bin2">2</span>)
+    </div>
+    <div class="menu-divider"></div>
+    <div class="menu-item danger" onclick="deleteSelectedRows()">
+      <span style="color:#f44336">🗑️</span> 删除选中行
+    </div>
+
+    <div class="menu-divider"></div>
+    <!-- <div class="menu-item" onclick="loadSourceFile()">
+      <span>🔄</span> 自动获取源文件
+    </div> -->
+    <div class="menu-item" onclick="document.getElementById('upload').click()">
+      <span>📁</span> 选择文件...
+    </div>
+    <div class="menu-divider"></div>
+    <div class="menu-item" onclick="clearAllSelections()">
+      <span>🗑️</span> 清空选择
+    </div>
+    <div class="menu-item" onclick="showMatrixSettings()">
+      <span>📏</span> 调整矩阵尺寸
+    </div>
+    <div class="menu-divider"></div>
+    <div class="menu-item" onclick="hideContextMenu()">
+      <span>✕</span> 取消
+    </div>
+  </div>
+
+  <!-- 设置模态框 -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>⚙️ 系统设置</h3>
+        <button class="close-btn" onclick="hideSettingsModal()">×</button>
+      </div>
+
+      <div class="form-group">
+        <label>有料单元格数值：</label>
+        <input type="number" id="bin1-input" min="0" max="99" value="1">
+        <div style="margin-top: 5px; font-size: 12px; color: #666;">
+          颜色：<span style="color:#4caf50">● 绿色</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>无料单元格数值：</label>
+        <input type="number" id="bin2-input" min="0" max="99" value="2">
+        <div style="margin-top: 5px; font-size: 12px; color: #666;">
+          颜色：<span style="color:#f44336">● 红色</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>其他状态数值：</label>
+        <input type="number" id="other-bin-input" min="0" max="99" value="0">
+        <div style="margin-top: 5px; font-size: 12px; color: #666;">
+          颜色：<span style="color:#2196f3">● 蓝色</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="hideSettingsModal()">取消</button>
+        <button class="btn-primary" onclick="saveSettings()">保存设置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 矩阵尺寸设置模态框 -->
+  <div id="matrix-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📐 设置矩阵尺寸</h3>
+        <button class="close-btn" onclick="hideMatrixModal()">×</button>
+      </div>
+
+      <div class="form-group">
+        <label>行数 (最大120行)：</label>
+        <input type="number" id="rows-input" min="1" max="120" value="10">
+      </div>
+
+      <div class="form-group">
+        <label>列数 (最大120列)：</label>
+        <input type="number" id="cols-input" min="1" max="120" value="10">
+      </div>
+
+      <div class="form-group">
+        <label>性能提示：</label>
+        <div style="margin-top: 5px; font-size: 12px; color: #f44336;">
+          ⚠️ 注意：设置过大尺寸（如100×100）可能影响性能，建议使用较小单元格尺寸
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="hideMatrixModal()">取消</button>
+        <button class="btn-primary" onclick="applyMatrixSize()">应用尺寸</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 默认源文件路径
+    const SOURCE_FILE_URL = './TIA蓝膜20250818-【源文件】新版本使用V1.1.11.3以上.csv';
+
+    // 核心数据
+    let matrixData = {};
+    let validPositions = new Set();
+    let selectedCells = new Set();
+    let isSelecting = false;
+    let startCell = null;
+    let isAddingSelection = false;
+    let maxRow = 9, maxCol = 9;
+    let cellSize = 30;
+    let isLocked = false;
+    let protectedPositions = new Set();
+
+    let undoStack = []; // 存储每次删除前的快照
+    let redoStack = []; // 撤销后可重做
+
+
+    // 自定义设置
+    let customBin1 = 1;
+    let customBin2 = 2;
+    let customOtherBin = 0;
+
+    // 公告状态
+    let announcementShown = localStorage.getItem('announcementShown') === 'true';
+
+    // 选择框相关
+    let selectionBox = null;
+    let lastMousePos = null;
+
+    // 性能优化：渲染批处理
+    let renderBatchSize = 1000; // 每次渲染的单元格数量
+    let renderTimeout = null;
+
+    // 事件监听
+    document.getElementById('upload').addEventListener('change', handleFile);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('click', hideContextMenu);
+
+    // 使用文档级鼠标移动事件，而不是单元格级
+    document.addEventListener('mousemove', handleMouseMove);
+
+    // 初始化
+    window.onload = () => {
+      loadFromLocalStorage();
+      updateBinDisplays();
+      createSelectionBox();
+
+      // 根据本地存储状态显示/隐藏公告
+      if (!announcementShown) {
+        setTimeout(() => {
+          showAnnouncement();
+        }, 1000);
+      }
+    };
+
+    function createSelectionBox() {
+      selectionBox = document.getElementById('selection-box');
+      // 确保选择框相对于 #matrix-container 定位
+      selectionBox.style.position = 'absolute';
+      selectionBox.style.pointerEvents = 'none';
+      selectionBox.style.zIndex = '5';
+      selectionBox.style.display = 'none';
+    }
+
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        processFileData(evt.target.result);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function processFileData(arrayBuffer) {
+      const data = new Uint8Array(arrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      matrixData = {};
+      validPositions.clear();
+      protectedPositions.clear();
+      maxRow = 0;
+      maxCol = 0;
+
+      json.forEach(row => {
+        const r = parseInt(row["Bar_Y"]);
+        const c = parseInt(row["Chip No"]);
+        const bin = parseInt(row["Bin"]);
+        const protectCode = (row["Protect_Code"] || row["Edit_Code"] || "").toString().trim();
+
+        if (!isNaN(r) && !isNaN(c)) {
+          const key = `${r}-${c}`;
+          matrixData[key] = bin;
+          validPositions.add(key);
+
+          if (protectCode === "LOCKED") {
+            protectedPositions.add(key);
+          }
+
+          if (r > maxRow) maxRow = r;
+          if (c > maxCol) maxCol = c;
+        }
+      });
+
+      renderMatrix();
+      saveToLocalStorage();
+      showStatusMessage("文件加载成功", "success");
+    }
+
+    function renderMatrix() {
+      const container = document.getElementById('matrix');
+      const totalCells = (maxRow + 1) * (maxCol + 1);
+
+      // 如果单元格数量过多，显示加载指示器并分批渲染
+      if (totalCells > 2000) {
+        showRenderingIndicator();
+
+        // 清除现有内容
+        container.innerHTML = '';
+        container.style.gridTemplateColumns = `repeat(${maxCol + 1}, ${cellSize}px)`;
+
+        // 分批渲染
+        renderMatrixInBatches(container, 0);
+      } else {
+        // 小矩阵直接渲染
+        renderMatrixDirectly(container);
+      }
+
+      updateSelectedCells();
+      updateCellStyles();
+      updateSummary();
+    }
+
+    function renderMatrixDirectly(container) {
+      container.innerHTML = '';
+      container.style.gridTemplateColumns = `repeat(${maxCol + 1}, ${cellSize}px)`;
+
+      for (let r = 0; r <= maxRow; r++) {
+        for (let c = 0; c <= maxCol; c++) {
+          createCell(container, r, c);
+        }
+      }
+    }
+
+    function renderMatrixInBatches(container, startIndex) {
+      const totalCells = (maxRow + 1) * (maxCol + 1);
+      let rendered = 0;
+
+      for (let i = startIndex; i < totalCells && rendered < renderBatchSize; i++) {
+        const r = Math.floor(i / (maxCol + 1));
+        const c = i % (maxCol + 1);
+        createCell(container, r, c);
+        rendered++;
+      }
+
+      if (startIndex + rendered < totalCells) {
+        // 继续下一批
+        setTimeout(() => {
+          renderMatrixInBatches(container, startIndex + rendered);
+        }, 0);
+      } else {
+        // 渲染完成
+        hideRenderingIndicator();
+        updateCellStyles();
+      }
+    }
+
+    function createCell(container, r, c) {
+      const key = `${r}-${c}`;
+      const bin = matrixData[key] || 0;
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      // 根据自定义值设置类名
+      if (bin === customBin1) {
+        cell.classList.add('bin-1');
+      } else if (bin === customBin2) {
+        cell.classList.add('bin-2');
+      } else if (bin !== 0) {
+        cell.classList.add('bin-other');
+      }
+
+      cell.dataset.key = key;
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      cell.dataset.bin = bin;
+
+      if (protectedPositions.has(key)) {
+        cell.classList.add('protected');
+      }
+
+      if (validPositions.has(key)) {
+        cell.innerHTML = `
+          <div style="font-size:10px; line-height:1; opacity:0.8;">${r}-${c}</div>
+          <div style="font-size:14px; font-weight:bold;">${bin || ''}</div>
+        `;
+      } else {
+        cell.innerText = '';
+      }
+
+      container.appendChild(cell);
+
+      cell.addEventListener('mousedown', e => {
+        if (e.button === 0 && !isLocked) {
+          // 如果是受保护的格子，不允许开始选择
+          if (protectedPositions.has(key)) {
+            return;
+          }
+
+          isSelecting = true;
+          startCell = { row: r, col: c };
+          isAddingSelection = e.ctrlKey || e.metaKey;
+          if (!isAddingSelection) {
+            selectedCells.clear();
+          }
+
+          // 添加当前单元格到选择
+          if (validPositions.has(key) && !protectedPositions.has(key)) {
+            selectedCells.add(key);
+          }
+
+          // 显示选择框 - 修复：直接使用单元格坐标计算
+          const left = c * cellSize;
+          const top = r * cellSize;
+
+          selectionBox.style.left = left + 'px';
+          selectionBox.style.top = top + 'px';
+          selectionBox.style.width = cellSize + 'px';
+          selectionBox.style.height = cellSize + 'px';
+          selectionBox.style.display = 'block';
+
+          updateCellStyles();
+        }
+      });
+
+      cell.addEventListener('contextmenu', e => {
+        if (protectedPositions.has(key)) return;
+        e.preventDefault();
+        showContextMenu(e);
+      });
+    }
+
+    function showRenderingIndicator() {
+      const indicator = document.getElementById('rendering-indicator');
+      if (indicator) {
+        indicator.style.display = 'block';
+      }
+    }
+
+    function hideRenderingIndicator() {
+      const indicator = document.getElementById('rendering-indicator');
+      if (indicator) {
+        indicator.style.display = 'none';
+      }
+    }
+
+    function updateSelectedCells() {
+      const newSelectedCells = new Set();
+      selectedCells.forEach(key => {
+        if (validPositions.has(key)) {
+          newSelectedCells.add(key);
+        }
+      });
+      selectedCells = newSelectedCells;
+    }
+
+    function handleMouseMove(e) {
+      if (!isSelecting || !startCell) return;
+
+      const matrixContainer = document.getElementById('matrix-container');
+      const rect = matrixContainer.getBoundingClientRect(); // ✅ 相对于视口
+
+      // ✅ 直接用 e.clientX / e.clientY 减去 rect.left / rect.top
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // ✅ 关键：减去 container 的 padding + border，得到相对于 #matrix 的坐标
+      const containerPadding = 10;
+      const containerBorder = 1;
+      const matrixLeft = containerPadding + containerBorder;
+      const matrixTop = containerPadding + containerBorder;
+
+      const effectiveX = mouseX - matrixLeft;
+      const effectiveY = mouseY - matrixTop;
+
+      // 计算单元格索引（考虑单元格间距 2px）
+      const gap = 2;
+      const cellX = Math.floor(effectiveX / (cellSize + gap));
+      const cellY = Math.floor(effectiveY / (cellSize + gap));
+
+      // 边界检查
+      if (cellX < 0 || cellX > maxCol || cellY < 0 || cellY > maxRow) {
+        return;
+      }
+
+      // 更新选择框和选择区域
+      updateSelectionBox(startCell, { row: cellY, col: cellX });
+      updateSelection(startCell, { row: cellY, col: cellX });
+    }
+
+
+
+
+
+    function updateSelectionBox(start, end) {
+      if (!selectionBox) return;
+
+      const startRow = Math.min(start.row, end.row);
+      const endRow = Math.max(start.row, end.row);
+      const startCol = Math.min(start.col, end.col);
+      const endCol = Math.max(start.col, end.col);
+
+      const gap = 2; // 单元格间距
+      const left = startCol * (cellSize + gap);
+      const top = startRow * (cellSize + gap);
+      const width = (endCol - startCol + 1) * (cellSize + gap) - gap;
+      const height = (endRow - startRow + 1) * (cellSize + gap) - gap;
+
+      selectionBox.style.left = left + 'px';
+      selectionBox.style.top = top + 'px';
+      selectionBox.style.width = width + 'px';
+      selectionBox.style.height = height + 'px';
+      selectionBox.style.display = 'block';
+    }
+
+
+    function updateSelection(start, end) {
+      const minRow = Math.min(start.row, end.row);
+      const maxRow = Math.max(start.row, end.row);
+      const minCol = Math.min(start.col, end.col);
+      const maxCol = Math.max(start.col, end.col);
+
+      if (!isAddingSelection) selectedCells.clear();
+
+      // 遍历选择区域，跳过受保护的格子
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          const key = `${r}-${c}`;
+          if (validPositions.has(key) && !protectedPositions.has(key)) {
+            selectedCells.add(key);
+          }
+        }
+      }
+      updateCellStyles();
+    }
+
+    function handleMouseUp(e) {
+      if (isSelecting) {
+        isSelecting = false;
+        startCell = null;
+
+        // 隐藏选择框
+        if (selectionBox) {
+          selectionBox.style.display = 'none';
+        }
+      }
+    }
+
+    function updateCellStyles() {
+      if (renderTimeout) {
+        clearTimeout(renderTimeout);
+      }
+      renderTimeout = setTimeout(() => {
+        document.querySelectorAll('.cell').forEach(cell => {
+          const key = cell.dataset.key;
+          const bin = parseInt(cell.dataset.bin) || 0;
+
+          // 重置类
+          cell.className = 'cell';
+
+          // 根据自定义值添加类
+          if (bin === customBin1) {
+            cell.classList.add('bin-1');
+          } else if (bin === customBin2) {
+            cell.classList.add('bin-2');
+          } else if (bin !== 0) {
+            cell.classList.add('bin-other');
+          }
+
+          if (selectedCells.has(key)) cell.classList.add('selected');
+          if (protectedPositions.has(key)) cell.classList.add('protected');
+        });
+      }, 50);
+    }
+
+
+    function updateCellSize(delta) {
+      cellSize = Math.max(10, Math.min(80, cellSize + delta));
+      document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
+      document.getElementById('matrix').style.gridTemplateColumns = `repeat(${maxCol + 1}, ${cellSize}px)`;
+
+      // ✅ 修复：更新选择框以匹配新尺寸
+      if (isSelecting && startCell) {
+        const endCell = { row: Math.floor((lastMousePos?.y || 0) / (cellSize + 2)), col: Math.floor((lastMousePos?.x || 0) / (cellSize + 2)) };
+        updateSelectionBox(startCell, endCell);
+      }
+
+      renderMatrix();
+      showStatusMessage(`单元格尺寸: ${cellSize}px`, "info");
+    }
+
+
+    function searchCell() {
+      const input = prompt("请输入坐标（格式：行-列，例如 0-3）：");
+      if (!input) return;
+      if (!/^\d+-\d+$/.test(input)) {
+        alert("格式错误，请输入形如 '0-3' 的坐标。");
+        return;
+      }
+      if (matrixData[input] !== undefined) {
+        selectedCells.clear();
+        selectedCells.add(input);
+        updateCellStyles();
+        const cell = document.querySelector(`.cell[data-key='${input}']`);
+        if (cell) cell.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        showStatusMessage(`定位到坐标: ${input}`, "success");
+      } else {
+        alert("未找到对应坐标。");
+      }
+    }
+
+    function exportToExcel() {
+      const headers = [
+        "CUSTOMER PRODUCT ID ", "COL QTY BAR", "ROW QTY BAR", "DIE ON BAR STD",
+        "BAR No", "Lot ID", "Wafer ID ", "Carrier ID", "Bar_X",
+        "Bar_Y", "Chip No", "Die ID", "Bin"
+      ];
+
+      const fixedFields = [
+        "OC3610-TX1 V200-Chip-CH4", 4, 24, 23,
+        0, "A120J62#01-2", "A120J62#01-2", "A120J62#01-2CC02", 0
+      ];
+
+      const dieIdList = Array.from({ length: 1311 }, (_, i) => "FD" + String(i + 1).padStart(2, '0'));
+      const data = [headers];
+      let dieIndex = 0;
+
+      for (let r = 0; r <= maxRow; r++) {
+        for (let c = 0; c <= maxCol; c++) {
+          const key = `${r}-${c}`;
+          if (!validPositions.has(key)) continue;
+          const bin = matrixData[key];
+          const dieId = dieIdList[dieIndex++] || '';
+          const row = [...fixedFields, r, c, dieId, bin];
+          data.push(row);
+        }
+      }
+
+      const worksheet = XLSX.utils.aoa_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Mapping");
+      XLSX.writeFile(workbook, `mapping_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`);
+      showStatusMessage("导出成功", "success");
+    }
+
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem('mappingConfig');
+      if (saved) {
+        try {
+          const config = JSON.parse(saved);
+          matrixData = config.matrixData || {};
+          maxRow = config.maxRow || 9;
+          maxCol = config.maxCol || 9;
+          validPositions = new Set(config.validPositions || []);
+          protectedPositions = new Set(config.protectedPositions || []);
+
+          // 加载自定义设置
+          if (config.customBin1) customBin1 = config.customBin1;
+          if (config.customBin2) customBin2 = config.customBin2;
+          if (config.customOtherBin) customOtherBin = config.customOtherBin;
+
+          renderMatrix();
+          updateBinDisplays();
+          return true;
+        } catch {
+          console.warn("本地存储数据格式错误，忽略");
+        }
+      }
+      return false;
+    }
+
+    function saveToLocalStorage() {
+      const config = {
+        matrixData,
+        maxRow,
+        maxCol,
+        validPositions: Array.from(validPositions),
+        protectedPositions: Array.from(protectedPositions),
+        customBin1,
+        customBin2,
+        customOtherBin,
+        cellSize
+      };
+      localStorage.setItem('mappingConfig', JSON.stringify(config));
+    }
+
+    function downloadTemplate() {
+      const a = document.createElement('a');
+      a.href = "TIA蓝膜20250818-【源文件】新版本使用V1.1.11.3以上.csv";
+      a.download = "TIA_Mapping_Template.xlsx";
+      a.click();
+      showStatusMessage("模板下载开始", "info");
+    }
+
+    function toggleLock() {
+      isLocked = !isLocked;
+      const lockButton = document.querySelector('#lock-toggle');
+      if (isLocked) {
+        lockButton.innerHTML = '<span>🔒</span> 已锁定';
+        lockButton.style.background = '#f44336';
+        showStatusMessage("已锁定编辑", "warning");
+      } else {
+        lockButton.innerHTML = '<span>🔓</span> 可编辑模式';
+        lockButton.style.background = '#9c27b0';
+        showStatusMessage("已解锁编辑", "success");
+      }
+    }
+
+    function setBin(binValue) {
+      if (isLocked) {
+        showStatusMessage("已锁定，无法修改", "error");
+        return;
+      }
+
+      if (selectedCells.size === 0) {
+        showStatusMessage("请先选择要设置的单元格", "warning");
+        return;
+      }
+
+      // 映射自定义值
+      let actualBinValue;
+      if (binValue === 1) {
+        actualBinValue = customBin1;
+      } else if (binValue === 2) {
+        actualBinValue = customBin2;
+      } else {
+        actualBinValue = binValue;
+      }
+
+      selectedCells.forEach(key => {
+        matrixData[key] = actualBinValue;
+      });
+      renderMatrix();
+      saveToLocalStorage();
+      updateSummary();
+      showStatusMessage(`已设置 ${selectedCells.size} 个单元格为 ${actualBinValue}`, "success");
+    }
+
+    function updateSummary() {
+      let bin1 = 0;
+      let bin2 = 0;
+      let total = 0;
+      validPositions.forEach(key => {
+        const bin = matrixData[key];
+        if (bin === customBin1) bin1++;
+        else if (bin === customBin2) bin2++;
+        if (bin !== undefined) total++;
+      });
+      document.getElementById('summary').innerHTML =
+        `有料 (<span id="bin1-value">${customBin1}</span>)：${bin1}， ` +
+        `无料 (<span id="bin2-value">${customBin2}</span>)：${bin2}， ` +
+        `总数：${total}`;
+    }
+
+    function handleContextMenu(e) {
+      e.preventDefault();
+      showContextMenu(e);
+    }
+
+    function showContextMenu(e) {
+      if (selectedCells.size > 0) {
+        let allProtected = true;
+        selectedCells.forEach(key => {
+          if (!protectedPositions.has(key)) allProtected = false;
+        });
+        if (allProtected) return;
+      }
+      const menu = document.getElementById('context-menu');
+      menu.style.display = 'block';
+      const menuWidth = menu.offsetWidth;
+      const menuHeight = menu.offsetHeight;
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      let left = e.pageX;
+      let top = e.pageY;
+      if (left + menuWidth > windowWidth) left = windowWidth - menuWidth - 10;
+      if (top + menuHeight > windowHeight) top = windowHeight - menuHeight - 10;
+      menu.style.left = left + 'px';
+      menu.style.top = top + 'px';
+    }
+
+    function hideContextMenu() {
+      document.getElementById('context-menu').style.display = 'none';
+    }
+
+    function clearAllSelections() {
+      selectedCells.clear();
+      updateCellStyles();
+      hideContextMenu();
+      showStatusMessage("已清空选择", "info");
+    }
+    function deleteSelectedRows() {
+      if (isLocked) {
+        showStatusMessage("已锁定，无法删除", "error");
+        hideContextMenu();
+        return;
+      }
+
+      if (selectedCells.size === 0) {
+        showStatusMessage("请先框选要删除的单元格", "warning");
+        hideContextMenu();
+        return;
+      }
+
+      const count = selectedCells.size;
+
+      // 保存当前状态
+      undoStack.push({
+        matrixData: { ...matrixData },
+        validPositions: new Set(validPositions),
+        protectedPositions: new Set(protectedPositions),
+        selectedCells: new Set(selectedCells)
+      });
+      redoStack = [];
+
+      if (!confirm(`确定要删除 ${count} 个选中单元格吗？\n\n删除后将永久移除，且导出的 Excel 文件中不再包含这些行。`)) {
+        return;
+      }
+
+      selectedCells.forEach(key => {
+        delete matrixData[key];
+        validPositions.delete(key);
+        protectedPositions.delete(key);
+      });
+
+      selectedCells.clear();
+      renderMatrix();
+      saveToLocalStorage();
+      showStatusMessage(`成功删除 ${count} 个单元格`, "success");
+      hideContextMenu();
+      updateUndoButton();
+    }
+
+    function undoDelete() {
+      if (undoStack.length === 0) return;
+
+      const lastState = undoStack.pop();
+      redoStack.push({
+        matrixData: { ...matrixData },
+        validPositions: new Set(validPositions),
+        protectedPositions: new Set(protectedPositions),
+        selectedCells: new Set(selectedCells)
+      });
+
+      matrixData = lastState.matrixData;
+      validPositions = new Set(lastState.validPositions);
+      protectedPositions = new Set(lastState.protectedPositions);
+      selectedCells = new Set(lastState.selectedCells);
+
+      renderMatrix();
+      saveToLocalStorage();
+      showStatusMessage("已撤销删除", "info");
+      updateUndoButton();
+    }
+
+    function updateUndoButton() {
+      document.getElementById('undo-btn').disabled = undoStack.length === 0;
+    }
+
+
+
+    function setBinFromMenu(binValue) {
+      if (isLocked) {
+        showStatusMessage("已锁定，无法修改", "error");
+        hideContextMenu();
+        return;
+      }
+      if (selectedCells.size === 0) {
+        alert("请先选择要设置的单元格");
+        hideContextMenu();
+        return;
+      }
+      setBin(binValue);
+      hideContextMenu();
+    }
+
+    function loadSourceFile() {
+      if (isLocked) {
+        showStatusMessage("已锁定，请先解锁编辑", "error");
+        hideContextMenu();
+        return;
+      }
+
+      showStatusMessage("正在自动加载源文件...", "info");
+
+      fetch(SOURCE_FILE_URL)
+        .then(response => {
+          if (!response.ok) throw new Error(`网络响应不正常: ${response.status}`);
+          return response.arrayBuffer();
+        })
+        .then(data => {
+          processFileData(data);
+          showStatusMessage("源文件自动加载成功！", "success");
+        })
+        .catch(error => {
+          console.error('加载源文件失败:', error);
+          showStatusMessage(`加载失败: ${error.message}`, "error");
+
+          setTimeout(() => {
+            if (confirm('自动加载失败，是否手动选择文件？')) {
+              document.getElementById('upload').click();
+            }
+          }, 3000);
+        })
+        .finally(() => {
+          hideContextMenu();
+        });
+    }
+
+    function showStatusMessage(message, type = 'info') {
+      const existingMessage = document.getElementById('status-message');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+
+      const messageElement = document.createElement('div');
+      messageElement.id = 'status-message';
+      messageElement.className = `status-message status-${type}`;
+      messageElement.textContent = message;
+
+      document.body.appendChild(messageElement);
+
+      setTimeout(() => {
+        messageElement.style.opacity = '0';
+        setTimeout(() => messageElement.remove(), 300);
+      }, 3000);
+    }
+
+    // 公告功能
+    function showAnnouncement() {
+      const content = document.getElementById('announcement-content');
+      content.classList.add('show');
+    }
+
+    function hideAnnouncement() {
+      const content = document.getElementById('announcement-content');
+      content.classList.remove('show');
+    }
+
+    function toggleAnnouncement() {
+      const content = document.getElementById('announcement-content');
+      content.classList.toggle('show');
+    }
+
+    function closeAnnouncement() {
+      hideAnnouncement();
+      announcementShown = true;
+      localStorage.setItem('announcementShown', 'true');
+    }
+
+    // 设置功能
+    function showSettingsModal() {
+      document.getElementById('bin1-input').value = customBin1;
+      document.getElementById('bin2-input').value = customBin2;
+      document.getElementById('other-bin-input').value = customOtherBin;
+      document.getElementById('settings-modal').style.display = 'flex';
+    }
+
+    function hideSettingsModal() {
+      document.getElementById('settings-modal').style.display = 'none';
+    }
+
+    function saveSettings() {
+      const newBin1 = parseInt(document.getElementById('bin1-input').value) || 1;
+      const newBin2 = parseInt(document.getElementById('bin2-input').value) || 2;
+      const newOtherBin = parseInt(document.getElementById('other-bin-input').value) || 0;
+
+      if (newBin1 === newBin2 || newBin1 === newOtherBin || newBin2 === newOtherBin) {
+        showStatusMessage("错误：有料、无料和其他数值不能相同", "error");
+        return;
+      }
+
+      customBin1 = newBin1;
+      customBin2 = newBin2;
+      customOtherBin = newOtherBin;
+
+      updateBinDisplays();
+      renderMatrix();
+      saveToLocalStorage();
+      hideSettingsModal();
+      showStatusMessage("设置已保存并应用", "success");
+    }
+
+    function updateBinDisplays() {
+      document.getElementById('bin1-value').textContent = customBin1;
+      document.getElementById('bin2-value').textContent = customBin2;
+      document.getElementById('bin1-display').textContent = customBin1;
+      document.getElementById('bin2-display').textContent = customBin2;
+      document.getElementById('context-bin1').textContent = customBin1;
+      document.getElementById('context-bin2').textContent = customBin2;
+    }
+
+    // 矩阵尺寸设置功能
+    function showMatrixSettings() {
+      document.getElementById('rows-input').value = maxRow + 1;
+      document.getElementById('cols-input').value = maxCol + 1;
+      document.getElementById('matrix-modal').style.display = 'flex';
+    }
+
+    function hideMatrixModal() {
+      document.getElementById('matrix-modal').style.display = 'none';
+    }
+
+    function applyMatrixSize() {
+      const newRows = parseInt(document.getElementById('rows-input').value) || 10;
+      const newCols = parseInt(document.getElementById('cols-input').value) || 10;
+
+      if (newRows < 1 || newRows > 120 || newCols < 1 || newCols > 120) {
+        showStatusMessage("错误：行数和列数必须在1-120之间", "error");
+        return;
+      }
+
+      // 如果设置过大尺寸，给出警告（提升阈值以匹配120上限）
+      if (newRows * newCols > 8000) {
+        if (!confirm(`警告：设置${newRows}×${newCols}=${newRows * newCols}个单元格可能导致性能下降。\n\n建议：\n1. 使用较小的单元格尺寸\n2. 或者分批处理数据\n\n是否继续？`)) {
+          return;
+        }
+      }
+
+      const oldMaxRow = maxRow;
+      const oldMaxCol = maxCol;
+
+      maxRow = newRows - 1;
+      maxCol = newCols - 1;
+
+      // 更新有效位置
+      const newValidPositions = new Set();
+      for (let r = 0; r <= maxRow; r++) {
+        for (let c = 0; c <= maxCol; c++) {
+          const key = `${r}-${c}`;
+          if (validPositions.has(key)) {
+            newValidPositions.add(key);
+          } else {
+            // 如果是新增的位置，添加到数据中
+            newValidPositions.add(key);
+            if (!matrixData[key]) {
+              matrixData[key] = 0;
+            }
+          }
+        }
+      }
+
+      validPositions = newValidPositions;
+
+      // 清理超出范围的数据
+      Object.keys(matrixData).forEach(key => {
+        const [r, c] = key.split('-').map(Number);
+        if (r > maxRow || c > maxCol) {
+          delete matrixData[key];
+        }
+      });
+
+      renderMatrix();
+      saveToLocalStorage();
+      hideMatrixModal();
+      showStatusMessage(`矩阵尺寸已更改为 ${newRows}×${newCols}`, "success");
+    }
+
+  </script>
+</body>
+
+</html>
