@@ -1638,11 +1638,11 @@
         }
 
 
-        // ✅ 新增：全局 formatDate 函数
+        // ✅ 新增：确保 formatDate 函数支持 yyyy-MM-dd 格式
         function formatDate(date, format) {
             const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // 确保两位数字
+            const day = String(date.getDate()).padStart(2, '0'); // 确保两位数字
 
             if (format === 'yyyy-MM-dd') {
                 return `${year}-${month}-${day}`;
@@ -1698,8 +1698,8 @@
                 '填报人信息', '工号', '姓名', '成员组', '班次选择',
                 '开始日期', '开始加班时间', '结束日期', '结束加班时间', '休息开始时间', '休息结束时间',
                 '考勤日期', '开始时间', '结束时间', '休息开始', '休息结束',
-                '加班类型', '加班事由（最后填写）', '加班时数', '本周总加班', '本月总加班',
-                '备案加班(含月末小周六)', '剩余加班', '填报编号', '归属族', '提交人', '提交时间', '更新人', '更新时间'
+                '加班类型', '加班事由（最后填写）', '加班时数', '备案加班(含月末小周六)', '本周总加班', '本月总加班',
+                '剩余加班', '填报编号', '归属族', '提交人', '提交时间', '更新人', '更新时间'
             ];
 
             const data = [headers];
@@ -1731,7 +1731,7 @@
                     row[18] = '';           // 加班时数
                     row[19] = '';           // 本周总加班  
                     row[20] = '';           // 本月总加班
-                    row[21] = settings.backupOvertime || '70'; // 备案加班(含月末小周六) - 这才是正确的索引
+                    row[19] = settings.backupOvertime || '70'; // 备案加班(含月末小周六) - 这才是正确的索引
                     data.push(row);
                 });
             });
@@ -1786,9 +1786,10 @@
 
         // ✅ 修改：创建白天加班行
         function createDayRow(date, hours, settings) {
-            const startDate = formatDate(date, 'yyyy/M/d');
+            // 修改这里：使用 yyyy-MM-dd 格式而不是 yyyy/M/d
+            const startDate = formatDate(date, 'yyyy-MM-dd');  // 改成横线分隔
             const endDate = startDate;
-            const attendanceDate = startDate;
+            const attendanceDate = formatDate(date, 'yyyy/M/d'); // 这个保持不变
 
             return [
                 settings.reporterInfo,
@@ -1796,9 +1797,9 @@
                 settings.employeeName,
                 settings.teamGroup,
                 '白班',
-                startDate,
+                startDate,  // 第6列：开始日期 - 格式为 2026-01-08
                 '08:30',
-                endDate,
+                endDate,    // 第8列：结束日期 - 格式为 2026-01-08
                 '18:00',
                 '12:00',
                 '13:30',
@@ -1809,24 +1810,18 @@
                 `${attendanceDate} 13:30`,
                 '转加班费/Overtime For Salary',
                 settings.overtimeReason,
-                hours.toString(), // 加班时数，这里应该是实际的加班小时数
-                '',              // 本周总加班
-                '',              // 本月总加班
-                settings.backupOvertime || '70', // 备案加班(含月末小周六) - 索引21
-                '',              // 剩余加班
-                '',              // 填报编号
-                '',              // 归属族
-                '',              // 提交人
-                '',              // 提交时间
-                '',              // 更新人
-                ''               // 更新时间
+                hours.toString(),                   // 第18列：加班时数
+                '',                                // 第19列：留空
+                settings.backupOvertime || '70',   // 第20列：备案加班(含月末小周六)
+                '', '', '', '', '', '', ''
             ];
         }
 
         function createEveningRow(date, hours, startTime = '19:00', endTime = null, settings) {
-            const startDate = formatDate(date, 'yyyy/M/d');
+            // 修改这里：使用 yyyy-MM-dd 格式而不是 yyyy/M/d
+            const startDate = formatDate(date, 'yyyy-MM-dd');  // 改成横线分隔
             const endDate = startDate;
-            const attendanceDate = startDate;
+            const attendanceDate = formatDate(date, 'yyyy/M/d'); // 这个保持不变
 
             if (!startTime) {
                 startTime = '19:00';
@@ -1841,9 +1836,9 @@
                 settings.employeeName,
                 settings.teamGroup,
                 '白班',
-                startDate,
+                startDate,  // 第6列：开始日期 - 格式为 2026-01-08
                 startTime,
-                endDate,
+                endDate,    // 第8列：结束日期 - 格式为 2026-01-08
                 endTime,
                 '',
                 '',
@@ -1854,19 +1849,13 @@
                 `${attendanceDate} 00:00`,
                 '转加班费/Overtime For Salary',
                 settings.overtimeReason,
-                hours.toString(), // 加班时数，这里应该是实际的加班小时数
-                '',              // 本周总加班
-                '',              // 本月总加班
-                settings.backupOvertime || '70', // 备案加班(含月末小周六) - 索引21
-                '',              // 剩余加班
-                '',              // 填报编号
-                '',              // 归属族
-                '',              // 提交人
-                '',              // 提交时间
-                '',              // 更新人
-                ''               // 更新时间
+                hours.toString(),                   // 第18列：加班时数
+                '',                                // 第19列：留空
+                settings.backupOvertime || '70',   // 第20列：备案加班(含月末小周六)
+                '', '', '', '', '', '', ''
             ];
         }
+
 
 
         // 默认设置值
