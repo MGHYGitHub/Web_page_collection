@@ -13,8 +13,8 @@
     <link rel="stylesheet" href="style1.css">
     <!-- ✅ 新增：前端加密库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-     <!-- 引入 CryptoJS（可本地打包或 CDN） -->
-     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- 引入 CryptoJS（可本地打包或 CDN） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 
 
@@ -283,6 +283,11 @@
                 <label for="team-group">成员组：</label>
                 <input type="text" id="team-group" placeholder="如：李亮">
             </div>
+            <div class="form-group">
+                <label for="backup-overtime">备案加班(含月末小周六)：</label>
+                <input type="number" id="backup-overtime" placeholder="默认为70" value="70">
+            </div>
+
 
             <div class="modal-actions">
                 <button id="save-settings" class="save-btn">
@@ -1632,19 +1637,6 @@
             });
         }
 
-        // 在 exportToExcel 函数之后添加以下代码：
-
-        // 导出 Datalink 格式功能
-        // 替换之前的 exportToDatalink 函数为以下版本：
-        // ✅ 正确位置：全局作用域，和 addHours 平级
-        function addHours(timeStr, hours) {
-            const [h, m] = timeStr.split(':').map(Number);
-            let totalMinutes = h * 60 + m + Math.round(hours * 60);
-            totalMinutes = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
-            const newH = Math.floor(totalMinutes / 60);
-            const newM = totalMinutes % 60;
-            return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
-        }
 
         // ✅ 新增：全局 formatDate 函数
         function formatDate(date, format) {
@@ -1663,9 +1655,40 @@
             }
             return `${year}-${month}-${day}`;
         }
-        // 导出 Datalink 格式功能 (Excel格式)
+
+        // ✅ 新增：加强版的 addHours 函数
+        function addHours(timeStr, hours) {
+            if (!timeStr || typeof timeStr !== 'string') {
+                console.warn('Invalid time string, using default 19:00');
+                timeStr = '19:00';
+            }
+            timeStr = timeStr.trim();
+            if (timeStr === '') {
+                timeStr = '19:00';
+            }
+            const parts = timeStr.split(':');
+            if (parts.length < 2) {
+                console.warn(`Invalid time format: "${timeStr}", using 19:00`);
+                return '23:59';
+            }
+            const [h, m] = parts.map(Number);
+            if (isNaN(h) || isNaN(m)) {
+                console.warn(`Invalid hour/minute in: "${timeStr}", using 19:00`);
+                return '23:59';
+            }
+            if (h < 0 || h > 23 || m < 0 || m > 59) {
+                console.warn(`Time out of range: "${timeStr}", using 19:00`);
+                return '23:59';
+            }
+            let totalMinutes = h * 60 + m + Math.round(hours * 60);
+            totalMinutes = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+            const newH = Math.floor(totalMinutes / 60);
+            const newM = totalMinutes % 60;
+            return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+        }
         // 导出 Datalink 格式功能 (Excel格式)
         function exportToDatalink() {
+            const settings = loadSettings();
             const overtimeData = getCurrentOvertimeData();
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1;
@@ -1684,7 +1707,6 @@
             let monthlyTotal = 0;
             const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
 
-            // 收集并排序有效加班数据（排除请假）
             const validItems = Object.entries(overtimeData)
                 .filter(([_, data]) => !data.isLeave)
                 .map(([dateStr, data]) => ({
@@ -1698,24 +1720,20 @@
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                 const isHoliday = getDateType(date) === 'holiday';
 
-                // 更新累计时数（只加一次总时长）
                 weeklyTotal += hours;
                 if (date >= firstDayOfMonth && date <= new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)) {
                     monthlyTotal += hours;
                 }
 
-                // 拆分逻辑：按规则生成一行或多行
                 const rows = splitOvertimeHours(date, hours, isWeekend || isHoliday);
                 rows.forEach(row => {
-                    // ✅ 显式设置这三个字段为空字符串
-                    row[18] = ''; // 加班时数
-                    row[19] = ''; // 本周总加班
-                    row[20] = ''; // 本月总加班
-
-                    // ✅ 其他字段逻辑保持不变（如 createDayRow/createEveningRow）
+                    // 修正索引：第18列是"加班时数"，第21列是"备案加班(含月末小周六)"
+                    row[18] = '';           // 加班时数
+                    row[19] = '';           // 本周总加班  
+                    row[20] = '';           // 本月总加班
+                    row[21] = settings.backupOvertime || '70'; // 备案加班(含月末小周六) - 这才是正确的索引
                     data.push(row);
                 });
-
             });
 
             const ws = XLSX.utils.aoa_to_sheet(data);
@@ -1725,144 +1743,131 @@
         }
 
 
+
         // 根据日期和加班时长，返回一个或多个数据行（用于 Datalink）
         function splitOvertimeHours(date, totalHours, isRestDay) {
             const rows = [];
+            const settings = loadSettings();
 
-            // 规则1：小于8小时 → 全部作为晚上加班
             if (totalHours < 8) {
-                rows.push(createEveningRow(date, totalHours));
+                rows.push(createEveningRow(date, totalHours, '19:00', null, settings));
                 return rows;
             }
 
-            // 规则2：8–9.5小时 → 仅白天+午休
             if (totalHours < 10) {
-                rows.push(createDayRow(date, totalHours));
+                rows.push(createDayRow(date, totalHours, settings));
                 return rows;
             }
 
-            // 规则3：10小时 → 拆为 8h（白天） + 2h（晚上）
             if (totalHours === 10) {
-                rows.push(createDayRow(date, 8));
-                rows.push(createEveningRow(date, 2, '19:00', '21:00'));
+                rows.push(createDayRow(date, 8, settings));
+                rows.push(createEveningRow(date, 2, '19:00', '21:00', settings));
                 return rows;
             }
 
-            // 规则4：11小时 → 拆为 8h（白天） + 3h（晚上）
             if (totalHours === 11) {
-                rows.push(createDayRow(date, 8));
-                rows.push(createEveningRow(date, 3, '19:00', '22:00'));
+                rows.push(createDayRow(date, 8, settings));
+                rows.push(createEveningRow(date, 3, '19:00', '22:00', settings));
                 return rows;
             }
 
-            // 规则5：>11小时 → 按 8+3 拆分，剩余部分按晚上加班（可选扩展）
-            // 例如：12H → 8+3+1 → 三行
             if (totalHours > 11) {
-                rows.push(createDayRow(date, 8)); // 固定8小时白天
-                rows.push(createEveningRow(date, 3, '19:00', '22:00')); // 固定3小时晚上
+                rows.push(createDayRow(date, 8, settings));
+                rows.push(createEveningRow(date, 3, '19:00', '22:00', settings));
                 const remaining = totalHours - 11;
                 if (remaining > 0) {
-                    rows.push(createEveningRow(date, remaining, '22:00', addHours('22:00', remaining)));
+                    rows.push(createEveningRow(date, remaining, '22:00', addHours('22:00', remaining), settings));
                 }
                 return rows;
             }
 
-            return rows; // 默认（理论上不会执行到这里）
+            return rows;
         }
-        // 创建白天加班行（8:30–18:00，含午休12:00–13:30）
-        // 创建白天加班行（8:30–18:00，含午休12:00–13:30）
-        function createDayRow(date, hours) {
-            const startDate = formatDate(date, 'yyyy-MM-dd');
+
+        // ✅ 修改：创建白天加班行
+        function createDayRow(date, hours, settings) {
+            const startDate = formatDate(date, 'yyyy/M/d');
             const endDate = startDate;
             const attendanceDate = startDate;
 
-            // 动态读取设置（优先从 Cookie，否则默认）
-            const settings = {
-                reporterInfo: getCookie('reporterInfo') || defaultSettings.reporterInfo,
-                employeeId: getCookie('employeeId') || defaultSettings.employeeId,
-                employeeName: getCookie('employeeName') || defaultSettings.employeeName,
-                teamGroup: getCookie('teamGroup') || defaultSettings.teamGroup,
-                overtimeReason: getCookie('overtimeReason') || defaultSettings.overtimeReason
-            };
-
             return [
-                settings.reporterInfo,       // 填报人信息
-                settings.employeeId,         // 工号
-                settings.employeeName,       // 姓名
-                settings.teamGroup,          // 成员组
-                '白班',                         // 班次选择
-                startDate,                      // 开始日期
-                '08:30',                        // 开始加班时间
-                endDate,                        // 结束日期
-                '18:00',                        // 结束加班时间
-                '',                               // 休息开始时间
-                '',                               // 休息结束时间
-                attendanceDate,                 // 考勤日期
-                `${attendanceDate} 08:30`, // 开始时间
-                `${attendanceDate} 18:00`, // 结束时间
-                `${attendanceDate} 12:00`, // 休息开始
-                `${attendanceDate} 13:30`, // 休息结束
-                '转加班费/Overtime For Salary', // 加班类型
-                settings.overtimeReason,      // 动态加班事由
-                '',                                // 备案加班
-                '',                                // 剩余加班
-                '',                                // 填报编号
-                '',                                // 归属族
-                '',                                // 提交人
-                '',                                // 提交时间
-                '',                                // 更新人
-                ''                                 // 更新时间
+                settings.reporterInfo,
+                settings.employeeId,
+                settings.employeeName,
+                settings.teamGroup,
+                '白班',
+                startDate,
+                '08:30',
+                endDate,
+                '18:00',
+                '12:00',
+                '13:30',
+                attendanceDate,
+                `${attendanceDate} 08:30`,
+                `${attendanceDate} 18:00`,
+                `${attendanceDate} 12:00`,
+                `${attendanceDate} 13:30`,
+                '转加班费/Overtime For Salary',
+                settings.overtimeReason,
+                hours.toString(), // 加班时数，这里应该是实际的加班小时数
+                '',              // 本周总加班
+                '',              // 本月总加班
+                settings.backupOvertime || '70', // 备案加班(含月末小周六) - 索引21
+                '',              // 剩余加班
+                '',              // 填报编号
+                '',              // 归属族
+                '',              // 提交人
+                '',              // 提交时间
+                '',              // 更新人
+                ''               // 更新时间
             ];
         }
 
-        // 创建晚上加班行（19:00开始，无午休）
-        function createEveningRow(date, hours, startTime = '19:00', endTime = null) {
-            const startDate = formatDate(date, 'yyyy-MM-dd');
+        function createEveningRow(date, hours, startTime = '19:00', endTime = null, settings) {
+            const startDate = formatDate(date, 'yyyy/M/d');
             const endDate = startDate;
             const attendanceDate = startDate;
 
+            if (!startTime) {
+                startTime = '19:00';
+            }
             if (!endTime) {
                 endTime = addHours(startTime, hours);
             }
 
-            // 动态读取设置
-            const settings = {
-                reporterInfo: getCookie('reporterInfo') || defaultSettings.reporterInfo,
-                employeeId: getCookie('employeeId') || defaultSettings.employeeId,
-                employeeName: getCookie('employeeName') || defaultSettings.employeeName,
-                teamGroup: getCookie('teamGroup') || defaultSettings.teamGroup,
-                overtimeReason: getCookie('overtimeReason') || defaultSettings.overtimeReason
-            };
-
             return [
-                settings.reporterInfo,       // 填报人信息
-                settings.employeeId,         // 工号
-                settings.employeeName,       // 姓名
-                settings.teamGroup,          // 成员组
-                '白班',                         // 班次选择
-                startDate,                      // 开始日期
-                startTime,                      // 开始加班时间
-                endDate,                        // 结束日期
-                endTime,                        // 结束加班时间
-                '',                               // 休息开始时间
-                '',                               // 休息结束时间
-                attendanceDate,                 // 考勤日期
-                `${attendanceDate} ${startTime}`, // 开始时间
-                `${attendanceDate} ${endTime}`,   // 结束时间
-                `${attendanceDate} 0:00`, // 休息开始（空）
-                `${attendanceDate} 0:00`, // 休息结束（空）
-                '转加班费/Overtime For Salary', // 加班类型
-                settings.overtimeReason,      // 动态加班事由
-                '',                                // 备案加班
-                '',                                // 剩余加班
-                '',                                // 填报编号
-                '',                                // 归属族
-                '',                                // 提交人
-                '',                                // 提交时间
-                '',                                // 更新人
-                ''                                 // 更新时间
+                settings.reporterInfo,
+                settings.employeeId,
+                settings.employeeName,
+                settings.teamGroup,
+                '白班',
+                startDate,
+                startTime,
+                endDate,
+                endTime,
+                '',
+                '',
+                attendanceDate,
+                `${attendanceDate} ${startTime}`,
+                `${attendanceDate} ${endTime}`,
+                `${attendanceDate} 00:00`,
+                `${attendanceDate} 00:00`,
+                '转加班费/Overtime For Salary',
+                settings.overtimeReason,
+                hours.toString(), // 加班时数，这里应该是实际的加班小时数
+                '',              // 本周总加班
+                '',              // 本月总加班
+                settings.backupOvertime || '70', // 备案加班(含月末小周六) - 索引21
+                '',              // 剩余加班
+                '',              // 填报编号
+                '',              // 归属族
+                '',              // 提交人
+                '',              // 提交时间
+                '',              // 更新人
+                ''               // 更新时间
             ];
         }
+
 
         // 默认设置值
         const defaultSettings = {
@@ -1870,7 +1875,8 @@
             reporterInfo: "liaozichen 84376722",
             employeeId: "84376722",
             employeeName: "廖子宸",
-            teamGroup: "李亮"
+            teamGroup: "李亮",
+            backupOvertime: "70"  // ✅ 新增：备案加班默认值
         };
 
         // Cookie 工具函数
@@ -1899,7 +1905,8 @@
                 reporterInfo: getCookie('reporterInfo') || defaultSettings.reporterInfo,
                 employeeId: getCookie('employeeId') || defaultSettings.employeeId,
                 employeeName: getCookie('employeeName') || defaultSettings.employeeName,
-                teamGroup: getCookie('teamGroup') || defaultSettings.teamGroup
+                teamGroup: getCookie('teamGroup') || defaultSettings.teamGroup,
+                backupOvertime: getCookie('backupOvertime') || defaultSettings.backupOvertime  // ✅ 新增
             };
 
             // 填充表单
@@ -1908,9 +1915,11 @@
             document.getElementById('employee-id').value = settings.employeeId;
             document.getElementById('employee-name').value = settings.employeeName;
             document.getElementById('team-group').value = settings.teamGroup;
+            document.getElementById('backup-overtime').value = settings.backupOvertime; // ✅ 新增输入框
 
             return settings;
         }
+
 
         // 保存设置到 Cookie
         function saveSettings() {
@@ -1919,18 +1928,21 @@
                 reporterInfo: document.getElementById('reporter-info').value.trim() || defaultSettings.reporterInfo,
                 employeeId: document.getElementById('employee-id').value.trim() || defaultSettings.employeeId,
                 employeeName: document.getElementById('employee-name').value.trim() || defaultSettings.employeeName,
-                teamGroup: document.getElementById('team-group').value.trim() || defaultSettings.teamGroup
+                teamGroup: document.getElementById('team-group').value.trim() || defaultSettings.teamGroup,
+                backupOvertime: document.getElementById('backup-overtime').value.trim() || defaultSettings.backupOvertime // ✅ 新增
             };
 
-            // 保存到 Cookie
+
             setCookie('overtimeReason', settings.overtimeReason);
             setCookie('reporterInfo', settings.reporterInfo);
             setCookie('employeeId', settings.employeeId);
             setCookie('employeeName', settings.employeeName);
             setCookie('teamGroup', settings.teamGroup);
+            setCookie('backupOvertime', settings.backupOvertime); // ✅ 新增保存
 
             alert('✅ 设置已成功保存！');
         }
+
 
         // 重置为默认值
         function resetSettings() {
@@ -1939,9 +1951,12 @@
             document.getElementById('employee-id').value = defaultSettings.employeeId;
             document.getElementById('employee-name').value = defaultSettings.employeeName;
             document.getElementById('team-group').value = defaultSettings.teamGroup;
+            document.getElementById('backup-overtime').value = defaultSettings.backupOvertime; // ✅ 补上这一行
+
 
             alert('🔄 已重置为默认设置');
         }
+
 
         // 模态框显示/隐藏逻辑
         function setupModal() {
