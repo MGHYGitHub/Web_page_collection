@@ -1789,7 +1789,7 @@
             // 修改这里：使用 yyyy-MM-dd 格式而不是 yyyy/M/d
             const startDate = formatDate(date, 'yyyy-MM-dd');  // 改成横线分隔
             const endDate = startDate;
-            const attendanceDate = formatDate(date, 'yyyy/M/d'); // 这个保持不变
+            const attendanceDate = formatDate(date, 'yyyy/MM/dd'); // 这个保持不变
 
             return [
                 settings.reporterInfo,
@@ -1821,7 +1821,7 @@
             // 修改这里：使用 yyyy-MM-dd 格式而不是 yyyy/M/d
             const startDate = formatDate(date, 'yyyy-MM-dd');  // 改成横线分隔
             const endDate = startDate;
-            const attendanceDate = formatDate(date, 'yyyy/M/d'); // 这个保持不变
+            const attendanceDate = formatDate(date, 'yyyy/MM/dd'); // 这个保持不变
 
             if (!startTime) {
                 startTime = '19:00';
