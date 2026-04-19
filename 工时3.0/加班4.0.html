@@ -505,30 +505,30 @@
                     const displayDate = `${dateMonth}月${dateDay}日`;
 
                     tableHTML += `
-                        <tr class="${isLeave ? 'leave-row' : 'overtime-row'}">
-                            <td class="date-column">${displayDate}</td>
-                            <td class="type-column">
-                                <span class="type-badge ${typeClass}">${typeText}</span>
-                            </td>
-                            <td class="hours-column">${isLeave ? '请假' : '加班'} ${hours}H</td>
-                            <td class="multiplier-column">
-                                <span class="multiplier-badge">${multiplier}倍</span>
-                            </td>
-                            <td class="amount-column">${amount.toFixed(2)}</td>
-                        </tr>
-                    `;
+                            <tr class="${isLeave ? 'leave-row' : 'overtime-row'}">
+                                <td class="date-column">${displayDate}</td>
+                                <td class="type-column">
+                                    <span class="type-badge ${typeClass}">${typeText}</span>
+                                </td>
+                                <td class="hours-column">${isLeave ? '请假' : '加班'} ${hours}H</td>
+                                <td class="multiplier-column">
+                                    <span class="multiplier-badge">${multiplier}倍</span>
+                                </td>
+                                <td class="amount-column">${amount.toFixed(2)}</td>
+                            </tr>
+                        `;
                 }
             }
 
             if (!hasData) {
                 tableHTML = `
-                    <tr>
-                        <td colspan="5" class="no-data">
-                            <i class="fas fa-inbox"></i><br>
-                            暂无加班或请假记录
-                        </td>
-                    </tr>
-                `;
+                        <tr>
+                            <td colspan="5" class="no-data">
+                                <i class="fas fa-inbox"></i><br>
+                                暂无加班或请假记录
+                            </td>
+                        </tr>
+                    `;
             }
 
             excelTableBody.innerHTML = tableHTML;
@@ -1590,29 +1590,29 @@
             }
 
             notification.innerHTML = `
-        <div class="notification-content">
-            <span class="notification-icon">${icon}</span>
-            <span class="notification-message">${message}</span>
-        </div>
-    `;
+            <div class="notification-content">
+                <span class="notification-icon">${icon}</span>
+                <span class="notification-message">${message}</span>
+            </div>
+        `;
 
             // 添加样式
             notification.style.cssText = `
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        background: ${bgColor};
-        color: white;
-        padding: 12px 15px;
-        border-radius: 10px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        z-index: 10000;
-        animation: slideInRight 0.3s ease-out;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-size: 0.9rem;
-        line-height: 1.4;
-    `;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            background: ${bgColor};
+            color: white;
+            padding: 12px 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease-out;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        `;
 
             document.body.appendChild(notification);
 
@@ -1687,6 +1687,7 @@
             return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
         }
         // 导出 Datalink 格式功能 (Excel格式)
+        // 导出 Datalink 格式功能 (Excel格式)
         function exportToDatalink() {
             const settings = loadSettings();
             const overtimeData = getCurrentOvertimeData();
@@ -1727,16 +1728,27 @@
 
                 const rows = splitOvertimeHours(date, hours, isWeekend || isHoliday);
                 rows.forEach(row => {
-                    // 修正索引：第18列是"加班时数"，第21列是"备案加班(含月末小周六)"
-                    row[18] = '';           // 加班时数
-                    row[19] = '';           // 本周总加班  
-                    row[20] = '';           // 本月总加班
-                    row[19] = settings.backupOvertime || '70'; // 备案加班(含月末小周六) - 这才是正确的索引
+                    row[18] = hours.toString();
+                    row[19] = settings.backupOvertime || '70';
                     data.push(row);
                 });
             });
 
             const ws = XLSX.utils.aoa_to_sheet(data);
+
+            // ❌ 删除这段代码！它强制设置了文本格式，导致 WPS 无法自动识别日期
+            // const textColumns = [5, 7, 11, 12, 13, 14, 15];
+            // const range = XLSX.utils.decode_range(ws['!ref']);
+            // for (let row = range.s.r + 1; row <= range.e.r; row++) {
+            //     textColumns.forEach(col => {
+            //         const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+            //         if (ws[cellAddress]) {
+            //             ws[cellAddress].t = 's';
+            //             ws[cellAddress].z = '@';
+            //         }
+            //     });
+            // }
+
             ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 15) }));
             XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
             XLSX.writeFile(wb, `${year}年${month}月_datalink数据.xlsx`);
@@ -1786,42 +1798,43 @@
 
         // ✅ 修改：创建白天加班行
         function createDayRow(date, hours, settings) {
-            // 修改这里：使用 yyyy-MM-dd 格式而不是 yyyy/M/d
-            const startDate = formatDate(date, 'yyyy-MM-dd');  // 改成横线分隔
+            // 开始日期和结束日期保持横杠格式
+            const startDate = formatDate(date, 'yyyy-MM-dd');
             const endDate = startDate;
-            const attendanceDate = formatDate(date, 'yyyy/MM/dd'); // 这个保持不变
+            // 考勤相关日期使用斜杠格式
+            const attendanceDate = formatDate(date, 'yyyy/MM/dd');
 
             return [
-                settings.reporterInfo,
-                settings.employeeId,
-                settings.employeeName,
-                settings.teamGroup,
-                '白班',
-                startDate,  // 第6列：开始日期 - 格式为 2026-01-08
-                '08:30',
-                endDate,    // 第8列：结束日期 - 格式为 2026-01-08
-                '18:00',
-                '12:00',
-                '13:30',
-                attendanceDate,
-                `${attendanceDate} 08:30`,
-                `${attendanceDate} 18:00`,
-                `${attendanceDate} 12:00`,
-                `${attendanceDate} 13:30`,
-                '转加班费/Overtime For Salary',
-                settings.overtimeReason,
-                hours.toString(),                   // 第18列：加班时数
-                '',                                // 第19列：留空
-                settings.backupOvertime || '70',   // 第20列：备案加班(含月末小周六)
-                '', '', '', '', '', '', ''
+                settings.reporterInfo,                    // 1. 填报人信息
+                settings.employeeId,                      // 2. 工号
+                settings.employeeName,                    // 3. 姓名
+                settings.teamGroup,                       // 4. 成员组
+                '白班',                                   // 5. 班次选择
+                startDate,                                // 6. 开始日期 (横杠格式: 2026-04-02)
+                '08:30',                                  // 7. 开始加班时间
+                endDate,                                  // 8. 结束日期 (横杠格式: 2026-04-02)
+                '18:00',                                  // 9. 结束加班时间
+                '12:00',                                  // 10. 休息开始时间
+                '13:30',                                  // 11. 休息结束时间
+                attendanceDate,                           // 12. 考勤日期 (斜杠格式: 2026/04/02)
+                `${attendanceDate} 08:30`,                // 13. 开始时间 (斜杠格式: 2026/04/02 08:30)
+                `${attendanceDate} 18:00`,                // 14. 结束时间 (斜杠格式: 2026/04/02 18:00)
+                `${attendanceDate} 12:00`,                // 15. 休息开始 (斜杠格式: 2026/04/02 12:00)
+                `${attendanceDate} 13:30`,                // 16. 休息结束 (斜杠格式: 2026/04/02 13:30)
+                '转加班费/Overtime For Salary',           // 17. 加班类型
+                settings.overtimeReason,                  // 18. 加班事由
+                hours.toString(),                         // 19. 加班时数
+                settings.backupOvertime || '70',          // 20. 备案加班
+                '', '', '', '', '', '', '', ''            // 其余留空
             ];
         }
 
         function createEveningRow(date, hours, startTime = '19:00', endTime = null, settings) {
-            // 修改这里：使用 yyyy-MM-dd 格式而不是 yyyy/M/d
-            const startDate = formatDate(date, 'yyyy-MM-dd');  // 改成横线分隔
+            // 开始日期和结束日期保持横杠格式
+            const startDate = formatDate(date, 'yyyy-MM-dd');
             const endDate = startDate;
-            const attendanceDate = formatDate(date, 'yyyy/MM/dd'); // 这个保持不变
+            // 考勤相关日期使用斜杠格式
+            const attendanceDate = formatDate(date, 'yyyy/MM/dd');
 
             if (!startTime) {
                 startTime = '19:00';
@@ -1831,28 +1844,27 @@
             }
 
             return [
-                settings.reporterInfo,
-                settings.employeeId,
-                settings.employeeName,
-                settings.teamGroup,
-                '白班',
-                startDate,  // 第6列：开始日期 - 格式为 2026-01-08
-                startTime,
-                endDate,    // 第8列：结束日期 - 格式为 2026-01-08
-                endTime,
-                '',
-                '',
-                attendanceDate,
-                `${attendanceDate} ${startTime}`,
-                `${attendanceDate} ${endTime}`,
-                `${attendanceDate} 00:00`,
-                `${attendanceDate} 00:00`,
-                '转加班费/Overtime For Salary',
-                settings.overtimeReason,
-                hours.toString(),                   // 第18列：加班时数
-                '',                                // 第19列：留空
-                settings.backupOvertime || '70',   // 第20列：备案加班(含月末小周六)
-                '', '', '', '', '', '', ''
+                settings.reporterInfo,                    // 1. 填报人信息
+                settings.employeeId,                      // 2. 工号
+                settings.employeeName,                    // 3. 姓名
+                settings.teamGroup,                       // 4. 成员组
+                '白班',                                   // 5. 班次选择
+                startDate,                                // 6. 开始日期 (横杠格式: 2026-04-02)
+                startTime,                                // 7. 开始加班时间
+                endDate,                                  // 8. 结束日期 (横杠格式: 2026-04-02)
+                endTime,                                  // 9. 结束加班时间
+                '',                                       // 10. 休息开始时间
+                '',                                       // 11. 休息结束时间
+                attendanceDate,                           // 12. 考勤日期 (斜杠格式: 2026/04/02)
+                `${attendanceDate} ${startTime}`,         // 13. 开始时间 (斜杠格式: 2026/04/02 19:00)
+                `${attendanceDate} ${endTime}`,           // 14. 结束时间 (斜杠格式: 2026/04/02 21:00)
+                `${attendanceDate} 00:00`,                // 15. 休息开始 (斜杠格式: 2026/04/02 00:00)
+                `${attendanceDate} 00:00`,                // 16. 休息结束 (斜杠格式: 2026/04/02 00:00)
+                '转加班费/Overtime For Salary',           // 17. 加班类型
+                settings.overtimeReason,                  // 18. 加班事由
+                hours.toString(),                         // 19. 加班时数
+                settings.backupOvertime || '70',          // 20. 备案加班
+                '', '', '', '', '', '', '', ''            // 其余留空
             ];
         }
 
