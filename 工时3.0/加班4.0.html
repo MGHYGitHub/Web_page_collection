@@ -1687,7 +1687,6 @@
             return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
         }
         // 导出 Datalink 格式功能 (Excel格式)
-        // 导出 Datalink 格式功能 (Excel格式)
         function exportToDatalink() {
             const settings = loadSettings();
             const overtimeData = getCurrentOvertimeData();
@@ -1721,33 +1720,22 @@
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                 const isHoliday = getDateType(date) === 'holiday';
 
-                weeklyTotal += hours;
-                if (date >= firstDayOfMonth && date <= new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)) {
-                    monthlyTotal += hours;
-                }
+                // 不再累加时数
+                // weeklyTotal += hours;
+                // if (date >= firstDayOfMonth && date <= new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)) {
+                //     monthlyTotal += hours;
+                // }
 
                 const rows = splitOvertimeHours(date, hours, isWeekend || isHoliday);
                 rows.forEach(row => {
-                    row[18] = hours.toString();
-                    row[19] = settings.backupOvertime || '70';
+                    // 将加班时数和备案加班字段设为空
+                    row[18] = ''; // 加班时数
+                    row[19] = ''; // 备案加班
                     data.push(row);
                 });
             });
 
             const ws = XLSX.utils.aoa_to_sheet(data);
-
-            // ❌ 删除这段代码！它强制设置了文本格式，导致 WPS 无法自动识别日期
-            // const textColumns = [5, 7, 11, 12, 13, 14, 15];
-            // const range = XLSX.utils.decode_range(ws['!ref']);
-            // for (let row = range.s.r + 1; row <= range.e.r; row++) {
-            //     textColumns.forEach(col => {
-            //         const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-            //         if (ws[cellAddress]) {
-            //             ws[cellAddress].t = 's';
-            //             ws[cellAddress].z = '@';
-            //         }
-            //     });
-            // }
 
             ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 15) }));
             XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
@@ -1821,11 +1809,11 @@
                 `${attendanceDate} 18:00`,                // 14. 结束时间 (斜杠格式: 2026/04/02 18:00)
                 `${attendanceDate} 12:00`,                // 15. 休息开始 (斜杠格式: 2026/04/02 12:00)
                 `${attendanceDate} 13:30`,                // 16. 休息结束 (斜杠格式: 2026/04/02 13:30)
-                '转加班费/Overtime For Salary',           // 17. 加班类型
+                '转加班费/Overtime For Salary',            // 17. 加班类型
                 settings.overtimeReason,                  // 18. 加班事由
-                hours.toString(),                         // 19. 加班时数
+                null,                                       // 19. 加班时数
                 settings.backupOvertime || '70',          // 20. 备案加班
-                '', '', '', '', '', '', '', ''            // 其余留空
+                null, null, null, null, null, null, null, null            // 其余留空
             ];
         }
 
@@ -1853,8 +1841,8 @@
                 startTime,                                // 7. 开始加班时间
                 endDate,                                  // 8. 结束日期 (横杠格式: 2026-04-02)
                 endTime,                                  // 9. 结束加班时间
-                '',                                       // 10. 休息开始时间
-                '',                                       // 11. 休息结束时间
+                null,                                       // 10. 休息开始时间
+                null,                                       // 11. 休息结束时间
                 attendanceDate,                           // 12. 考勤日期 (斜杠格式: 2026/04/02)
                 `${attendanceDate} ${startTime}`,         // 13. 开始时间 (斜杠格式: 2026/04/02 19:00)
                 `${attendanceDate} ${endTime}`,           // 14. 结束时间 (斜杠格式: 2026/04/02 21:00)
@@ -1862,9 +1850,9 @@
                 `${attendanceDate} 00:00`,                // 16. 休息结束 (斜杠格式: 2026/04/02 00:00)
                 '转加班费/Overtime For Salary',           // 17. 加班类型
                 settings.overtimeReason,                  // 18. 加班事由
-                hours.toString(),                         // 19. 加班时数
+                null,                                       // 19. 加班时数
                 settings.backupOvertime || '70',          // 20. 备案加班
-                '', '', '', '', '', '', '', ''            // 其余留空
+                null, null, null, null, null, null, null, null            // 其余留空
             ];
         }
 
@@ -1872,7 +1860,7 @@
 
         // 默认设置值
         const defaultSettings = {
-            overtimeReason: "JHS项目加班工作",
+            overtimeReason: "工艺值班",
             reporterInfo: "liaozichen 84376722",
             employeeId: "84376722",
             employeeName: "廖子宸",
