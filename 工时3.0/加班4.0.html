@@ -1730,7 +1730,7 @@
                 rows.forEach(row => {
                     // 将加班时数和备案加班字段设为空
                     row[18] = ''; // 加班时数
-                    row[19] = ''; // 备案加班
+                    row[19] = settings.backupOvertime || '70'; // 备案时数
                     data.push(row);
                 });
             });
