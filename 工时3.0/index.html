@@ -14,6 +14,58 @@
 </head>
 
 <body>
+       <!-- 升级公告弹窗 -->
+    <div id="upgradeModal" class="upgrade-modal" style="display: none;">
+        <div class="upgrade-content">
+            <button class="upgrade-close" onclick="closeUpgradeModal()">×</button>
+            <div class="upgrade-icon">🚀</div>
+            <div class="upgrade-title">v6.0 即将发布</div>
+            <div class="upgrade-version">当前 v3.0 → v5.0 即将 v6.0</div>
+
+            <!-- 当前版本功能 -->
+            <div class="current-features">
+                <strong>✅ 当前支持</strong>
+                <ul>
+                    <li>📅 智能日历（节假日/调休日识别）</li>
+                    <li>📊 多维度统计（周/月/季/年+进度条）</li>
+                    <li>⚠️ 加班限制提醒（3h/11h/20h）</li>
+                    <li>📁 Excel导入/导出/Datalink</li>
+                    <li>🖱️ 多选模式批量设置</li>
+                    <li>🌙 暗色模式 + 📱 移动端适配</li>
+                </ul>
+            </div>
+
+            <!-- 新版本预告 -->
+            <div class="upgrade-features">
+                <strong>✨ v6.0 预告</strong>
+                <ul>
+                    <li>🏢 多用户协同 + 云端同步</li>
+                    <li>📊 智能报表（周报/月报图表）</li>
+                    <li>🔔 加班预警推送</li>
+                    <li>📱 微信小程序同步</li>
+                    <li>🔒 数据加密备份</li>
+                </ul>
+            </div>
+
+            <div class="upgrade-note">
+                💡 当前数据可一键迁移至新版本
+            </div>
+
+            <a href="/工时/加班5.0.html" target="_blank" class="upgrade-link" style="opacity: 0.6; pointer-events: none;">
+                ⏳ 6.0开发中，敬请期待 →
+            </a>
+            <a href="/工时/加班5.0.html" target="_blank" class="upgrade-link">
+                立即体验 5.0 新版本 →
+            </a>
+
+            <!-- <div class="upgrade-checkbox">
+                <input type="checkbox" id="dontShowAgain">
+                <label for="dontShowAgain">7天内不再显示</label>
+            </div>
+
+            <button class="upgrade-remind-btn" onclick="closeUpgradeModal()">知道了</button> -->
+        </div>
+    </div>
     <div class="container">
         <header>
             <h1><i class="fas fa-clock"></i> 加班工时计算系统</h1>
@@ -1571,6 +1623,30 @@
 
         // 初始化应用
         init();
+        // ========== 升级公告弹窗功能（强制跳转5.0新版本） ==========
+        function showUpgradeModal() {
+            // 检查是否已经跳转过（只显示一次）
+            const hasRedirected = localStorage.getItem('upgrade_redirected_v5');
+            if (hasRedirected === 'true') {
+                console.log('已跳转过，不再显示');
+                return;
+            }
+
+            const modal = document.getElementById('upgradeModal');
+            if (modal) {
+                modal.style.display = 'flex';
+
+                // 10秒后自动跳转
+                setTimeout(() => {
+                    window.location.href = '/工时/加班5.0.html';
+                }, 10000);
+            }
+        }
+
+        // 页面加载时显示弹窗（延迟1秒）
+        setTimeout(() => {
+            showUpgradeModal();
+        }, 1000);
     </script>
 </body>
 

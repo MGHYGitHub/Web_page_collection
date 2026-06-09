@@ -935,39 +935,459 @@
             justify-content: center;
             gap: 0.5rem;
         }
+/* ========== 升级公告弹窗样式 ========== */
+.upgrade-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.upgrade-content {
+    background: linear-gradient(135deg, #fff, #f8f9fa);
+    border-radius: 24px;
+    max-width: 480px;
+    width: 90%;
+    padding: 20px 24px;
+    position: relative;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    animation: modalFadeIn 0.3s ease-out;
+    text-align: center;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.upgrade-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 24px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #999;
+    transition: all 0.2s;
+}
+
+.upgrade-close:hover {
+    color: #ff6b6b;
+}
+
+.upgrade-icon {
+    font-size: 48px;
+    margin-bottom: 4px;
+}
+
+.upgrade-title {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 4px;
+}
+
+.upgrade-version {
+    display: inline-block;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: white;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.upgrade-desc {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+/* 功能列表通用样式 */
+.current-features,
+.upgrade-features {
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    text-align: left;
+}
+
+.current-features {
+    background: #e8f5e9;
+    border-left: 3px solid #4caf50;
+}
+
+.upgrade-features {
+    background: #fff3e0;
+    border-left: 3px solid #ff9800;
+}
+
+.current-features strong,
+.upgrade-features strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.current-features strong {
+    color: #2e7d32;
+}
+
+.upgrade-features strong {
+    color: #e65100;
+}
+
+.current-features ul,
+.upgrade-features ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.current-features li,
+.upgrade-features li {
+    margin: 4px 0;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.current-features li {
+    color: #1b5e20;
+}
+
+.upgrade-features li {
+    color: #bf360c;
+}
+
+.upgrade-note {
+    background: #e8f4fd;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #2c6cb0;
+    margin: 10px 0;
+    text-align: left;
+}
+
+.upgrade-link {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-decoration: none;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    margin: 12px 0 10px;
+    border: none;
+}
+
+.upgrade-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.upgrade-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 10px 0;
+}
+
+.upgrade-checkbox input {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.upgrade-checkbox label {
+    font-size: 11px;
+    color: #999;
+    cursor: pointer;
+}
+
+.upgrade-remind-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: #999;
+    border: 1px solid #ddd;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upgrade-remind-btn:hover {
+    background: #f5f5f5;
+    color: #666;
+}
+
+/* 滚动条 */
+.upgrade-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.upgrade-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.upgrade-content::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+/* 手机端适配 */
+@media (max-width: 768px) {
+    .upgrade-content {
+        padding: 16px 20px;
+        max-height: 80vh;
+    }
+    .upgrade-title {
+        font-size: 20px;
+    }
+    .upgrade-icon {
+        font-size: 40px;
+    }
+    .current-features li,
+    .upgrade-features li {
+        font-size: 11px;
+    }
+}
+/* 升级公告弹窗样式 - 无关闭按钮版 */
+.upgrade-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+}
+
+.upgrade-content {
+    background: linear-gradient(135deg, #fff, #f8f9fa);
+    border-radius: 28px;
+    max-width: 460px;
+    width: 90%;
+    padding: 32px 28px;
+    position: relative;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+    animation: modalFadeIn 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+    text-align: center;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.upgrade-icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+    animation: iconBounce 0.6s ease-out;
+}
+
+@keyframes iconBounce {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.upgrade-title {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 8px;
+}
+
+.upgrade-version {
+    display: inline-block;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.upgrade-desc {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.upgrade-features {
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 16px 0;
+    text-align: left;
+    border-left: 4px solid #ff9800;
+}
+
+.upgrade-features strong {
+    display: block;
+    margin-bottom: 10px;
+    color: #e65100;
+    font-size: 14px;
+}
+
+.upgrade-features ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.upgrade-features li {
+    margin: 8px 0;
+    color: #bf360c;
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+.upgrade-note {
+    background: linear-gradient(135deg, #e8f4fd, #d4ecfa);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #2c6cb0;
+    margin: 16px 0;
+    text-align: left;
+}
+
+.upgrade-link {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-decoration: none;
+    border-radius: 40px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    margin-top: 20px;
+    border: none;
+}
+
+.upgrade-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* 手机端适配 */
+@media (max-width: 768px) {
+    .upgrade-content {
+        padding: 24px 20px;
+        width: 92%;
+    }
+    .upgrade-title {
+        font-size: 24px;
+    }
+    .upgrade-icon {
+        font-size: 48px;
+    }
+    .upgrade-features li {
+        font-size: 12px;
+    }
+}
     </style>
 </head>
 
 <body>
-    <!-- 新增：升级公告弹窗 -->
+ <!-- 升级公告弹窗 -->
     <div id="upgradeModal" class="upgrade-modal" style="display: none;">
         <div class="upgrade-content">
             <button class="upgrade-close" onclick="closeUpgradeModal()">×</button>
-            <div class="upgrade-title">🎉 重要公告</div>
-            <div class="upgrade-version">v3.0 正式发布</div>
+            <div class="upgrade-icon">🚀</div>
+            <div class="upgrade-title">v6.0 即将发布</div>
+            <div class="upgrade-version">当前 v2.0 → v5.0 即将 v6.0</div>
 
-            <p>系统已全面重构升级至 3.0 版本</p>
-
-            <div class="upgrade-features">
-                <strong>新版本亮点：</strong>
+            <!-- 当前版本功能 -->
+            <div class="current-features">
+                <strong>✅ 当前支持</strong>
                 <ul>
-                    <li>全新界面设计，更现代化的UI</li>
-                    <li>数据同步功能，多设备无缝切换</li>
-                    <li>智能分析报告，生成月度总结</li>
-                    <li>移动端优化，操作更便捷</li>
-                    <li>数据备份加密，安全性提升</li>
+                    <li>📅 智能日历（节假日/调休日识别）</li>
+                    <li>📊 多维度统计（周/月/季/年+进度条）</li>
+                    <li>⚠️ 加班限制提醒（3h/11h/20h）</li>
+                    <li>📁 Excel导入/导出/Datalink</li>
+                    <li>🖱️ 多选模式批量设置</li>
+                    <li>🌙 暗色模式 + 📱 移动端适配</li>
                 </ul>
             </div>
 
-            <a href="https://mghygithub.github.io/Web_page_collection/%E5%B7%A5%E6%97%B63.0/index.html" target="_blank"
-                class="upgrade-link">
-                立即体验新版本 →
+            <!-- 新版本预告 -->
+            <div class="upgrade-features">
+                <strong>✨ v6.0 预告</strong>
+                <ul>
+                    <li>🏢 多用户协同 + 云端同步</li>
+                    <li>📊 智能报表（周报/月报图表）</li>
+                    <li>🔔 加班预警推送</li>
+                    <li>📱 微信小程序同步</li>
+                    <li>🔒 数据加密备份</li>
+                </ul>
+            </div>
+
+            <div class="upgrade-note">
+                💡 当前数据可一键迁移至新版本
+            </div>
+
+            <a href="/工时/加班5.0.html" target="_blank" class="upgrade-link" style="opacity: 0.6; pointer-events: none;">
+                ⏳ 6.0开发中，敬请期待 →
+            </a>
+            <a href="/工时/加班5.0.html" target="_blank" class="upgrade-link">
+                立即体验 5.0 新版本 →
             </a>
 
-            <div class="upgrade-checkbox">
+            <!-- <div class="upgrade-checkbox">
                 <input type="checkbox" id="dontShowAgain">
-                <label for="dontShowAgain">7天内不再显示此公告</label>
+                <label for="dontShowAgain">7天内不再显示</label>
             </div>
+
+            <button class="upgrade-remind-btn" onclick="closeUpgradeModal()">知道了</button> -->
         </div>
     </div>
     <div id="salaryCard"
@@ -2518,38 +2938,30 @@
             document.getElementById('checksum').textContent = generateChecksum();
         });
 
-        // 新增：升级公告相关函数
+        // ========== 升级公告弹窗功能（强制跳转5.0新版本） ==========
         function showUpgradeModal() {
-            // 检查是否已经选择了7天内不再显示
-            const dontShowUntil = localStorage.getItem('dontShowUpgradeUntil');
-            if (dontShowUntil && new Date().getTime() < parseInt(dontShowUntil)) {
+            // 检查是否已经跳转过（只显示一次）
+            const hasRedirected = localStorage.getItem('upgrade_redirected_v5');
+            if (hasRedirected === 'true') {
+                console.log('已跳转过，不再显示');
                 return;
             }
 
-            setTimeout(() => {
-                document.getElementById('upgradeModal').style.display = 'flex';
-            }, 1000); // 页面加载1秒后显示
-        }
+            const modal = document.getElementById('upgradeModal');
+            if (modal) {
+                modal.style.display = 'flex';
 
-        function closeUpgradeModal() {
-            const dontShowAgain = document.getElementById('dontShowAgain').checked;
-
-            if (dontShowAgain) {
-                // 设置7天内不再显示
-                const sevenDaysLater = new Date().getTime() + (7 * 24 * 60 * 60 * 1000);
-                localStorage.setItem('dontShowUpgradeUntil', sevenDaysLater.toString());
+                // 10秒后自动跳转
+                setTimeout(() => {
+                    window.location.href = '/工时/加班5.0.html';
+                }, 10000);
             }
-
-            document.getElementById('upgradeModal').style.display = 'none';
         }
 
-        // 在DOM加载完成后调用
-        document.addEventListener('DOMContentLoaded', function () {
-            // 其他现有初始化代码...
-
-            // 新增：显示升级公告
+        // 页面加载时显示弹窗（延迟1秒）
+        setTimeout(() => {
             showUpgradeModal();
-        });
+        }, 1000);
     </script>
 </body>
 
