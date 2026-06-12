@@ -1073,36 +1073,6 @@
         }
     </style>
 
-    <footer>
-        <div class="busuanzi-card">
-            <div class="busuanzi-header">
-                <h3><i class="fas fa-chart-line"></i> 访问统计 <i class="fas fa-globe"></i></h3>
-            </div>
-            <div class="busuanzi-stats">
-                <div class="stat-item" onclick="refreshBusuanzi()" title="点击刷新">
-                    <div class="stat-value"><span id="busuanzi_value_site_pv"><span
-                                class="busuanzi-loading"></span></span></div>
-                    <div class="stat-label"><i class="fas fa-eye"></i> 总访问</div>
-                    <div class="stat-sub">累计人次</div>
-                </div>
-                <div class="stat-item" onclick="refreshBusuanzi()" title="点击刷新">
-                    <div class="stat-value"><span id="busuanzi_value_site_uv"><span
-                                class="busuanzi-loading"></span></span></div>
-                    <div class="stat-label"><i class="fas fa-users"></i> 访客</div>
-                    <div class="stat-sub">独立访客</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="today-visit-count">--</div>
-                    <div class="stat-label"><i class="fas fa-calendar-day"></i> 今日</div>
-                    <div class="stat-sub">今日人次</div>
-                </div>
-            </div>
-            <div class="refresh-tip" onclick="refreshBusuanzi()"><i class="fas fa-sync-alt"></i> 点击刷新</div>
-            <p>© 2026 加班工时计算系统 | 数据自动保存到本地浏览器</p>
-        </div>
-        <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-    </footer>
-
     <script>
         // ========== 初始化变量 ==========
         let currentDate = new Date();
@@ -1113,7 +1083,6 @@
 
         // 常量
         const MAX_DAILY_OVERTIME = 3;
-        const MAX_WEEKLY_OVERTIME = 20; // 每周加班上限20小时
         const MAX_WEEKLY_TOTAL_HOURS = 60; // 每周总工时上限60小时
 
         // DOM 元素
@@ -1143,8 +1112,6 @@
         const batchHoursInput = document.getElementById('batch-hours');
         const multiselectCancel = document.getElementById('multiselect-cancel');
         const multiselectApply = document.getElementById('multiselect-apply');
-        // 对每个周计算是否超限（从全局数据统计）
-        const weeklyOverLimitMap = new Map(); // key: 周起始日期字符串, value: 是否超限
 
         function toggleGlobalStats() {
             const content = document.getElementById('collapse-content');
@@ -1161,16 +1128,12 @@
         // 根据日期类型获取每日加班上限
         function getMaxDailyOvertime(date) {
             const dateType = getDateType(date);
-
-            // 节假日：11小时
             if (dateType === 'holiday') {
                 return 11;
             }
-            // 周末或调休日：11小时
             if (dateType === 'weekend' || dateType === 'extraWork') {
                 return 11;
             }
-            // 工作日或补班日：3小时
             return 3;
         }
 
@@ -1221,7 +1184,7 @@
             const weekRange = getCurrentWeekRange();
             let weeklyOvertimeHours = 0;
             let weeklyLeaveHours = 0;
-            let holidayOvertimeHours = 0; // 记录法定假日加班时长
+            let holidayOvertimeHours = 0;
 
             for (const monthKey in allOvertimeData) {
                 for (const dateString in allOvertimeData[monthKey]) {
@@ -1230,9 +1193,7 @@
                     if (date >= weekRange.start && date <= weekRange.end) {
                         const hours = parseFloat(data.hours) || 0;
                         const dateType = getDateType(date);
-
                         if (data && !data.isLeave) {
-                            // 如果是法定假日，单独记录，不计入周加班限制
                             if (dateType === 'holiday') {
                                 holidayOvertimeHours += hours;
                             } else {
@@ -1244,12 +1205,7 @@
                     }
                 }
             }
-
-            // 有效加班 = 普通加班总和 - 请假总和，最低为0
-            // 法定假日加班不计入每周20小时限制
             const effectiveOvertime = Math.max(0, weeklyOvertimeHours - weeklyLeaveHours);
-
-            // 返回时也返回法定假日加班时长，用于显示
             return { effectiveOvertime, holidayOvertime: holidayOvertimeHours };
         }
 
@@ -1259,59 +1215,34 @@
             let totalWorkHours = 0;
             let totalLeaveDeduction = 0;
 
-            console.log('===== 周工时计算明细 =====');
-            console.log('周范围:', weekRange.start.toLocaleDateString(), '-', weekRange.end.toLocaleDateString());
-
-            // 遍历所有数据
             for (const monthKey in allOvertimeData) {
                 for (const dateString in allOvertimeData[monthKey]) {
                     const data = allOvertimeData[monthKey][dateString];
                     const date = new Date(dateString);
-
-                    // 只统计本周内的日期
                     if (date >= weekRange.start && date <= weekRange.end) {
                         const hours = parseFloat(data.hours) || 0;
                         const dateType = getDateType(date);
                         const dayOfWeek = date.getDay();
                         const isWeekday = (dayOfWeek >= 1 && dayOfWeek <= 5);
-
-                        // 判断是否需要加基础8小时
-                        // 基础工时规则：只有工作日（周一至周五）且不是法定假日才加8小时基础工时
                         const isOfficialHoliday = (dateType === 'holiday');
                         const isWeekend = (dateType === 'weekend');
                         const needBaseHours = isWeekday && !isOfficialHoliday && !isWeekend;
 
-                        let dayBaseHours = 0;
-                        let dayOvertimeHours = 0;
-
                         if (data && !data.isLeave) {
-                            // 加班情况
                             if (needBaseHours) {
-                                dayBaseHours = 8;
+                                totalWorkHours += 8;
                             }
-                            dayOvertimeHours = hours;
-                            totalWorkHours += dayBaseHours + dayOvertimeHours;
-
-                            console.log(`${date.toLocaleDateString()} (${dateType}): 基础${dayBaseHours}h + 加班${dayOvertimeHours}h = ${dayBaseHours + dayOvertimeHours}h`);
-                        }
-                        else if (data && data.isLeave) {
-                            // 请假情况：扣除基础工时和请假时长
+                            totalWorkHours += hours;
+                        } else if (data && data.isLeave) {
                             if (needBaseHours) {
                                 totalLeaveDeduction += 8;
                             }
                             totalLeaveDeduction += hours;
-                            console.log(`${date.toLocaleDateString()} (${dateType}): 请假 -${hours}h, 扣除基础 -${needBaseHours ? 8 : 0}h`);
                         }
                     }
                 }
             }
-
-            // 减去请假扣除的工时
-            const finalTotal = Math.max(0, totalWorkHours - totalLeaveDeduction);
-            console.log(`总工时: ${totalWorkHours} - 请假扣除: ${totalLeaveDeduction} = ${finalTotal}`);
-            console.log('========================');
-
-            return finalTotal;
+            return Math.max(0, totalWorkHours - totalLeaveDeduction);
         }
 
         function getCurrentMonthData() {
@@ -1364,27 +1295,18 @@
             else if (dateType === 'extraWork') typeName = '调休日';
 
             if (hours > maxHours) {
-                showOvertimeWarning(
-                    dayElement,
-                    `⚠️ ${typeName}加班不能超过 ${maxHours} 小时！\n当前输入: ${hours} 小时`,
-                    'daily'
-                );
+                showOvertimeWarning(dayElement, `⚠️ ${typeName}加班不能超过 ${maxHours} 小时！\n当前输入: ${hours} 小时`, 'daily');
                 return false;
             }
             return true;
         }
 
         function checkWeeklyOvertimeLimit(additionalHours, date) {
-            // 检查当前日期是否是法定假日
             const dateType = getDateType(date);
             const dayOfWeek = date.getDay();
             const isWeekday = (dayOfWeek >= 1 && dayOfWeek <= 5);
-
-            // ===== 关键修改：根据传入的date计算该日期所在周的工时 =====
-            // 获取date所在周的起止日期
             const weekRange = getCurrentWeekRangeForDate(date);
 
-            // 计算该周的总工时（基于传入的date所在周）
             function calculateWeeklyTotalWorkHoursForDate(targetDate) {
                 const weekRange = getCurrentWeekRangeForDate(targetDate);
                 let totalWorkHours = 0;
@@ -1423,54 +1345,16 @@
                 return Math.max(0, totalWorkHours - totalLeaveDeduction);
             }
 
-            // 计算该周的有效加班（非节假日加班）
-            function calculateWeeklyOvertimeForDate(targetDate) {
-                const weekRange = getCurrentWeekRangeForDate(targetDate);
-                let weeklyOvertimeHours = 0;
-                let weeklyLeaveHours = 0;
-                let holidayOvertimeHours = 0;
-
-                for (const monthKey in allOvertimeData) {
-                    for (const dateString in allOvertimeData[monthKey]) {
-                        const data = allOvertimeData[monthKey][dateString];
-                        const checkDate = new Date(dateString);
-                        if (checkDate >= weekRange.start && checkDate <= weekRange.end) {
-                            const hours = parseFloat(data.hours) || 0;
-                            const checkDateType = getDateType(checkDate);
-                            if (data && !data.isLeave) {
-                                if (checkDateType === 'holiday') {
-                                    holidayOvertimeHours += hours;
-                                } else {
-                                    weeklyOvertimeHours += hours;
-                                }
-                            } else if (data && data.isLeave) {
-                                weeklyLeaveHours += hours;
-                            }
-                        }
-                    }
-                }
-                return Math.max(0, weeklyOvertimeHours - weeklyLeaveHours);
-            }
-
             const currentTotalHours = calculateWeeklyTotalWorkHoursForDate(date);
-            const currentWeeklyOvertime = calculateWeeklyOvertimeForDate(date);
-
-            // 计算添加本次加班后的总工时
             let newTotalHours = currentTotalHours;
-            let newWeeklyOvertime = currentWeeklyOvertime;
-
-            // 判断是否应该加基础8小时
             const shouldAddBaseHours = (dateType !== 'holiday' && dateType !== 'weekend');
 
             if (shouldAddBaseHours) {
                 newTotalHours = currentTotalHours + additionalHours;
-                newWeeklyOvertime = currentWeeklyOvertime + additionalHours;
             } else {
                 newTotalHours = currentTotalHours + additionalHours;
-                newWeeklyOvertime = currentWeeklyOvertime + additionalHours;
             }
 
-            // 检查是否超过每周总工时60小时限制
             if (newTotalHours > MAX_WEEKLY_TOTAL_HOURS) {
                 const exceed = newTotalHours - MAX_WEEKLY_TOTAL_HOURS;
                 const dateTypeName = dateType === 'holiday' ? '法定假日' : (dateType === 'weekend' ? '周末' : '工作日');
@@ -1482,20 +1366,8 @@
                     newTotalHours: newTotalHours,
                     exceed: exceed,
                     limitType: 'total',
+                    remainingTotal: MAX_WEEKLY_TOTAL_HOURS - currentTotalHours,
                     message: `⚠️ ${dateTypeName}加班 ${additionalHours} 小时\n日期所在周 (${weekStartStr} ~ ${weekEndStr}) 工时统计:\n当前总工时: ${currentTotalHours.toFixed(1)} 小时\n上限: ${MAX_WEEKLY_TOTAL_HOURS} 小时\n本次添加后将达: ${newTotalHours.toFixed(1)} 小时\n超出: ${exceed.toFixed(1)} 小时\n\n法定假日加班不计入每周20小时限制。`
-                };
-            }
-
-            // 检查是否超过每周加班20小时限制（只对非节假日）
-            if (dateType !== 'holiday' && newWeeklyOvertime > MAX_WEEKLY_OVERTIME) {
-                const exceed = newWeeklyOvertime - MAX_WEEKLY_OVERTIME;
-                return {
-                    allowed: false,
-                    currentWeeklyOvertime: currentWeeklyOvertime,
-                    newWeeklyOvertime: newWeeklyOvertime,
-                    exceed: exceed,
-                    limitType: 'overtime',
-                    message: `本周加班已达 ${currentWeeklyOvertime.toFixed(1)} 小时\n上限 ${MAX_WEEKLY_OVERTIME} 小时\n本次添加后将达 ${newWeeklyOvertime.toFixed(1)} 小时\n超出 ${exceed.toFixed(1)} 小时！`
                 };
             }
 
@@ -1503,33 +1375,8 @@
                 allowed: true,
                 currentTotalHours: currentTotalHours,
                 remainingTotal: MAX_WEEKLY_TOTAL_HOURS - currentTotalHours,
-                currentWeeklyOvertime: currentWeeklyOvertime,
-                remainingOvertime: MAX_WEEKLY_OVERTIME - currentWeeklyOvertime,
                 weekRange: weekRange
             };
-        }
-
-        // 新增辅助函数：计算某日期所在周的有效加班（加班-请假）
-        function calculateWeeklyOvertimeForDateWithLeave(date) {
-            const weekRange = getCurrentWeekRangeForDate(date);
-            let weeklyOvertimeHours = 0;
-            let weeklyLeaveHours = 0;
-
-            for (const monthKey in allOvertimeData) {
-                for (const dateString in allOvertimeData[monthKey]) {
-                    const data = allOvertimeData[monthKey][dateString];
-                    const checkDate = new Date(dateString);
-                    if (checkDate >= weekRange.start && checkDate <= weekRange.end) {
-                        const hours = parseFloat(data.hours) || 0;
-                        if (data && !data.isLeave) {
-                            weeklyOvertimeHours += hours;
-                        } else if (data && data.isLeave) {
-                            weeklyLeaveHours += hours;
-                        }
-                    }
-                }
-            }
-            return Math.max(0, weeklyOvertimeHours - weeklyLeaveHours);
         }
 
         // 在文件顶部添加一个全局标志
@@ -1541,24 +1388,19 @@
                 return true;
             }
 
-            // 防止重复弹窗
             if (isConfirming) {
                 return false;
             }
 
-            // 1. 检查每日限制 - 改为直接警告但不弹窗确认
+            // 检查每日限制
             if (!checkDailyOvertimeLimit(hours, date, dayElement)) {
-                // 只显示提示，不弹窗确认，直接让用户选择是否继续
                 const maxHours = getMaxDailyOvertime(date);
                 const dateType = getDateType(date);
                 let typeName = '工作日';
                 if (dateType === 'holiday') typeName = '节假日';
                 else if (dateType === 'weekend') typeName = '周末';
                 else if (dateType === 'extraWork') typeName = '调休日';
-
-                // 使用 notification 代替弹窗
                 showNotification(`${typeName}加班不能超过 ${maxHours} 小时！当前设置: ${hours} 小时`, 'warning');
-                // 继续执行，让用户决定是否保存（通过周限制弹窗）
             }
 
             let currentHoursForDate = 0;
@@ -1568,7 +1410,6 @@
             const additionalHours = hours - currentHoursForDate;
             const weeklyCheck = checkWeeklyOvertimeLimit(additionalHours, date);
 
-            // 只保留周限制的确认弹窗
             if (!weeklyCheck.allowed) {
                 isConfirming = true;
                 const userConfirmed = await customConfirm({
@@ -1589,148 +1430,68 @@
             return true;
         }
 
-        function updateWeeklyStatsDisplay() {
+        // 显示周详情
+        function showWeeklyDetail() {
             const weeklyStats = calculateCurrentWeeklyOvertime(true);
-            const weeklyOvertimeHours = weeklyStats.effectiveOvertime;
             const holidayHours = weeklyStats.holidayOvertime;
             const totalWorkHours = calculateWeeklyTotalWorkHours();
-
-            const overtimeLimit = MAX_WEEKLY_OVERTIME;
             const totalLimit = MAX_WEEKLY_TOTAL_HOURS;
 
-            const overtimePercentage = Math.min(100, (weeklyOvertimeHours / overtimeLimit) * 100);
-            const totalPercentage = Math.min(100, (totalWorkHours / totalLimit) * 100);
-            const remainingTotal = Math.max(0, totalLimit - totalWorkHours);
-            const remainingOvertime = Math.max(0, overtimeLimit - weeklyOvertimeHours);
-
-            // 获取元素
-            const weeklyStatsText = document.getElementById('weekly-stats-text');
-            const progressFill = document.getElementById('weekly-progress-fill');
-            const remainText = document.getElementById('weekly-remain-text');
-            const warningBadge = document.getElementById('weekly-warning-badge');
-            const progressContainer = document.getElementById('weekly-progress-container');
-            const overtimeCard = document.getElementById('overtime-card');
-
-            // 更新文本 - 显示总工时和加班信息
-            if (weeklyStatsText) {
-                let displayText = `总工时:${totalWorkHours.toFixed(1)}/${totalLimit}H`;
-                displayText += ` 加班:${weeklyOvertimeHours.toFixed(1)}/${overtimeLimit}H`;
-                if (holidayHours > 0) {
-                    displayText += ` (+${holidayHours.toFixed(1)}H节假日)`;
-                }
-                weeklyStatsText.textContent = displayText;
-
-                // 根据总工时比例设置颜色
-                if (totalWorkHours > totalLimit) {
-                    weeklyStatsText.className = 'weekly-stats danger';
-                } else if (totalWorkHours > totalLimit * 0.8) {
-                    weeklyStatsText.className = 'weekly-stats warning';
-                } else {
-                    weeklyStatsText.className = 'weekly-stats normal';
-                }
+            let message = `本周总工时: ${totalWorkHours.toFixed(1)}/${totalLimit} 小时\n`;
+            if (holidayHours > 0) {
+                message += `法定假日加班: ${holidayHours.toFixed(1)} 小时\n`;
             }
 
-            // 更新进度条（基于总工时）
-            if (progressFill) {
-                progressFill.style.width = `${totalPercentage}%`;
-                if (totalWorkHours > totalLimit) {
-                    progressFill.className = 'weekly-progress-bar-fill danger';
-                } else if (totalWorkHours > totalLimit * 0.8) {
-                    progressFill.className = 'weekly-progress-bar-fill warning';
-                } else {
-                    progressFill.className = 'weekly-progress-bar-fill normal';
-                }
+            if (totalWorkHours > totalLimit) {
+                const exceed = (totalWorkHours - totalLimit).toFixed(1);
+                message += `\n⚠️ 总工时已超出限额 ${exceed} 小时！`;
+                customConfirm({
+                    title: '工时超限',
+                    type: 'warning',
+                    message: message + '\n\n是否查看本周工时明细？',
+                    confirmText: '查看明细',
+                    cancelText: '关闭'
+                }).then(result => {
+                    if (result) {
+                        showNotification(`本周总工时 ${totalWorkHours.toFixed(1)}/${totalLimit} 小时`, 'warning');
+                    }
+                });
+            } else if (totalWorkHours > totalLimit * 0.8) {
+                const remaining = (totalLimit - totalWorkHours).toFixed(1);
+                message += `\n⚠️ 本周总工时剩余额度仅剩 ${remaining} 小时`;
+                showNotification(message, 'warning');
+            } else {
+                const remaining = (totalLimit - totalWorkHours).toFixed(1);
+                message += `\n本周总工时剩余额度 ${remaining} 小时`;
+                showNotification(message, 'info');
             }
-
-            // 更新剩余文本
-            if (remainText) {
-                let remainingText = remainingTotal <= 0 ? '总工时已超限 0小时' : `总工时剩余 ${remainingTotal.toFixed(1)} 小时`;
-                if (remainingOvertime <= 0) {
-                    remainingText += ` | 加班已超限`;
-                } else if (remainingOvertime <= 4) {
-                    remainingText += ` | 加班剩余 ${remainingOvertime.toFixed(1)} 小时`;
-                }
-                if (holidayHours > 0) {
-                    remainingText += ` (节假日${holidayHours.toFixed(1)}H不计入加班限制)`;
-                }
-                remainText.textContent = remainingText;
-                if (remainingTotal <= 0) {
-                    remainText.className = 'weekly-remain-text danger';
-                } else if (remainingTotal <= 8) {
-                    remainText.className = 'weekly-remain-text warning';
-                } else {
-                    remainText.className = 'weekly-remain-text';
-                }
-            }
-
-            // 更新容器边框样式
-            if (progressContainer) {
-                if (totalWorkHours > totalLimit) {
-                    progressContainer.className = 'weekly-progress-container danger';
-                    if (warningBadge) warningBadge.style.display = 'inline-flex';
-                } else if (totalWorkHours > totalLimit * 0.8) {
-                    progressContainer.className = 'weekly-progress-container warning';
-                    if (warningBadge) warningBadge.style.display = 'none';
-                } else {
-                    progressContainer.className = 'weekly-progress-container normal';
-                    if (warningBadge) warningBadge.style.display = 'none';
-                }
-            }
-
-            // 超限时高亮整个卡片
-            if (overtimeCard) {
-                if (totalWorkHours > totalLimit) {
-                    overtimeCard.classList.add('weekly-limit-warning');
-                } else {
-                    overtimeCard.classList.remove('weekly-limit-warning');
-                }
-            }
-
-            return { totalWorkHours, remainingTotal, weeklyOvertimeHours, remainingOvertime, isOverLimit: totalWorkHours > totalLimit, holidayHours };
         }
 
         // 自定义确认对话框（替代浏览器confirm）
         function customConfirm(options) {
             return new Promise((resolve) => {
-                // 移除已存在的对话框
                 const existing = document.querySelector('.custom-confirm-overlay');
                 if (existing) existing.remove();
 
-                // 创建遮罩层
                 const overlay = document.createElement('div');
                 overlay.className = 'custom-confirm-overlay';
-
-                // 创建对话框
                 const dialog = document.createElement('div');
                 dialog.className = 'custom-confirm-dialog';
 
-                // 根据类型设置样式
                 const type = options.type || 'warning';
-                const iconMap = {
-                    warning: '⚠️',
-                    info: 'ℹ️',
-                    success: '✅',
-                    error: '❌'
-                };
+                const iconMap = { warning: '⚠️', info: 'ℹ️', success: '✅', error: '❌' };
 
-                // 头部
                 const header = document.createElement('div');
                 header.className = `custom-confirm-header ${type}`;
-                header.innerHTML = `
-            <div class="icon">${iconMap[type] || '⚠️'}</div>
-            <h3>${options.title || '提示'}</h3>
-        `;
+                header.innerHTML = `<div class="icon">${iconMap[type] || '⚠️'}</div><h3>${options.title || '提示'}</h3>`;
 
-                // 内容
                 const body = document.createElement('div');
                 body.className = 'custom-confirm-body';
                 body.innerHTML = options.message || '确定要继续吗？';
 
-                // 底部按钮
                 const footer = document.createElement('div');
                 footer.className = 'custom-confirm-footer';
 
-                // 取消按钮
                 const cancelBtn = document.createElement('button');
                 cancelBtn.className = 'custom-confirm-btn cancel';
                 cancelBtn.textContent = options.cancelText || '取消';
@@ -1739,7 +1500,6 @@
                     resolve(false);
                 };
 
-                // 确认按钮
                 const confirmBtn = document.createElement('button');
                 confirmBtn.className = `custom-confirm-btn ${type === 'warning' ? 'warning' : 'confirm'}`;
                 confirmBtn.textContent = options.confirmText || '确定';
@@ -1757,7 +1517,6 @@
                 overlay.appendChild(dialog);
                 document.body.appendChild(overlay);
 
-                // 点击遮罩层关闭（可选）
                 overlay.onclick = (e) => {
                     if (e.target === overlay) {
                         overlay.remove();
@@ -1765,7 +1524,6 @@
                     }
                 };
 
-                // ESC键关闭
                 const escHandler = (e) => {
                     if (e.key === 'Escape') {
                         overlay.remove();
@@ -1777,80 +1535,29 @@
             });
         }
 
-        // 点击警告按钮或容器时显示详细提示
-        function showWeeklyDetail() {
-            const weeklyStats = calculateCurrentWeeklyOvertime(true);
-            const weeklyOvertimeHours = weeklyStats.effectiveOvertime;
-            const holidayHours = weeklyStats.holidayOvertime;
-            const totalWorkHours = calculateWeeklyTotalWorkHours();
-            const overtimeLimit = MAX_WEEKLY_OVERTIME;
-            const totalLimit = MAX_WEEKLY_TOTAL_HOURS;
-
-            let message = `本周总工时: ${totalWorkHours.toFixed(1)}/${totalLimit} 小时\n`;
-            message += `本周加班(非节假日): ${weeklyOvertimeHours.toFixed(1)}/${overtimeLimit} 小时\n`;
-            if (holidayHours > 0) {
-                message += `法定假日加班: ${holidayHours.toFixed(1)} 小时 (不计入加班限制)\n`;
-            }
-
-            if (totalWorkHours > totalLimit) {
-                const exceed = (totalWorkHours - totalLimit).toFixed(1);
-                message += `\n⚠️ 总工时已超出限额 ${exceed} 小时！`;
-                // 使用自定义确认框
-                customConfirm({
-                    title: '工时超限',
-                    type: 'warning',
-                    message: message + '\n\n是否查看本周工时明细？',
-                    confirmText: '查看明细',
-                    cancelText: '关闭'
-                }).then(result => {
-                    if (result) {
-                        showNotification(`本周总工时 ${totalWorkHours.toFixed(1)}/${totalLimit} 小时`, 'warning');
-                    }
-                });
-            } else if (totalWorkHours > totalLimit * 0.8) {
-                const remaining = (totalLimit - totalWorkHours).toFixed(1);
-                message += `\n⚠️ 本周总工时剩余额度仅剩 ${remaining} 小时`;
-                showNotification(message, 'warning');
-            } else if (weeklyOvertimeHours > overtimeLimit * 0.8) {
-                const remaining = (overtimeLimit - weeklyOvertimeHours).toFixed(1);
-                message += `\n⚠️ 本周加班剩余额度仅剩 ${remaining} 小时`;
-                showNotification(message, 'warning');
-            } else {
-                const remaining = (totalLimit - totalWorkHours).toFixed(1);
-                message += `\n本周总工时剩余额度 ${remaining} 小时`;
-                showNotification(message, 'info');
-            }
-        }
-
+        // 标记周超限警告
         function markLimitWarnings() {
             const calendarDays = document.querySelectorAll('.calendar-day');
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
 
-            // 清除所有警告标记
             calendarDays.forEach(day => {
-                day.classList.remove('daily-limit-warning', 'weekly-limit-warning', 'total-hours-warning');
+                day.classList.remove('daily-limit-warning', 'weekly-limit-warning');
                 const badge = day.querySelector('.overtime-badge');
-                if (badge) badge.classList.remove('daily-exceed', 'weekly-warning', 'total-warning');
+                if (badge) badge.classList.remove('daily-exceed', 'weekly-warning');
                 const mobileIndicator = day.querySelector('.mobile-indicator');
                 if (mobileIndicator) mobileIndicator.classList.remove('daily-exceed');
             });
 
-            // 获取当前显示月份的第一天和最后一天
             const firstDayOfMonth = new Date(year, month, 1);
             const lastDayOfMonth = new Date(year, month + 1, 0);
-
-            // 收集当前月份涉及的所有周的key
             const weeksInMonth = new Set();
             for (let d = new Date(firstDayOfMonth); d <= lastDayOfMonth; d.setDate(d.getDate() + 1)) {
                 const weekRange = getCurrentWeekRangeForDate(d);
-                const weekKey = weekRange.start.toISOString();
-                weeksInMonth.add(weekKey);
+                weeksInMonth.add(weekRange.start.toISOString());
             }
 
-            // 对每个周计算是否超限（从全局数据统计）
-            const weeklyOvertimeOverLimitMap = new Map(); // 加班超限（>20小时）
-            const weeklyTotalHoursOverLimitMap = new Map(); // 总工时超限（>60小时）
+            const weeklyTotalHoursOverLimitMap = new Map();
 
             for (const weekKey of weeksInMonth) {
                 const weekStart = new Date(weekKey);
@@ -1858,10 +1565,8 @@
                 weekEnd.setDate(weekStart.getDate() + 6);
                 weekEnd.setHours(23, 59, 59, 999);
 
-                let weeklyOvertimeHours = 0; // 非节假日加班
-                let weeklyTotalHours = 0; // 总工时（基础8小时+加班）
+                let weeklyTotalHours = 0;
 
-                // 从全局 allOvertimeData 统计该周数据
                 for (const monthKey in allOvertimeData) {
                     for (const dateString in allOvertimeData[monthKey]) {
                         const data = allOvertimeData[monthKey][dateString];
@@ -1874,19 +1579,12 @@
                             const isOfficialHoliday = (dateType === 'holiday');
 
                             if (data && !data.isLeave) {
-                                // 非节假日加班（用于加班超限判断）
-                                if (dateType !== 'holiday') {
-                                    weeklyOvertimeHours += hours;
-                                }
-
-                                // 总工时计算：工作日+非节假日 = 基础8小时+加班；周末/节假日 = 只有加班
                                 if (isWeekday && !isOfficialHoliday) {
                                     weeklyTotalHours += 8 + hours;
                                 } else {
                                     weeklyTotalHours += hours;
                                 }
                             } else if (data && data.isLeave) {
-                                // 请假：扣除当天基础8小时（如果是工作日且非节假日）
                                 if (isWeekday && !isOfficialHoliday) {
                                     weeklyTotalHours -= 8;
                                 }
@@ -1895,37 +1593,20 @@
                         }
                     }
                 }
-
-                // 确保总工时不小于0
                 weeklyTotalHours = Math.max(0, weeklyTotalHours);
-
-                const isOvertimeOverLimit = weeklyOvertimeHours > MAX_WEEKLY_OVERTIME;
-                const isTotalHoursOverLimit = weeklyTotalHours > MAX_WEEKLY_TOTAL_HOURS;
-
-                weeklyOvertimeOverLimitMap.set(weekKey, isOvertimeOverLimit);
-                weeklyTotalHoursOverLimitMap.set(weekKey, isTotalHoursOverLimit);
-
-                // 调试日志
-                console.log(`周 ${weekStart.toLocaleDateString()}~${weekEnd.toLocaleDateString()}:`);
-                console.log(`  非节假日加班: ${weeklyOvertimeHours}小时, 加班超限(>20): ${isOvertimeOverLimit}`);
-                console.log(`  总工时: ${weeklyTotalHours}小时, 总工时超限(>60): ${isTotalHoursOverLimit}`);
+                weeklyTotalHoursOverLimitMap.set(weekKey, weeklyTotalHours > MAX_WEEKLY_TOTAL_HOURS);
             }
 
-            // 遍历当前月份的每一天
             for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
                 const date = new Date(year, month, day);
                 const dateString = formatDateForInput(date);
                 const weekRange = getCurrentWeekRangeForDate(date);
                 const weekKey = weekRange.start.toISOString();
-
-                const isWeeklyOvertimeOverLimit = weeklyOvertimeOverLimitMap.get(weekKey) || false;
                 const isWeeklyTotalHoursOverLimit = weeklyTotalHoursOverLimitMap.get(weekKey) || false;
 
-                // 获取该日期的加班数据（如果有）
                 let hours = 0;
                 let maxHoursForDate = getMaxDailyOvertime(date);
 
-                // 查找该日期的加班数据
                 for (const monthKey in allOvertimeData) {
                     if (allOvertimeData[monthKey][dateString]) {
                         const data = allOvertimeData[monthKey][dateString];
@@ -1936,11 +1617,9 @@
                     }
                 }
 
-                // 找到对应的日历元素
                 calendarDays.forEach(dayElement => {
                     const dayNumber = dayElement.querySelector('.day-number');
                     if (dayNumber && parseInt(dayNumber.textContent) === day) {
-                        // 每日超限标记（如果有加班且超过每日上限）
                         if (hours > 0 && hours > maxHoursForDate) {
                             dayElement.classList.add('daily-limit-warning');
                             const badge = dayElement.querySelector('.overtime-badge');
@@ -1949,17 +1628,7 @@
                             if (mobileIndicator) mobileIndicator.classList.add('daily-exceed');
                         }
 
-                        // 总工时超限标记（红色边框）- 优先级更高
                         if (isWeeklyTotalHoursOverLimit) {
-                            dayElement.classList.add('weekly-limit-warning'); // 使用红色边框样式
-                            const badge = dayElement.querySelector('.overtime-badge');
-                            if (badge && !badge.classList.contains('daily-exceed')) {
-                                badge.classList.add('weekly-warning');
-                            }
-                        }
-                        // 加班超限标记（橙色边框）- 仅在总工时未超限时显示
-                        else if (isWeeklyOvertimeOverLimit) {
-                            // 这里可以用不同的样式，但目前使用相同的样式
                             dayElement.classList.add('weekly-limit-warning');
                             const badge = dayElement.querySelector('.overtime-badge');
                             if (badge && !badge.classList.contains('daily-exceed')) {
@@ -1970,7 +1639,7 @@
                 });
             }
 
-            // 同时更新统计卡片的超限样式（基于当前系统时间所在的周）
+            // 更新统计卡片样式
             const currentWeekRange = getCurrentWeekRange();
             let currentWeekTotal = 0;
             for (const monthKey in allOvertimeData) {
@@ -1987,7 +1656,7 @@
                     }
                 }
             }
-            const isCurrentWeekOverLimit = currentWeekTotal > MAX_WEEKLY_OVERTIME;
+            const isCurrentWeekOverLimit = currentWeekTotal > MAX_WEEKLY_TOTAL_HOURS;
             const statItem = document.querySelector('.stat-item-compact:first-child');
             if (statItem) {
                 isCurrentWeekOverLimit ? statItem.classList.add('weekly-limit-warning') : statItem.classList.remove('weekly-limit-warning');
@@ -2011,7 +1680,6 @@
             let totalOvertimeHours = 0, totalLeaveHours = 0, overtimeA = 0, overtimeB = 0, overtimeC = 0;
             const hourlySalary = parseFloat(hourlySalaryEl.textContent);
 
-            // 统计总加班和总请假（用于显示）
             for (const date in overtimeData) {
                 const hours = parseFloat(overtimeData[date].hours) || 0;
                 const isLeave = overtimeData[date].isLeave || false;
@@ -2019,7 +1687,6 @@
                 else totalOvertimeHours += hours;
             }
 
-            // ========== 核心逻辑：按周计算，周内加班总和 - 周内请假总和 = 周内有效加班 ==========
             function getWeekStartKey(date) {
                 const d = new Date(date);
                 const day = d.getDay();
@@ -2029,8 +1696,7 @@
                 return d.toISOString();
             }
 
-            // 按周分组
-            const weeklyData = new Map(); // key: 周起始, value: { overtimeTotal: 0, leaveTotal: 0, records: [] }
+            const weeklyData = new Map();
 
             for (const dateString in overtimeData) {
                 const dataItem = overtimeData[dateString];
@@ -2045,61 +1711,41 @@
                 const week = weeklyData.get(weekKey);
 
                 if (!isLeave && hours > 0) {
-                    // 加班记录
                     week.overtimeTotal += hours;
                     week.records.push({
-                        dateString,
-                        hours,
-                        date,
+                        dateString, hours, date,
                         multiplier: getOvertimeMultiplier(date),
                         originalHours: hours
                     });
                 } else if (isLeave && hours > 0) {
-                    // 请假记录
                     week.leaveTotal += hours;
                 }
             }
 
-            // 计算每周末的有效加班 = 加班总和 - 请假总和
             for (const [weekKey, week] of weeklyData) {
                 const { overtimeTotal, leaveTotal, records } = week;
-
-                // 核心公式：有效加班 = 该周加班总和 - 该周请假总和
                 let effectiveOvertime = overtimeTotal - leaveTotal;
+                if (effectiveOvertime < 0) effectiveOvertime = 0;
 
-                if (effectiveOvertime < 0) {
-                    effectiveOvertime = 0;  // 不能为负数
-                }
-
-                // 如果有加班被抵扣，按原比例分配剩余加班到各天
                 if (effectiveOvertime > 0 && records.length > 0 && overtimeTotal > 0) {
                     for (const record of records) {
-                        // 按原加班时长的比例分配剩余有效加班
                         const proportion = record.hours / overtimeTotal;
                         const assignHours = effectiveOvertime * proportion;
-
                         if (record.multiplier === 3) overtimeC += assignHours;
                         else if (record.multiplier === 2) overtimeB += assignHours;
                         else if (record.multiplier === 1.5) overtimeA += assignHours;
                     }
                 }
-                // 如果 effectiveOvertime <= 0，该周所有加班都被请假抵掉了
             }
 
-            // 实际有效加班总时长
             const actualOvertimeHours = overtimeA + overtimeB + overtimeC;
-
-            // 加班工资计算
             const overtimePayA = (overtimeA * hourlySalary * 1.5).toFixed(2);
             const overtimePayB = (overtimeB * hourlySalary * 2).toFixed(2);
             const overtimePayC = (overtimeC * hourlySalary * 3).toFixed(2);
             const totalOvertimePay = (parseFloat(overtimePayA) + parseFloat(overtimePayB) + parseFloat(overtimePayC)).toFixed(2);
-
-            // 请假扣款（所有请假都扣款，与是否抵扣加班无关）
             const leaveDeduction = (totalLeaveHours * hourlySalary * 1.5).toFixed(2);
             const netIncome = (parseFloat(salary) + parseFloat(totalOvertimePay) - parseFloat(leaveDeduction)).toFixed(2);
 
-            // 更新DOM
             totalOvertimeEl.textContent = totalOvertimeHours.toFixed(1) + 'H';
             actualOvertimeEl.textContent = actualOvertimeHours.toFixed(1) + 'H';
             totalLeaveEl.textContent = totalLeaveHours.toFixed(1) + 'H';
@@ -2110,7 +1756,6 @@
             overtimeCEl.textContent = 'C：' + overtimePayC;
             netIncomeEl.textContent = netIncome;
 
-            updateWeeklyStatsDisplay();
             markLimitWarnings();
             updateGlobalStats();
         }
@@ -2186,50 +1831,39 @@
             const dateType = getDateType(date);
 
             if (isMobile) {
-                // 移动端：显示圆形指示器
                 const indicator = document.createElement('div');
                 indicator.className = `mobile-indicator ${isLeave ? 'mobile-leave' : 'mobile-overtime'}`;
                 indicator.textContent = hours <= 99 ? hours : '99+';
-
                 if (!isLeave) {
                     if (dateType === 'holiday') indicator.classList.add('holiday-rate');
                     else if (dateType === 'weekend' || dateType === 'extraWork') indicator.classList.add('double-rate');
                     else indicator.classList.add('normal-rate');
                 }
-
-                // 长加班特殊样式
                 if (hours >= 20) indicator.classList.add('extra-long-hours');
                 else if (hours >= 10) indicator.classList.add('long-hours');
-
                 dayElement.appendChild(indicator);
             } else {
-                // 桌面端：显示标签
                 const badge = document.createElement('div');
                 badge.className = `overtime-badge ${isLeave ? 'leave' : 'overtime'}`;
-
                 let displayText = isLeave ? `请假${hours}H` : `加班${hours}H`;
                 if (hours >= 20) displayText = isLeave ? `假${hours}` : `加${hours}`;
                 else if (hours >= 10) displayText = isLeave ? `假班${hours}` : `加班${hours}`;
                 badge.textContent = displayText;
-
                 const multiplierText = dateType === 'holiday' ? '3倍' : (dateType === 'weekend' || dateType === 'extraWork' ? '2倍' : '1.5倍');
                 badge.title = `${isLeave ? '请假' : '加班'} ${hours}小时 (${multiplierText})`;
                 badge.setAttribute('data-hours', hours);
-
                 const dot = document.createElement('div');
                 dot.className = 'overtime-dot';
                 if (isLeave) dot.classList.add('leave');
                 else if (dateType === 'holiday') dot.classList.add('holiday');
                 else if (dateType === 'weekend' || dateType === 'extraWork') dot.classList.add('weekend');
                 else dot.classList.add('workday');
-
                 dayElement.appendChild(badge);
                 dayElement.appendChild(dot);
             }
         }
 
         function showOvertimeInput(date, dayElement) {
-            // 防止重复打开输入框
             if (dayElement.querySelector('.overtime-input')) return;
 
             const isMobile = window.innerWidth <= 768;
@@ -2238,7 +1872,6 @@
             const overtimeData = getCurrentOvertimeData();
             const existingData = overtimeData[dateString];
 
-            // 移除已存在的输入框
             const existingInput = document.querySelector('.overtime-input');
             const existingOverlay = document.querySelector('.input-overlay');
             if (existingInput) existingInput.remove();
@@ -2267,7 +1900,6 @@
 
                 const hours = parseFloat(hoursInput.value) || 0;
 
-                // 关闭输入框
                 if (inputContainer.parentNode) inputContainer.remove();
                 if (overlay) overlay.remove();
                 dayElement.classList.remove('selected-input');
@@ -2280,7 +1912,6 @@
                         overtimeData[dateString] = { hours: absoluteHours, isLeave: isLeave };
                         updateDayDisplay(dayElement, dateString, absoluteHours, isLeave);
                         setTimeout(() => {
-                            updateWeeklyStatsDisplay();
                             markLimitWarnings();
                             updateStats();
                         }, 50);
@@ -2296,16 +1927,14 @@
                     } else {
                         const shouldSave = await validateAndSaveOvertime(date, absoluteHours, false, dayElement, dateString, overtimeData, doSave);
                         if (!shouldSave) {
-                            // 用户取消了，不保存
                             isSaving = false;
                         }
                     }
                 } else {
-                    // 清除数据
                     if (overtimeData[dateString]) {
                         delete overtimeData[dateString];
                         updateDayDisplay(dayElement, dateString, 0, false);
-                        setTimeout(() => { updateWeeklyStatsDisplay(); markLimitWarnings(); updateGlobalStats(); }, 50);
+                        setTimeout(() => { markLimitWarnings(); updateGlobalStats(); }, 50);
                         saveToLocalStorage();
                         updateStats();
                         updateExcelTable();
@@ -2314,7 +1943,6 @@
                 }
             };
 
-            // 只监听回车键保存
             hoursInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -2322,15 +1950,11 @@
                 }
             });
 
-            // 监听失去焦点，但延迟执行，避免与确认对话框冲突
             hoursInput.addEventListener('blur', () => {
-                // 延迟执行，给确认对话框时间
                 setTimeout(() => {
-                    // 检查是否有对话框打开
                     if (!document.querySelector('.custom-confirm-overlay')) {
                         saveData();
                     } else {
-                        // 对话框存在，等待它关闭
                         const checkInterval = setInterval(() => {
                             if (!document.querySelector('.custom-confirm-overlay')) {
                                 clearInterval(checkInterval);
@@ -2351,6 +1975,7 @@
             else dayElement.appendChild(inputContainer);
             setTimeout(() => { hoursInput.focus(); hoursInput.select(); }, 50);
         }
+
         function handleDateClick(date, dayElement) {
             if (!isMultiselectMode) { showOvertimeInput(date, dayElement); return; }
             const dateString = formatDateForInput(date);
@@ -2364,6 +1989,7 @@
         function exitMultiselectMode() { isMultiselectMode = false; multiselectToggle.innerHTML = '<i class="fas fa-mouse-pointer"></i> 多选模式'; multiselectToggle.style.background = ''; multiselectControls.style.display = 'none'; selectedDates.clear(); updateMultiselectCount(); batchHoursInput.value = ''; showNotification('已退出多选模式', 'info'); }
         function toggleMultiselectMode() { isMultiselectMode = !isMultiselectMode; if (isMultiselectMode) { multiselectToggle.innerHTML = '<i class="fas fa-times"></i> 退出多选'; multiselectToggle.style.background = '#e74c3c'; multiselectControls.style.display = 'flex'; selectedDates.clear(); updateMultiselectCount(); setTimeout(() => batchHoursInput.focus(), 100); } else exitMultiselectMode(); renderCalendar(); }
         function cancelMultiselect() { exitMultiselectMode(); renderCalendar(); }
+
         async function applyMultiselect() {
             const hours = parseFloat(batchHoursInput.value);
             if (isNaN(hours)) { showNotification('请输入有效的数字', 'error'); batchHoursInput.focus(); return; }
@@ -2487,12 +2113,10 @@
         async function clearCurrentMonthData() {
             const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
             const hasData = Object.keys(allOvertimeData[monthKey] || {}).length > 0;
-
             if (!hasData) {
                 showNotification('当月没有数据可清除', 'info');
                 return;
             }
-
             const userConfirmed = await customConfirm({
                 title: '确认清除',
                 type: 'warning',
@@ -2500,7 +2124,6 @@
                 confirmText: '确定清除',
                 cancelText: '取消'
             });
-
             if (userConfirmed) {
                 allOvertimeData[monthKey] = {};
                 renderCalendar();
@@ -2515,13 +2138,10 @@
         // 全局清除所有数据
         async function clearAllData() {
             const totalCount = countAllRecords();
-
             if (totalCount === 0) {
                 showNotification('没有数据可清除', 'info');
                 return;
             }
-
-            // 二次确认，防止误操作
             const userConfirmed1 = await customConfirm({
                 title: '⚠️ 全局清除警告',
                 type: 'warning',
@@ -2529,9 +2149,7 @@
                 confirmText: '继续',
                 cancelText: '取消'
             });
-
             if (!userConfirmed1) return;
-
             const userConfirmed2 = await customConfirm({
                 title: '最后确认',
                 type: 'error',
@@ -2539,7 +2157,6 @@
                 confirmText: '是的，清空所有',
                 cancelText: '取消'
             });
-
             if (userConfirmed2) {
                 allOvertimeData = {};
                 localStorage.setItem('allOvertimeData', JSON.stringify(allOvertimeData));
@@ -2551,7 +2168,6 @@
             }
         }
 
-        // 统计所有记录数量
         function countAllRecords() {
             let count = 0;
             for (const monthKey in allOvertimeData) {
@@ -2591,26 +2207,19 @@
             exportExcelBtn.onclick = exportToExcel;
             importExcelBtn.onchange = importFromExcel;
             document.getElementById('export-datalink').onclick = () => exportToDatalink();
-            updateWeeklyStatsDisplay();
             markLimitWarnings();
 
-            // 初始化清除数据下拉菜单
             function initClearDropdown() {
                 const trigger = document.getElementById('clear-data-trigger');
                 const dropdown = document.getElementById('clear-dropdown');
                 const clearCurrentBtn = document.getElementById('clear-current-month');
                 const clearAllBtn = document.getElementById('clear-all-data');
-
                 if (!trigger || !dropdown) return;
-
-                // 点击触发器切换下拉菜单
                 trigger.addEventListener('click', (e) => {
                     e.stopPropagation();
                     dropdown.classList.toggle('show');
                     trigger.classList.toggle('active');
                 });
-
-                // 清除当月
                 if (clearCurrentBtn) {
                     clearCurrentBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -2619,8 +2228,6 @@
                         clearCurrentMonthData();
                     });
                 }
-
-                // 全局清除
                 if (clearAllBtn) {
                     clearAllBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -2629,15 +2236,11 @@
                         clearAllData();
                     });
                 }
-
-                // 点击其他地方关闭下拉菜单
                 document.addEventListener('click', () => {
                     dropdown.classList.remove('show');
                     trigger.classList.remove('active');
                 });
             }
-
-            // 初始化清除数据下拉菜单
             initClearDropdown();
         }
 
@@ -2779,8 +2382,6 @@
         })();
 
         // ========== 全局统计功能 ==========
-
-        // 计算指定时间范围内的加班总时长
         function calculateOvertimeInRange(startDate, endDate) {
             let total = 0;
             for (const monthKey in allOvertimeData) {
@@ -2797,7 +2398,6 @@
             return total;
         }
 
-        // 获取本月范围
         function getCurrentMonthRange() {
             const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -2806,7 +2406,6 @@
             return { start, end };
         }
 
-        // 获取本季度范围
         function getCurrentQuarterRange() {
             const now = new Date();
             const quarter = Math.floor(now.getMonth() / 3);
@@ -2816,7 +2415,6 @@
             return { start, end };
         }
 
-        // 获取本年范围
         function getCurrentYearRange() {
             const now = new Date();
             const start = new Date(now.getFullYear(), 0, 1);
@@ -2825,11 +2423,8 @@
             return { start, end };
         }
 
-        // 更新全局统计显示
         function updateGlobalStats() {
-            // 简单统计总记录数（用于显示）
             const totalRecords = countAllRecords();
-            // 可以更新到页面的某个地方，或者留空
             console.log(`总记录数: ${totalRecords}`);
             const monthRange = getCurrentMonthRange();
             const quarterRange = getCurrentQuarterRange();
@@ -2849,7 +2444,6 @@
                 }
             }
 
-            // 更新DOM
             const monthEl = document.getElementById('global-month-overtime');
             const quarterEl = document.getElementById('global-quarter-overtime');
             const yearEl = document.getElementById('global-year-overtime');
@@ -2864,7 +2458,6 @@
             if (yearEl) yearEl.textContent = yearOvertime.toFixed(1);
             if (totalEl) totalEl.textContent = totalOvertime.toFixed(1);
 
-            // 更新进度条
             if (monthProgress) {
                 const pct = Math.min(100, (monthOvertime / 80) * 100);
                 monthProgress.style.width = `${pct}%`;
@@ -2881,13 +2474,11 @@
                 yearProgress.className = yearOvertime > 960 ? 'global-progress-bar danger' : (yearOvertime > 768 ? 'global-progress-bar warning' : 'global-progress-bar normal');
             }
 
-            // 年度超限警告
             if (warningTag) {
                 warningTag.style.display = yearOvertime > 960 ? 'inline-flex' : 'none';
             }
         }
 
-        // 重置全局统计
         async function resetGlobalStats() {
             const userConfirmed1 = await customConfirm({
                 title: '⚠️ 重置警告',
@@ -2896,9 +2487,7 @@
                 confirmText: '继续',
                 cancelText: '取消'
             });
-
             if (!userConfirmed1) return;
-
             const userConfirmed2 = await customConfirm({
                 title: '最后确认',
                 type: 'error',
@@ -2906,7 +2495,6 @@
                 confirmText: '是的，清空',
                 cancelText: '取消'
             });
-
             if (userConfirmed2) {
                 allOvertimeData = {};
                 localStorage.setItem('allOvertimeData', JSON.stringify(allOvertimeData));
@@ -2918,7 +2506,6 @@
             }
         }
 
-        // 导出全局报表
         function exportGlobalReport() {
             const monthRange = getCurrentMonthRange();
             const quarterRange = getCurrentQuarterRange();
@@ -2949,7 +2536,6 @@
             XLSX.writeFile(wb, `加班统计报表_${new Date().toLocaleDateString()}.xlsx`);
         }
 
-        // 绑定全局统计按钮事件
         function bindGlobalStatsEvents() {
             const resetBtn = document.getElementById('reset-global-btn');
             const exportBtn = document.getElementById('export-global-btn');
@@ -2958,7 +2544,6 @@
         }
 
         init();
-        // 初始化全局统计
         updateGlobalStats();
         bindGlobalStatsEvents();
     </script>
