@@ -2297,15 +2297,155 @@
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1;
             const wb = XLSX.utils.book_new();
-            const headers = ['填报人信息', '工号', '姓名', '成员组', '班次选择', '开始日期', '开始加班时间', '结束日期', '结束加班时间', '休息开始时间', '休息结束时间', '考勤日期', '开始时间', '结束时间', '休息开始', '休息结束', '加班类型', '加班事由（最后填写）', '加班时数', '备案加班(含月末小周六)', '本周总加班', '本月总加班', '剩余加班', '填报编号', '归属族', '提交人', '提交时间', '更新人', '更新时间'];
+
+            // 表头 - 保持原有顺序
+            const headers = [
+                '填报人信息', '工号', '姓名', '成员组', '班次选择',
+                '开始日期', '开始加班时间', '结束日期', '结束加班时间',
+                '休息开始时间', '休息结束时间',
+                '考勤日期', '开始时间', '结束时间', '休息开始', '休息结束',
+                '加班类型', '加班事由（最后填写）',
+                '加班时数', '备案加班(含月末小周六)',
+                '本周总加班', '本月总加班', '剩余加班',
+                '填报编号', '归属族', '提交人', '提交时间', '更新人', '更新时间'
+            ];
+
             const data = [headers];
-            const validItems = Object.entries(overtimeData).filter(([_, d]) => !d.isLeave).map(([dateStr, d]) => ({ date: new Date(dateStr), hours: parseFloat(d.hours) || 0 })).sort((a, b) => a.date - b.date);
+
+            // 获取所有加班记录（非请假）
+            const validItems = Object.entries(overtimeData)
+                .filter(([_, d]) => !d.isLeave)
+                .map(([dateStr, d]) => ({
+                    date: new Date(dateStr),
+                    hours: parseFloat(d.hours) || 0
+                }))
+                .sort((a, b) => a.date - b.date);
+
             validItems.forEach(item => {
-                const rows = splitOvertimeHours(item.date, item.hours, false, settings);
-                rows.forEach(row => { row[18] = ''; row[19] = settings.backupOvertime || '70'; data.push(row); });
+                const date = item.date;
+                const totalHours = item.hours;
+
+                // 格式化日期
+                const dateYMD = formatDate(date, 'yyyy-MM-dd');      // 2026-06-19 (开始日期、结束日期)
+                const dateYMD_slash = formatDate(date, 'yyyy/MM/dd'); // 2026/06/19 (考勤日期)
+
+                // 考勤日期格式: yyyy/mm/dd (文本格式)
+                const attendanceDate = dateYMD_slash;
+
+                // 时间格式: yyyy/mm/dd hh:mm
+                const startDateTime = `${dateYMD_slash} 08:30`;
+                const endDateTime = `${dateYMD_slash} 18:00`;
+                const restStart = `${dateYMD_slash} 12:00`;
+                const restEnd = `${dateYMD_slash} 13:30`;
+
+                // 备案加班 - 常规格式（数字）
+                const backupOvertime = settings.backupOvertime || '70';
+
+                // 加班事由 - 文本格式
+                const overtimeReason = settings.overtimeReason;
+
+                // 公共基础数据
+                const baseRow = [
+                    settings.reporterInfo,           // 填报人信息
+                    settings.employeeId,             // 工号
+                    settings.employeeName,           // 姓名
+                    settings.teamGroup,              // 成员组
+                    '白班',                          // 班次选择
+                    dateYMD,                         // 开始日期 (yyyy-MM-dd)
+                    '',                              // 开始加班时间 (动态)
+                    dateYMD,                         // 结束日期 (yyyy-MM-dd)
+                    '',                              // 结束加班时间 (动态)
+                    '',                              // 休息开始时间 (动态)
+                    '',                              // 休息结束时间 (动态)
+                    attendanceDate,                  // 考勤日期 (yyyy/mm/dd) - 文本格式
+                    startDateTime,                   // 开始时间 (yyyy/mm/dd hh:mm)
+                    endDateTime,                     // 结束时间 (yyyy/mm/dd hh:mm)
+                    restStart,                       // 休息开始 (yyyy/mm/dd hh:mm)
+                    restEnd,                         // 休息结束 (yyyy/mm/dd hh:mm)
+                    '转加班费/Overtime For Salary',  // 加班类型
+                    overtimeReason,                  // 加班事由（最后填写）- 文本格式
+                    '',                              // 加班时数
+                    backupOvertime,                  // 备案加班(含月末小周六) - 常规格式
+                    '', '', '',                      // 本周总加班、本月总加班、剩余加班
+                    '', '', '', '', '', '', ''       // 填报编号、归属族、提交人、提交时间、更新人、更新时间
+                ];
+
+                // 根据加班时长生成不同的行
+                if (totalHours < 8) {
+                    // 小于8小时：只有晚上加班
+                    const startTime = '19:00';
+                    const endTime = addHours(startTime, totalHours);
+                    const row = [...baseRow];
+                    row[6] = startTime;   // 开始加班时间
+                    row[8] = endTime;     // 结束加班时间
+                    data.push(row);
+                }
+                else if (totalHours < 10) {
+                    // 8-10小时：只有白天加班
+                    const row = [...baseRow];
+                    row[6] = '08:30';     // 开始加班时间
+                    row[8] = '18:00';     // 结束加班时间
+                    row[9] = '12:00';     // 休息开始时间
+                    row[10] = '13:30';    // 休息结束时间
+                    data.push(row);
+                }
+                else if (totalHours === 10) {
+                    // 10小时：白天8小时 + 晚上2小时
+                    // 第一行：白天
+                    const row1 = [...baseRow];
+                    row1[6] = '08:30';
+                    row1[8] = '18:00';
+                    row1[9] = '12:00';
+                    row1[10] = '13:30';
+                    data.push(row1);
+
+                    // 第二行：晚上
+                    const row2 = [...baseRow];
+                    row2[6] = '19:00';
+                    row2[8] = '21:00';
+                    data.push(row2);
+                }
+                else if (totalHours === 11) {
+                    // 11小时：白天8小时 + 晚上3小时
+                    const row1 = [...baseRow];
+                    row1[6] = '08:30';
+                    row1[8] = '18:00';
+                    row1[9] = '12:00';
+                    row1[10] = '13:30';
+                    data.push(row1);
+
+                    const row2 = [...baseRow];
+                    row2[6] = '19:00';
+                    row2[8] = '22:00';
+                    data.push(row2);
+                }
+                else if (totalHours > 11) {
+                    // 超过11小时：白天8小时 + 晚上3小时 + 额外加班
+                    const row1 = [...baseRow];
+                    row1[6] = '08:30';
+                    row1[8] = '18:00';
+                    row1[9] = '12:00';
+                    row1[10] = '13:30';
+                    data.push(row1);
+
+                    const row2 = [...baseRow];
+                    row2[6] = '19:00';
+                    row2[8] = '22:00';
+                    data.push(row2);
+
+                    const remaining = totalHours - 11;
+                    const row3 = [...baseRow];
+                    row3[6] = '22:00';
+                    row3[8] = addHours('22:00', remaining);
+                    data.push(row3);
+                }
             });
+
             const ws = XLSX.utils.aoa_to_sheet(data);
-            ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 15) }));
+
+            // 设置列宽
+            ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 12) }));
+
             XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
             XLSX.writeFile(wb, `${year}年${month}月_datalink数据.xlsx`);
         }
