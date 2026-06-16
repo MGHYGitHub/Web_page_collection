@@ -2264,28 +2264,72 @@
         function createDayRow(date, hours, settings) {
             const startDate = formatDate(date, 'yyyy-MM-dd');
             const attendanceDate = formatDate(date, 'yyyy/MM/dd');
-            return [settings.reporterInfo, settings.employeeId, settings.employeeName, settings.teamGroup, '白班', startDate, '08:30', startDate, '18:00', '12:00', '13:30', attendanceDate, `${attendanceDate} 08:30`, `${attendanceDate} 18:00`, `${attendanceDate} 12:00`, `${attendanceDate} 13:30`, '转加班费/Overtime For Salary', settings.overtimeReason, null, settings.backupOvertime || '70', null, null, null, null, null, null, null, null];
+            const dateType = getDateType(date);
+            const isWeekend = (dateType === 'weekend' || dateType === 'holiday' || dateType === 'extraWork');
+
+            let restStart = `${attendanceDate} 00:00`;
+            let restEnd = `${attendanceDate} 00:00`;
+            let restStartTime = '';
+            let restEndTime = '';
+
+            if (isWeekend) {
+                restStart = `${attendanceDate} 12:00`;
+                restEnd = `${attendanceDate} 13:30`;
+                restStartTime = '12:00';
+                restEndTime = '13:30';
+            }
+
+            return [settings.reporterInfo, settings.employeeId, settings.employeeName, settings.teamGroup, '白班', startDate, '08:30', startDate, '18:00', restStartTime, restEndTime, attendanceDate, `${attendanceDate} 08:30`, `${attendanceDate} 18:00`, restStart, restEnd, '转加班费/Overtime For Salary', settings.overtimeReason, null, settings.backupOvertime || '70', null, null, null, null, null, null, null, null];
         }
 
-        function createEveningRow(date, hours, startTime, endTime, settings) {
+        function createDayRow(date, hours, settings) {
             const startDate = formatDate(date, 'yyyy-MM-dd');
             const attendanceDate = formatDate(date, 'yyyy/MM/dd');
-            if (!startTime) startTime = '19:00';
-            if (!endTime) endTime = addHours(startTime, hours);
-            return [settings.reporterInfo, settings.employeeId, settings.employeeName, settings.teamGroup, '白班', startDate, startTime, startDate, endTime, null, null, attendanceDate, `${attendanceDate} ${startTime}`, `${attendanceDate} ${endTime}`, `${attendanceDate} 00:00`, `${attendanceDate} 00:00`, '转加班费/Overtime For Salary', settings.overtimeReason, null, settings.backupOvertime || '70', null, null, null, null, null, null, null, null];
+            const dateType = getDateType(date);
+            const isWeekend = (dateType === 'weekend' || dateType === 'holiday' || dateType === 'extraWork');
+
+            let restStart = `${attendanceDate} 00:00`;
+            let restEnd = `${attendanceDate} 00:00`;
+            let restStartTime = '';
+            let restEndTime = '';
+
+            if (isWeekend) {
+                restStart = `${attendanceDate} 12:00`;
+                restEnd = `${attendanceDate} 13:30`;
+                restStartTime = '12:00';
+                restEndTime = '13:30';
+            }
+
+            return [settings.reporterInfo, settings.employeeId, settings.employeeName, settings.teamGroup, '白班', startDate, '08:30', startDate, '18:00', restStartTime, restEndTime, attendanceDate, `${attendanceDate} 08:30`, `${attendanceDate} 18:00`, restStart, restEnd, '转加班费/Overtime For Salary', settings.overtimeReason, null, settings.backupOvertime || '70', null, null, null, null, null, null, null, null];
         }
 
         function splitOvertimeHours(date, totalHours, isRestDay, settings) {
             const rows = [];
-            if (totalHours < 8) { rows.push(createEveningRow(date, totalHours, '19:00', null, settings)); return rows; }
-            if (totalHours < 10) { rows.push(createDayRow(date, totalHours, settings)); return rows; }
-            if (totalHours === 10) { rows.push(createDayRow(date, 8, settings)); rows.push(createEveningRow(date, 2, '19:00', '21:00', settings)); return rows; }
-            if (totalHours === 11) { rows.push(createDayRow(date, 8, settings)); rows.push(createEveningRow(date, 3, '19:00', '22:00', settings)); return rows; }
+            if (totalHours < 8) {
+                rows.push(createEveningRow(date, totalHours, '19:00', null, settings));
+                return rows;
+            }
+            if (totalHours < 10) {
+                rows.push(createDayRow(date, totalHours, settings));
+                return rows;
+            }
+            if (totalHours === 10) {
+                rows.push(createDayRow(date, 8, settings));
+                rows.push(createEveningRow(date, 2, '19:00', '21:00', settings));
+                return rows;
+            }
+            if (totalHours === 11) {
+                rows.push(createDayRow(date, 8, settings));
+                rows.push(createEveningRow(date, 3, '19:00', '22:00', settings));
+                return rows;
+            }
             if (totalHours > 11) {
                 rows.push(createDayRow(date, 8, settings));
                 rows.push(createEveningRow(date, 3, '19:00', '22:00', settings));
                 const remaining = totalHours - 11;
-                if (remaining > 0) rows.push(createEveningRow(date, remaining, '22:00', addHours('22:00', remaining), settings));
+                if (remaining > 0) {
+                    rows.push(createEveningRow(date, remaining, '22:00', addHours('22:00', remaining), settings));
+                }
                 return rows;
             }
             return rows;
@@ -2324,10 +2368,12 @@
             validItems.forEach(item => {
                 const date = item.date;
                 const totalHours = item.hours;
+                const dateType = getDateType(date);
+                const isWeekend = (dateType === 'weekend' || dateType === 'holiday' || dateType === 'extraWork');
 
                 // 格式化日期
-                const dateYMD = formatDate(date, 'yyyy-MM-dd');      // 2026-06-19 (开始日期、结束日期)
-                const dateYMD_slash = formatDate(date, 'yyyy/MM/dd'); // 2026/06/19 (考勤日期)
+                const dateYMD = formatDate(date, 'yyyy-MM-dd');
+                const dateYMD_slash = formatDate(date, 'yyyy/MM/dd');
 
                 // 考勤日期格式: yyyy/mm/dd (文本格式)
                 const attendanceDate = dateYMD_slash;
@@ -2335,8 +2381,19 @@
                 // 时间格式: yyyy/mm/dd hh:mm
                 const startDateTime = `${dateYMD_slash} 08:30`;
                 const endDateTime = `${dateYMD_slash} 18:00`;
-                const restStart = `${dateYMD_slash} 12:00`;
-                const restEnd = `${dateYMD_slash} 13:30`;
+
+                // 休息时间：周末有休息，工作日休息开始/结束填 00:00
+                let restStartTime = '';
+                let restEndTime = '';
+                let restStartDateTime = `${dateYMD_slash} 00:00`;  // 工作日默认 00:00
+                let restEndDateTime = `${dateYMD_slash} 00:00`;    // 工作日默认 00:00
+
+                if (isWeekend) {
+                    restStartTime = '12:00';
+                    restEndTime = '13:30';
+                    restStartDateTime = `${dateYMD_slash} 12:00`;
+                    restEndDateTime = `${dateYMD_slash} 13:30`;
+                }
 
                 // 备案加班 - 常规格式（数字）
                 const backupOvertime = settings.backupOvertime || '70';
@@ -2351,23 +2408,23 @@
                     settings.employeeName,           // 姓名
                     settings.teamGroup,              // 成员组
                     '白班',                          // 班次选择
-                    dateYMD,                         // 开始日期 (yyyy-MM-dd)
+                    dateYMD,                         // 开始日期
                     '',                              // 开始加班时间 (动态)
-                    dateYMD,                         // 结束日期 (yyyy-MM-dd)
+                    dateYMD,                         // 结束日期
                     '',                              // 结束加班时间 (动态)
-                    '',                              // 休息开始时间 (动态)
-                    '',                              // 休息结束时间 (动态)
-                    attendanceDate,                  // 考勤日期 (yyyy/mm/dd) - 文本格式
-                    startDateTime,                   // 开始时间 (yyyy/mm/dd hh:mm)
-                    endDateTime,                     // 结束时间 (yyyy/mm/dd hh:mm)
-                    restStart,                       // 休息开始 (yyyy/mm/dd hh:mm)
-                    restEnd,                         // 休息结束 (yyyy/mm/dd hh:mm)
+                    restStartTime,                   // 休息开始时间 (空 或 12:00)
+                    restEndTime,                     // 休息结束时间 (空 或 13:30)
+                    attendanceDate,                  // 考勤日期 (yyyy/mm/dd)
+                    startDateTime,                   // 开始时间
+                    endDateTime,                     // 结束时间
+                    restStartDateTime,               // 休息开始 (yyyy/mm/dd 00:00 或 yyyy/mm/dd 12:00)
+                    restEndDateTime,                 // 休息结束 (yyyy/mm/dd 00:00 或 yyyy/mm/dd 13:30)
                     '转加班费/Overtime For Salary',  // 加班类型
-                    overtimeReason,                  // 加班事由（最后填写）- 文本格式
+                    overtimeReason,                  // 加班事由
                     '',                              // 加班时数
-                    backupOvertime,                  // 备案加班(含月末小周六) - 常规格式
+                    backupOvertime,                  // 备案加班
                     '', '', '',                      // 本周总加班、本月总加班、剩余加班
-                    '', '', '', '', '', '', ''       // 填报编号、归属族、提交人、提交时间、更新人、更新时间
+                    '', '', '', '', '', '', ''       // 其他字段
                 ];
 
                 // 根据加班时长生成不同的行
@@ -2376,17 +2433,21 @@
                     const startTime = '19:00';
                     const endTime = addHours(startTime, totalHours);
                     const row = [...baseRow];
-                    row[6] = startTime;   // 开始加班时间
-                    row[8] = endTime;     // 结束加班时间
+                    row[6] = startTime;
+                    row[8] = endTime;
+                    // 晚上加班：休息开始时间/结束时间留空，休息开始/结束填 00:00
+                    row[9] = '';
+                    row[10] = '';
+                    row[14] = `${dateYMD_slash} 00:00`;
+                    row[15] = `${dateYMD_slash} 00:00`;
                     data.push(row);
                 }
                 else if (totalHours < 10) {
-                    // 8-10小时：只有白天加班
+                    // 8-10小时：白天加班
                     const row = [...baseRow];
-                    row[6] = '08:30';     // 开始加班时间
-                    row[8] = '18:00';     // 结束加班时间
-                    row[9] = '12:00';     // 休息开始时间
-                    row[10] = '13:30';    // 休息结束时间
+                    row[6] = '08:30';
+                    row[8] = '18:00';
+                    // baseRow 已经根据 isWeekend 设置了正确的休息时间
                     data.push(row);
                 }
                 else if (totalHours === 10) {
@@ -2395,14 +2456,16 @@
                     const row1 = [...baseRow];
                     row1[6] = '08:30';
                     row1[8] = '18:00';
-                    row1[9] = '12:00';
-                    row1[10] = '13:30';
                     data.push(row1);
 
-                    // 第二行：晚上
+                    // 第二行：晚上（无休息）
                     const row2 = [...baseRow];
                     row2[6] = '19:00';
                     row2[8] = '21:00';
+                    row2[9] = '';
+                    row2[10] = '';
+                    row2[14] = `${dateYMD_slash} 00:00`;
+                    row2[15] = `${dateYMD_slash} 00:00`;
                     data.push(row2);
                 }
                 else if (totalHours === 11) {
@@ -2410,13 +2473,15 @@
                     const row1 = [...baseRow];
                     row1[6] = '08:30';
                     row1[8] = '18:00';
-                    row1[9] = '12:00';
-                    row1[10] = '13:30';
                     data.push(row1);
 
                     const row2 = [...baseRow];
                     row2[6] = '19:00';
                     row2[8] = '22:00';
+                    row2[9] = '';
+                    row2[10] = '';
+                    row2[14] = `${dateYMD_slash} 00:00`;
+                    row2[15] = `${dateYMD_slash} 00:00`;
                     data.push(row2);
                 }
                 else if (totalHours > 11) {
@@ -2424,26 +2489,30 @@
                     const row1 = [...baseRow];
                     row1[6] = '08:30';
                     row1[8] = '18:00';
-                    row1[9] = '12:00';
-                    row1[10] = '13:30';
                     data.push(row1);
 
                     const row2 = [...baseRow];
                     row2[6] = '19:00';
                     row2[8] = '22:00';
+                    row2[9] = '';
+                    row2[10] = '';
+                    row2[14] = `${dateYMD_slash} 00:00`;
+                    row2[15] = `${dateYMD_slash} 00:00`;
                     data.push(row2);
 
                     const remaining = totalHours - 11;
                     const row3 = [...baseRow];
                     row3[6] = '22:00';
                     row3[8] = addHours('22:00', remaining);
+                    row3[9] = '';
+                    row3[10] = '';
+                    row3[14] = `${dateYMD_slash} 00:00`;
+                    row3[15] = `${dateYMD_slash} 00:00`;
                     data.push(row3);
                 }
             });
 
             const ws = XLSX.utils.aoa_to_sheet(data);
-
-            // 设置列宽
             ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 12) }));
 
             XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
