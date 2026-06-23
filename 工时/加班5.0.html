@@ -1193,20 +1193,31 @@
                     if (date >= weekRange.start && date <= weekRange.end) {
                         const hours = parseFloat(data.hours) || 0;
                         const dateType = getDateType(date);
+                        const isHoliday = (dateType === 'holiday');
+
                         if (data && !data.isLeave) {
-                            if (dateType === 'holiday') {
+                            if (isHoliday) {
                                 holidayOvertimeHours += hours;
                             } else {
                                 weeklyOvertimeHours += hours;
                             }
                         } else if (data && data.isLeave) {
-                            weeklyLeaveHours += hours;
+                            // 请假扣减只针对非假日加班
+                            if (!isHoliday) {
+                                weeklyOvertimeHours -= hours;
+                            }
                         }
                     }
                 }
             }
-            const effectiveOvertime = Math.max(0, weeklyOvertimeHours - weeklyLeaveHours);
-            return { effectiveOvertime, holidayOvertime: holidayOvertimeHours };
+
+            // 有效加班 = 非假日加班 - 请假(最小为0)
+            const effectiveOvertime = Math.max(0, weeklyOvertimeHours);
+
+            return {
+                effectiveOvertime,
+                holidayOvertime: holidayOvertimeHours
+            };
         }
 
         // 计算一周总工时（基础工时 + 加班工时）
@@ -1214,6 +1225,7 @@
             const weekRange = getCurrentWeekRange();
             let totalWorkHours = 0;
             let totalLeaveDeduction = 0;
+            let baseHoursCalculated = new Set();
 
             for (const monthKey in allOvertimeData) {
                 for (const dateString in allOvertimeData[monthKey]) {
@@ -1225,17 +1237,21 @@
                         const dayOfWeek = date.getDay();
                         const isWeekday = (dayOfWeek >= 1 && dayOfWeek <= 5);
                         const isOfficialHoliday = (dateType === 'holiday');
-                        const isWeekend = (dateType === 'weekend');
+                        const isWeekend = (dateType === 'weekend' || dateType === 'extraWork');
+
+                        // ✅ 只对工作日(非假日)计算基础工时
                         const needBaseHours = isWeekday && !isOfficialHoliday && !isWeekend;
 
                         if (data && !data.isLeave) {
-                            if (needBaseHours) {
+                            if (needBaseHours && !baseHoursCalculated.has(dateString)) {
                                 totalWorkHours += 8;
+                                baseHoursCalculated.add(dateString);
                             }
                             totalWorkHours += hours;
                         } else if (data && data.isLeave) {
-                            if (needBaseHours) {
+                            if (needBaseHours && !baseHoursCalculated.has(dateString)) {
                                 totalLeaveDeduction += 8;
+                                baseHoursCalculated.add(dateString);
                             }
                             totalLeaveDeduction += hours;
                         }
@@ -1677,16 +1693,28 @@
 
         function updateStats() {
             const overtimeData = getCurrentOvertimeData();
-            let totalOvertimeHours = 0, totalLeaveHours = 0, overtimeA = 0, overtimeB = 0, overtimeC = 0;
-            const hourlySalary = parseFloat(hourlySalaryEl.textContent);
+            let totalOvertimeHours = 0;  // 所有加班原始小时
+            let totalLeaveHours = 0;     // 所有请假小时
 
+            // 第一步：统计原始数据
             for (const date in overtimeData) {
                 const hours = parseFloat(overtimeData[date].hours) || 0;
                 const isLeave = overtimeData[date].isLeave || false;
-                if (isLeave) totalLeaveHours += hours;
-                else totalOvertimeHours += hours;
+                if (isLeave) {
+                    totalLeaveHours += hours;
+                } else {
+                    totalOvertimeHours += hours;
+                }
             }
 
+            // ✅ 实际加班 = 总加班 - 总请假（最小为0）
+            const actualOvertimeHours = Math.max(0, totalOvertimeHours - totalLeaveHours);
+
+            // 第二步：计算各类型加班（用于工资计算）
+            let overtimeA = 0, overtimeB = 0, overtimeC = 0;
+            const hourlySalary = parseFloat(hourlySalaryEl.textContent);
+
+            // 按周聚合，用于计算A/B/C
             function getWeekStartKey(date) {
                 const d = new Date(date);
                 const day = d.getDay();
@@ -1706,39 +1734,51 @@
                 const weekKey = getWeekStartKey(date);
 
                 if (!weeklyData.has(weekKey)) {
-                    weeklyData.set(weekKey, { overtimeTotal: 0, leaveTotal: 0, records: [] });
+                    weeklyData.set(weekKey, {
+                        totalOvertime: 0,
+                        totalLeave: 0,
+                        records: []
+                    });
                 }
                 const week = weeklyData.get(weekKey);
 
                 if (!isLeave && hours > 0) {
-                    week.overtimeTotal += hours;
+                    week.totalOvertime += hours;
                     week.records.push({
-                        dateString, hours, date,
+                        hours: hours,
                         multiplier: getOvertimeMultiplier(date),
-                        originalHours: hours
+                        date: date
                     });
                 } else if (isLeave && hours > 0) {
-                    week.leaveTotal += hours;
+                    week.totalLeave += hours;
                 }
             }
 
+            // 计算各类型加班（按比例分配实际加班）
             for (const [weekKey, week] of weeklyData) {
-                const { overtimeTotal, leaveTotal, records } = week;
-                let effectiveOvertime = overtimeTotal - leaveTotal;
-                if (effectiveOvertime < 0) effectiveOvertime = 0;
+                const { totalOvertime, totalLeave, records } = week;
 
-                if (effectiveOvertime > 0 && records.length > 0 && overtimeTotal > 0) {
+                // ✅ 该周实际加班 = 该周总加班 - 该周总请假
+                const weekActualOvertime = Math.max(0, totalOvertime - totalLeave);
+
+                if (weekActualOvertime > 0 && records.length > 0) {
+                    // 按比例分配
                     for (const record of records) {
-                        const proportion = record.hours / overtimeTotal;
-                        const assignHours = effectiveOvertime * proportion;
-                        if (record.multiplier === 3) overtimeC += assignHours;
-                        else if (record.multiplier === 2) overtimeB += assignHours;
-                        else if (record.multiplier === 1.5) overtimeA += assignHours;
+                        const proportion = record.hours / totalOvertime;
+                        const assignHours = weekActualOvertime * proportion;
+
+                        if (record.multiplier === 3) {
+                            overtimeC += assignHours;
+                        } else if (record.multiplier === 2) {
+                            overtimeB += assignHours;
+                        } else {
+                            overtimeA += assignHours;
+                        }
                     }
                 }
             }
 
-            const actualOvertimeHours = overtimeA + overtimeB + overtimeC;
+            // 计算工资
             const overtimePayA = (overtimeA * hourlySalary * 1.5).toFixed(2);
             const overtimePayB = (overtimeB * hourlySalary * 2).toFixed(2);
             const overtimePayC = (overtimeC * hourlySalary * 3).toFixed(2);
@@ -1746,8 +1786,9 @@
             const leaveDeduction = (totalLeaveHours * hourlySalary * 1.5).toFixed(2);
             const netIncome = (parseFloat(salary) + parseFloat(totalOvertimePay) - parseFloat(leaveDeduction)).toFixed(2);
 
-            totalOvertimeEl.textContent = totalOvertimeHours.toFixed(1) + 'H';
-            actualOvertimeEl.textContent = actualOvertimeHours.toFixed(1) + 'H';
+            // ✅ 更新UI
+            totalOvertimeEl.textContent = totalOvertimeHours.toFixed(1) + 'H';           // 原始加班总时长
+            actualOvertimeEl.textContent = actualOvertimeHours.toFixed(1) + 'H';         // 实际加班 = 加班 - 请假
             totalLeaveEl.textContent = totalLeaveHours.toFixed(1) + 'H';
             leaveDeductionEl.textContent = leaveDeduction;
             totalOvertimePayEl.textContent = totalOvertimePay;
@@ -1756,6 +1797,7 @@
             overtimeCEl.textContent = 'C：' + overtimePayC;
             netIncomeEl.textContent = netIncome;
 
+            updateWeeklyProgress();
             markLimitWarnings();
             updateGlobalStats();
         }
@@ -1911,15 +1953,20 @@
                     const doSave = () => {
                         overtimeData[dateString] = { hours: absoluteHours, isLeave: isLeave };
                         updateDayDisplay(dayElement, dateString, absoluteHours, isLeave);
-                        setTimeout(() => {
-                            markLimitWarnings();
-                            updateStats();
-                        }, 50);
-                        updateGlobalStats();
+
+                        // ✅ 统一在这里更新所有统计
                         saveToLocalStorage();
-                        updateStats();
+                        updateStats();      // 内部已包含 markLimitWarnings 和 updateGlobalStats
                         updateExcelTable();
+
                         isSaving = false;
+
+                        // 保存成功提示
+                        const flash = document.createElement('div');
+                        flash.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2ecc71;color:#fff;padding:10px 20px;border-radius:10px;z-index:99999;animation:fadeInUp 0.3s;';
+                        flash.textContent = '✅ 数据已保存';
+                        document.body.appendChild(flash);
+                        setTimeout(() => flash.remove(), 1500);
                     };
 
                     if (isLeave) {
@@ -1931,12 +1978,12 @@
                         }
                     }
                 } else {
+                    // 清除数据
                     if (overtimeData[dateString]) {
                         delete overtimeData[dateString];
                         updateDayDisplay(dayElement, dateString, 0, false);
-                        setTimeout(() => { markLimitWarnings(); updateGlobalStats(); }, 50);
                         saveToLocalStorage();
-                        updateStats();
+                        updateStats();      // ✅ 统一调用
                         updateExcelTable();
                     }
                     isSaving = false;
