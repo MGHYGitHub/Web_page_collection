@@ -1691,6 +1691,51 @@
             document.getElementById('extra-work-rate').textContent = `${(baseSalary * 2).toFixed(2)}元/时`;
         }
 
+        // ========== 更新周进度条 ==========
+        function updateWeeklyProgress() {
+            const weeklyStats = calculateCurrentWeeklyOvertime(true);
+            const totalWorkHours = calculateWeeklyTotalWorkHours();
+            const limit = MAX_WEEKLY_TOTAL_HOURS;
+
+            // 更新文字显示
+            const weeklyText = document.getElementById('weekly-stats-text');
+            const weeklyFill = document.getElementById('weekly-progress-fill');
+            const remainText = document.getElementById('weekly-remain-text');
+            const warningBadge = document.getElementById('weekly-warning-badge');
+
+            if (weeklyText) {
+                weeklyText.textContent = `${totalWorkHours.toFixed(1)}/${limit}H`;
+            }
+
+            if (weeklyFill) {
+                const pct = Math.min(100, (totalWorkHours / limit) * 100);
+                weeklyFill.style.width = `${pct}%`;
+                weeklyFill.className = 'weekly-progress-bar-fill';
+                if (totalWorkHours > limit) {
+                    weeklyFill.classList.add('danger');
+                } else if (totalWorkHours > limit * 0.8) {
+                    weeklyFill.classList.add('warning');
+                } else {
+                    weeklyFill.classList.add('normal');
+                }
+            }
+
+            if (remainText) {
+                const remaining = Math.max(0, limit - totalWorkHours);
+                if (totalWorkHours > limit) {
+                    remainText.textContent = `⚠️ 超出 ${(totalWorkHours - limit).toFixed(1)} 小时`;
+                    remainText.style.color = '#e74c3c';
+                } else {
+                    remainText.textContent = `剩余 ${remaining.toFixed(1)} 小时`;
+                    remainText.style.color = (remaining < 4) ? '#f39c12' : '#2ecc71';
+                }
+            }
+
+            if (warningBadge) {
+                warningBadge.style.display = (totalWorkHours > limit) ? 'inline' : 'none';
+            }
+        }
+
         function updateStats() {
             const overtimeData = getCurrentOvertimeData();
             let totalOvertimeHours = 0;  // 所有加班原始小时
