@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CPK 智能分析 · 增强版</title>
+    <!-- 保留 XLSX 用于读取文件 -->
+    <script src="./js/CPK3.0JS/xlsx.full.min.js">
+    </script>
+    <!-- 添加 ExcelJS 用于导出带样式的文件 -->
+    <script src="./js/CPK3.0JS/exceljs.min.js">
+    </script>
+    <script src="./js/CPK3.0JS/FileSaver.min.js">
+    </script>
+    <style>
+        /* ... 样式保持不变 ... */
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #f0f5fd;
+            margin: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1900px;
+            width: 100%;
+            background: #ffffff;
+            padding: 28px 32px;
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(19, 38, 66, 0.12);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-weight: 540;
+            color: #10263e;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 1.8rem;
+            letter-spacing: -0.01em;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            background: #f5faff;
+            padding: 10px 24px;
+            border-radius: 50px;
+            margin: 8px 0 16px;
+            align-items: center;
+            border: 1px solid #dee9f5;
+        }
+
+        .toolbar label {
+            font-size: 0.82rem;
+            font-weight: 450;
+            color: #192b48;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toolbar input,
+        .toolbar select {
+            padding: 5px 9px;
+            border-radius: 44px;
+            border: 1px solid #cbd7ea;
+            background: white;
+            font-size: 0.79rem;
+        }
+
+        .toolbar button {
+            background: #2569ff;
+            border: none;
+            color: white;
+            padding: 8px 26px;
+            border-radius: 44px;
+            font-weight: 450;
+            font-size: 0.79rem;
+            cursor: pointer;
+            transition: 0.12s;
+            box-shadow: 0 4px 12px rgba(34, 95, 240, 0.18);
+        }
+
+        .toolbar button:hover {
+            background: #164bd0;
+            transform: scale(0.97);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            border-radius: 44px;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 340%;
+            height: 340%;
+            cursor: pointer;
+        }
+
+        .summary-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 20px;
+            background: #eaf2fc;
+            padding: 6px 24px;
+            border-radius: 44px;
+            margin: 4px 0 16px;
+            align-items: center;
+        }
+
+        .summary-cards span {
+            background: white;
+            padding: 4px 22px;
+            border-radius: 44px;
+            font-size: 0.75rem;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+            white-space: nowrap;
+        }
+
+        .summary-cards strong {
+            color: #09203b;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            margin: 16px 0;
+            border-radius: 24px;
+            border: 1px solid #e2eaf6;
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.74rem;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #eff6ff;
+            color: #0f223b;
+            font-weight: 550;
+            padding: 8px 10px;
+            border-bottom: 2px solid #d6e1f0;
+            text-align: center;
+        }
+
+        td {
+            padding: 5px 10px;
+            border-bottom: 1px solid #e7eef7;
+            color: #132b47;
+            text-align: center;
+        }
+
+        tr:hover td {
+            background: #f4fafe;
+        }
+
+        .row-label {
+            font-weight: 550;
+            background: #f6faff !important;
+            text-align: left;
+            padding-left: 13px;
+            min-width: 60px;
+        }
+
+        .cpk-excellent {
+            background-color: #147a37 !important;
+            color: #ffffff;
+            font-weight: 520;
+        }
+
+        .cpk-good {
+            background-color: #78cf99 !important;
+            color: #002610;
+        }
+
+        .cpk-poor {
+            background-color: #f19191 !important;
+            color: #630e0e;
+        }
+
+        .stat-highlight {
+            background-color: #fcf3da;
+        }
+
+        .stat-highlight td {
+            background-color: inherit;
+        }
+
+        .removed-row td {
+            background-color: #fbf2f2;
+        }
+
+        .highlight-over td {
+            background-color: #fff3e6;
+        }
+
+        .out-of-spec-red {
+            background-color: #ffe0e0 !important;
+            color: #a51616;
+            font-weight: 500;
+        }
+
+        .removed-viewer {
+            background: #f9fcff;
+            border: 1px solid #dae4f0;
+            border-radius: 24px;
+            padding: 14px 18px;
+            margin: 16px 0 6px;
+        }
+
+        .removed-viewer summary {
+            font-weight: 500;
+            font-size: 0.93rem;
+            color: #193658;
+            cursor: pointer;
+            padding: 6px 0;
+        }
+
+        .removed-viewer table {
+            font-size: 0.73rem;
+        }
+
+        .removed-viewer td {
+            background-color: #fff6f6;
+        }
+
+        .badge-remove {
+            background: #dc2626;
+            color: white;
+            border-radius: 40px;
+            padding: 0 13px;
+            font-size: 0.62rem;
+            display: inline-block;
+        }
+
+        .export-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 6px 0 8px;
+            align-items: center;
+        }
+
+        .export-bar button {
+            background: #eef3fc;
+            border: 1px solid #ccd8ec;
+            padding: 5px 21px;
+            border-radius: 40px;
+            font-size: 0.70rem;
+            cursor: pointer;
+            transition: 0.04s;
+            font-weight: 470;
+        }
+
+        .export-bar button:hover {
+            background: #dbe5f5;
+            border-color: #a4badb;
+        }
+
+        .data-table-container {
+            margin-top: 20px;
+            border-top: 2px dashed #dce6f0;
+            padding-top: 10px;
+        }
+
+        .data-table-container summary {
+            font-weight: 470;
+            font-size: 0.93rem;
+            color: #173259;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+
+        .data-table-container h4 {
+            margin: 8px 0;
+            color: #193658;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .row-number {
+            background: #f5f9fe;
+            color: #244571;
+            font-weight: 350;
+            border-right: 1px solid #dee7f2;
+        }
+
+        .note {
+            color: #51729b;
+            font-size: 0.70rem;
+            margin: 10px 0;
+        }
+
+        .footer {
+            text-align: right;
+            font-size: 0.62rem;
+            color: #6882a8;
+            margin-top: 8px;
+            border-top: 1px solid #e2ebf6;
+            padding-top: 8px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 6px;
+            margin: 5px 0;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar button {
+            background: #eef3fc;
+            border: 1px solid #ccd8ec;
+            padding: 4px 13px;
+            border-radius: 30px;
+            font-size: 0.70rem;
+            cursor: pointer;
+        }
+
+        .filter-bar button.active-filter {
+            background: #2569ff;
+            color: white;
+            border-color: #2569ff;
+        }
+
+        .restore-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 2px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.62rem;
+            font-weight: 470;
+        }
+
+        .search-box {
+            padding: 4px 13px;
+            border-radius: 30px;
+            border: 1px solid #cbd7ea;
+            background: white;
+            font-size: 0.77rem;
+            width: 150px;
+            outline: none;
+        }
+
+        .search-box:focus {
+            border-color: #2569ff;
+            box-shadow: 0 0 0 2px rgba(37, 105, 255, 0.08);
+        }
+
+        .select-all-checkbox {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .row-checkbox {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .batch-actions button {
+            background: #eef3fc;
+            border: 1px solid #ccd8ec;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.70rem;
+            cursor: pointer;
+        }
+
+        .batch-actions button:hover {
+            background: #dbe5f5;
+        }
+
+        .batch-actions button.batch-restore {
+            background: #22c55e;
+            color: white;
+            border-color: #22c55e;
+        }
+
+        .batch-actions button.batch-restore:hover {
+            background: #16a34a;
+        }
+
+        .batch-actions button.batch-delete {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+
+        .batch-actions button.batch-delete:hover {
+            background: #dc2626;
+        }
+
+        .status-stats {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 5px 0;
+            padding: 5px 13px;
+            background: #f8faff;
+            border-radius: 30px;
+            align-items: center;
+        }
+
+        .status-stats span {
+            font-size: 0.73rem;
+        }
+
+        .status-stats .normal-count {
+            color: #16a34a;
+            font-weight: 470;
+        }
+
+        .status-stats .removed-count {
+            color: #dc2626;
+            font-weight: 470;
+        }
+
+        .status-stats .total-count {
+            color: #2563eb;
+            font-weight: 470;
+        }
+
+        .status-stats .dedup-count {
+            color: #f59e0b;
+            font-weight: 470;
+        }
+
+        @media (max-width: 800px) {
+            .container {
+                padding: 13px;
+            }
+        }
+
+        .removed-cell {
+            background-color: #e8e8e8 !important;
+            color: #999999;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>📊 CPK 增强分析 <span id="fileNameDisplay"
+                style="font-size: 0.93rem; font-weight: 290; color: #39619e;">(示例数据)</span></h2>
+        <div class="toolbar">
+            <div class="file-input-wrapper">
+                <button>📁 上传 CSV / XLSX</button>
+                <input type="file" id="fileInput" accept=".csv,.txt,.xlsx">
+            </div>
+            <label>🔍 SN列 <select id="snColSelect"></select></label>
+            <label>⏱️ 时间列 <select id="timeColSelect"></select></label>
+            <label>📏 SN长度 <input type="number" id="snLength" value="15" min="4" max="36" style="width:56px;"></label>
+            <label>📐 容差系数 <input type="number" id="toleranceFactor" value="1.30" step="0.05" min="1.0" max="3.0"
+                    style="width:56px;"></label>
+            <span id="statusBadge"
+                style="background:#e4edf9;padding:2px 18px;border-radius:30px;font-size:0.70rem;">就绪</span>
+        </div>
+        <!-- 状态统计 -->
+        <div class="status-stats" id="statusStats">
+            <span>📊 总数据: <strong class="total-count" id="totalCountStat">0</strong></span>
+            <span>✅ 正常: <strong class="normal-count" id="normalCountStat">0</strong></span>
+            <span>🗑️ 已剔除: <strong class="removed-count" id="removedCountStat">0</strong></span>
+            <span>🔄 去重: <strong class="dedup-count" id="dedupCountStat">0 行</strong></span>
+        </div>
+        <div class="summary-cards">
+            <span>📌 测量项: <strong id="colCount">0</strong></span>
+            <span>👥 有效样本: <strong id="rowCount">0</strong></span>
+            <span>🗑️ 剔除点数: <strong id="totalRemoved">0</strong></span>
+            <span>📅 时间范围: <strong id="timeRange">-</strong></span>
+        </div>
+        <div class="export-bar">
+            <button id="exportCleanDataBtn">⬇ 导出剔除后数据 (XLSX)</button>
+            <button id="exportReportXlsxBtn">⬇ 导出汇总报告 (XLSX)</button>
+        </div>
+        <!-- 搜索框 -->
+        <div style="display: flex; gap: 10px; align-items: center; margin: 5px 0;">
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜索数据...">
+            <span style="font-size: 0.70rem; color: #5f80aa;" id="searchResultCount"></span>
+        </div>
+        <div class="table-wrap" id="tableContainer">
+            <table id="reportTable">
+                <thead>
+                    <tr>
+                        <th>指标</th>
+                        <th>加载中…</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <!-- 剔除数据查看器 -->
+        <div class="removed-viewer" id="removedViewerContainer">
+            <details>
+                <summary>🚫 剔除数据查看器 <span class="badge-remove" id="removedBadge">0</span> (点击展开，可手动恢复)</summary>
+                <div class="batch-actions" style="margin: 5px 0;">
+                    <label><input type="checkbox" id="selectAllRemoved" class="select-all-checkbox"> 全选</label>
+                    <button class="batch-restore" id="batchRestoreBtn">↩ 批量恢复选中</button>
+                    <button class="batch-delete" id="batchDeleteBtn">🗑️ 批量永久删除</button>
+                </div>
+                <div id="removedDetailWrap" style="overflow-x:auto; margin-top:6px;">
+                    <p style="color:#607a9a;">暂无剔除数据</p>
+                </div>
+            </details>
+        </div>
+        <!-- 原始数据表（带筛选：全部 / 仅超标 / 剔除后） -->
+        <div class="data-table-container">
+            <details open>
+                <summary>📋 原始数据表 (已筛选去重 · 带行号 · 超标显红)</summary>
+                <div class="filter-bar">
+                    <span style="font-size:0.70rem; color:#385d80;">筛选：</span>
+                    <button id="filterAllBtn" class="active-filter">全部</button>
+                    <button id="filterOutOfSpecBtn">仅超标</button>
+                    <button id="filterCleanBtn">剔除后</button>
+                    <span style="margin-left:auto; font-size:0.70rem; color:#5f80aa;" id="filterStatus">显示全部</span>
+                </div>
+                <div id="rawDataTableWrap" style="overflow-x:auto; margin-top: 5px;"></div>
+            </details>
+        </div>
+        <div class="note">✅ 自动识别规格列（支持负数规格）；按SN长度过滤，保留最新时间行；剔除超出 [中心值 ± (系数×公差)]
+            的异常点。汇总报告CP/CPK着色：≥1.67深绿，1.30~1.67浅绿，&lt;1.30红。超标数据单元格红底。可手动恢复被剔除的数据点。支持批量操作和实时搜索。支持XLSX和CSV格式。</div>
+        <div class="footer">CPK 智能分析 · 现代扁平设计 · 增强版</div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 注意：这里仍然使用 XLSX 库进行文件读取
+        // ExcelJS 用于导出带样式的文件
+        // 两个库共存，各司其职
+        // ============================================================
+
+        (function () {
+            // ---------- 全局状态 ----------
+            let rawData = [];
+            let headers = [];
+            let specColumns = [];
+            let currentFileName = '示例数据';
+            let dedupedRowsForExport = [];
+            let removedRowsGlobal = [];
+            let currentFilterMode = 'all'; // 可选值: 'all', 'outofspec', 'clean'
+            let selectedRemovedIndices = new Set();
+            let baseDedupedRows = [];
+
+            // DOM 引用
+            const fileInput = document.getElementById('fileInput');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const snLengthInput = document.getElementById('snLength');
+            const toleranceFactorInput = document.getElementById('toleranceFactor');
+            const snColSelect = document.getElementById('snColSelect');
+            const timeColSelect = document.getElementById('timeColSelect');
+            const statusBadge = document.getElementById('statusBadge');
+            const colCountSpan = document.getElementById('colCount');
+            const rowCountSpan = document.getElementById('rowCount');
+            const totalRemovedSpan = document.getElementById('totalRemoved');
+            const timeRangeSpan = document.getElementById('timeRange');
+            const tableContainer = document.getElementById('tableContainer');
+            const rawDataTableWrap = document.getElementById('rawDataTableWrap');
+            const removedDetailWrap = document.getElementById('removedDetailWrap');
+            const removedBadge = document.getElementById('removedBadge');
+            const exportDedupBtn = document.getElementById('exportDedupBtn');
+            const exportReportXlsxBtn = document.getElementById('exportReportXlsxBtn');
+            const filterAllBtn = document.getElementById('filterAllBtn');
+            const filterOutOfSpecBtn = document.getElementById('filterOutOfSpecBtn');
+            const filterStatus = document.getElementById('filterStatus');
+            const searchBox = document.getElementById('searchBox');
+            const searchResultCount = document.getElementById('searchResultCount');
+            const selectAllRemoved = document.getElementById('selectAllRemoved');
+            const batchRestoreBtn = document.getElementById('batchRestoreBtn');
+            const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+            const totalCountStat = document.getElementById('totalCountStat');
+            const normalCountStat = document.getElementById('normalCountStat');
+            const removedCountStat = document.getElementById('removedCountStat');
+
+            // ---------- 工具函数 ----------
+            function parseCSV(text) {
+                const rows = [];
+                let currentRow = [];
+                let currentField = '';
+                let inQuotes = false;
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    const nextChar = text[i + 1];
+                    if (inQuotes) {
+                        if (char === '"' && nextChar === '"') {
+                            currentField += '"';
+                            i++;
+                        } else if (char === '"') { inQuotes = false; } else { currentField += char; }
+                    } else {
+                        if (char === '"') { inQuotes = true; } else if (char === ',') {
+                            currentRow.push(currentField.trim());
+                            currentField = '';
+                        } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
+                            currentRow.push(currentField.trim());
+                            if (currentRow.length > 0 && currentRow.join('').trim() !== '') rows.push(currentRow);
+                            currentRow = [];
+                            currentField = '';
+                            if (char === '\r') i++;
+                        } else if (char === '\r') {
+                            currentRow.push(currentField.trim());
+                            if (currentRow.length > 0 && currentRow.join('').trim() !== '') rows.push(currentRow);
+                            currentRow = [];
+                            currentField = '';
+                        } else { currentField += char; }
+                    }
+                }
+                if (currentField.trim() !== '' || currentRow.length > 0) {
+                    currentRow.push(currentField.trim());
+                    if (currentRow.length > 0 && currentRow.join('').trim() !== '') rows.push(currentRow);
+                }
+                return rows;
+            }
+
+            function parseSpecFromHeader(headerStr) {
+                const regex = /([-+]?\d+(?:\.\d+)?)\s*[±±+\-]\s*([-+]?\d+(?:\.\d+)?)/;
+                const match = headerStr.match(regex);
+                if (match) {
+                    const center = parseFloat(match[1]);
+                    const tolerance = parseFloat(match[2]);
+                    const absTolerance = Math.abs(tolerance);
+                    return {
+                        lower: center - absTolerance,
+                        upper: center + absTolerance,
+                        center: center,
+                        tolerance: absTolerance
+                    };
+                }
+                return null;
+            }
+
+            function findAllSpecColumns(headers) {
+                const result = [];
+                headers.forEach((h, idx) => {
+                    const spec = parseSpecFromHeader(h);
+                    if (spec) {
+                        result.push({
+                            index: idx, lower: spec.lower, upper: spec.upper, header: h.trim(),
+                            center: spec.center, tolerance: spec.tolerance
+                        });
+                    }
+                });
+                return result;
+            }
+
+            function updateColSelects(headers) {
+                const timeSel = document.getElementById('timeColSelect');
+                const snSel = document.getElementById('snColSelect');
+                timeSel.innerHTML = '';
+                snSel.innerHTML = '';
+                headers.forEach((h, idx) => {
+                    const letter = String.fromCharCode(65 + idx);
+                    const label = `${letter} (${h.substring(0, 13)}${h.length > 13 ? '…' : ''})`;
+                    timeSel.add(new Option(label, idx));
+                    snSel.add(new Option(label, idx));
+                });
+                if (headers.length > 0) timeSel.value = '0';
+                if (headers.length > 1) snSel.value = '1';
+            }
+
+            function updateStatusStats() {
+                const total = dedupedRowsForExport.length;
+
+                // 计算被剔除的唯一行数（按SN+时间去重）
+                const removedRowsSet = new Set();
+                removedRowsGlobal.forEach(item => {
+                    const sn = String(item.row[item.snIdx] || '').trim();
+                    const time = String(item.row[item.timeIdx] || '').trim();
+                    const rowKey = `${sn}|${time}`;
+                    removedRowsSet.add(rowKey);
+                });
+                const removedUniqueRows = removedRowsSet.size;
+                const normal = total - removedUniqueRows;
+
+                totalCountStat.textContent = total;
+                normalCountStat.textContent = normal >= 0 ? normal : 0;
+                removedCountStat.textContent = removedUniqueRows;
+
+                // 计算去重行数（原始数据行数 - 去重后的行数）
+                const rawTotal = rawData ? rawData.length - 1 : 0;
+                const dedupedCount = dedupedRowsForExport.length;
+                const dedupedRemoved = rawTotal - dedupedCount;
+
+                const dedupStat = document.getElementById('dedupCountStat');
+                if (dedupStat) {
+                    if (dedupedRemoved > 0) {
+                        dedupStat.textContent = `${dedupedRemoved} 行`;
+                        dedupStat.style.color = '#f59e0b';
+                    } else {
+                        dedupStat.textContent = '0 行';
+                        dedupStat.style.color = '#16a34a';
+                    }
+                }
+            }
+
+            function hasOutOfSpec(row, specCols) {
+                for (const spec of specCols) {
+                    const val = parseFloat(String(row[spec.index]).trim());
+                    if (!isNaN(val) && (val < spec.lower || val > spec.upper)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // ---------- 渲染函数 ----------
+            function renderRawDataTable(rows, headers, specCols, filterMode, searchTerm = '') {
+                if (!rows || rows.length === 0) {
+                    rawDataTableWrap.innerHTML = '<p style="color:#7088a8; padding: 10px;">暂无数据</p>';
+                    filterStatus.textContent = '显示全部';
+                    searchResultCount.textContent = '';
+                    return;
+                }
+
+                let filteredRows = rows;
+                let filterLabel = '显示全部';
+
+                // 先应用搜索
+                if (searchTerm) {
+                    const term = searchTerm.toLowerCase();
+                    filteredRows = filteredRows.filter(row =>
+                        row.some(cell => String(cell).toLowerCase().includes(term))
+                    );
+                }
+
+                // 再应用筛选模式
+                if (filterMode === 'outofspec') {
+                    filteredRows = filteredRows.filter(row => hasOutOfSpec(row, specCols));
+                    filterLabel = `仅超标 (${filteredRows.length}/${rows.length})`;
+                } else if (filterMode === 'clean') {
+                    // 剔除后：保留所有行，但被剔除的单元格显示为空
+                    filterLabel = `剔除后 (${filteredRows.length}/${rows.length})`;
+                } else {
+                    filterLabel = `显示全部 (${filteredRows.length})`;
+                }
+
+                filterStatus.textContent = filterLabel;
+                searchResultCount.textContent = `共 ${filteredRows.length} 条`;
+
+                // 当"剔除后"筛选时，特殊处理显示
+                if (filterMode === 'clean') {
+                    // 检查是否所有数据都被剔除了（所有规格列的所有值都被剔除）
+                    let allRemoved = true;
+                    for (const row of filteredRows) {
+                        for (const spec of specCols) {
+                            const isRemoved = removedRowsGlobal.some(
+                                item => item.row === row && item.specInfo === spec.header
+                            );
+                            if (!isRemoved) {
+                                allRemoved = false;
+                                break;
+                            }
+                        }
+                        if (!allRemoved) break;
+                    }
+
+                    if (allRemoved) {
+                        rawDataTableWrap.innerHTML = `
+                <div style="text-align: center; padding: 30px 20px; color: #607a9a;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">✅</div>
+                    <div style="font-size: 1rem; font-weight: 500; color: #16a34a;">所有数据均已被剔除</div>
+                    <div style="font-size: 0.85rem; margin-top: 5px; color: #8aa3c0;">
+                        当前容差系数下，所有数据行都存在超标规格<br>
+                        建议调整容差系数或检查数据质量
+                    </div>
+                    <div style="font-size: 0.75rem; margin-top: 8px; color: #b0c4db;">
+                        共 ${rows.length} 行数据，全部被剔除
+                    </div>
+                </div>
+            `;
+                        return;
+                    }
+
+                    // 显示表格：被剔除的单元格显示为空（灰色背景）
+                    let html = '<table><thead><tr><th style="background:#ebf2fb;">#</th>';
+                    headers.forEach(h => { html += `<th>${h}</th>`; });
+                    html += '</tr></thead><tbody>';
+                    filteredRows.forEach((row, idx) => {
+                        html += `<tr><td class="row-number" style="background:#f5f9fe; font-weight:390;">${idx + 1}</td>`;
+                        headers.forEach((_, colIdx) => {
+                            const spec = specCols.find(s => s.index === colIdx);
+                            let cellValue = row[colIdx] !== undefined ? row[colIdx] : '';
+                            let cellClass = '';
+                            let isRemoved = false;
+
+                            if (spec) {
+                                // 检查该单元格是否被剔除
+                                isRemoved = removedRowsGlobal.some(
+                                    item => item.row === row && item.specInfo === spec.header
+                                );
+
+                                if (isRemoved) {
+                                    // 被剔除的单元格显示为空，灰色背景
+                                    cellValue = '';
+                                    cellClass = 'removed-cell';
+                                } else {
+                                    // 正常数据检查是否超标（用于显示）
+                                    const val = parseFloat(String(row[colIdx]).trim());
+                                    if (!isNaN(val) && (val < spec.lower || val > spec.upper)) {
+                                        cellClass = 'out-of-spec-red';
+                                    }
+                                }
+                            }
+                            html += `<td class="${cellClass}">${cellValue}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                    rawDataTableWrap.innerHTML = html;
+                    return;
+                }
+
+                // 当"仅超标"筛选为空时
+                if (filterMode === 'outofspec' && filteredRows.length === 0) {
+                    rawDataTableWrap.innerHTML = `
+            <div style="text-align: center; padding: 30px 20px; color: #607a9a;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">🎉</div>
+                <div style="font-size: 1rem; font-weight: 500; color: #16a34a;">没有超标数据</div>
+                <div style="font-size: 0.85rem; margin-top: 5px; color: #8aa3c0;">
+                    所有数据均在规格范围内，质量良好！
+                </div>
+            </div>
+        `;
+                    return;
+                }
+
+                // 正常显示表格（全部 / 仅超标）
+                let html = '<table><thead><tr><th style="background:#ebf2fb;">#</th>';
+                headers.forEach(h => { html += `<th>${h}</th>`; });
+                html += '</tr></thead><tbody>';
+                filteredRows.forEach((row, idx) => {
+                    html += `<tr><td class="row-number" style="background:#f5f9fe; font-weight:390;">${idx + 1}</td>`;
+                    headers.forEach((_, colIdx) => {
+                        let cellClass = '';
+                        const spec = specCols.find(s => s.index === colIdx);
+                        if (spec) {
+                            const val = parseFloat(String(row[colIdx]).trim());
+                            if (!isNaN(val) && (val < spec.lower || val > spec.upper)) {
+                                cellClass = 'out-of-spec-red';
+                            }
+                        }
+                        html += `<td class="${cellClass}">${row[colIdx] !== undefined ? row[colIdx] : ''}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                rawDataTableWrap.innerHTML = html;
+            }
+
+            // 新增"剔除后"按钮
+            const filterCleanBtn = document.getElementById('filterCleanBtn');
+
+            filterAllBtn.addEventListener('click', function () {
+                currentFilterMode = 'all';
+                filterAllBtn.classList.add('active-filter');
+                filterOutOfSpecBtn.classList.remove('active-filter');
+                filterCleanBtn.classList.remove('active-filter');
+                const searchTerm = searchBox.value;
+                renderRawDataTable(dedupedRowsForExport, headers, specColumns, 'all', searchTerm);
+            });
+
+            filterOutOfSpecBtn.addEventListener('click', function () {
+                currentFilterMode = 'outofspec';
+                filterOutOfSpecBtn.classList.add('active-filter');
+                filterAllBtn.classList.remove('active-filter');
+                filterCleanBtn.classList.remove('active-filter');
+                const searchTerm = searchBox.value;
+                renderRawDataTable(dedupedRowsForExport, headers, specColumns, 'outofspec', searchTerm);
+            });
+
+            filterCleanBtn.addEventListener('click', function () {
+                currentFilterMode = 'clean';
+                filterCleanBtn.classList.add('active-filter');
+                filterAllBtn.classList.remove('active-filter');
+                filterOutOfSpecBtn.classList.remove('active-filter');
+                const searchTerm = searchBox.value;
+                renderRawDataTable(dedupedRowsForExport, headers, specColumns, 'clean', searchTerm);
+            });
+
+            function renderRemovedViewer(removedList, headers) {
+                if (!removedList || removedList.length === 0) {
+                    removedDetailWrap.innerHTML = '<p style="color:#607a9a;">✅ 无剔除数据</p>';
+                    removedBadge.textContent = '0';
+                    selectAllRemoved.checked = false;
+                    selectedRemovedIndices.clear();
+                    return;
+                }
+                removedBadge.textContent = removedList.length;
+                let html =
+                    '<table><thead><tr><th><input type="checkbox" id="selectAllRemovedInTable" class="select-all-checkbox"></th><th>#</th><th>SN</th><th>时间</th><th>涉及规格</th><th>原因</th><th>操作</th></tr></thead><tbody>';
+                removedList.forEach((item, idx) => {
+                    const row = item.row;
+                    const sn = row[item.snIdx] || '-';
+                    const time = row[item.timeIdx] || '-';
+                    const isChecked = selectedRemovedIndices.has(idx) ? 'checked' : '';
+                    html += `<tr>
+                <td><input type="checkbox" class="row-checkbox" data-index="${idx}" ${isChecked}></td>
+                <td>${idx + 1}</td>
+                <td>${sn}</td>
+                <td>${time}</td>
+                <td>${item.specInfo}</td>
+                <td>${item.reason}</td>
+                <td><button class="restore-btn" data-index="${idx}">↩ 恢复</button></td>
+            </tr>`;
+                });
+                html += '</tbody></table>';
+                removedDetailWrap.innerHTML = html;
+
+                const checkboxes = removedDetailWrap.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.addEventListener('change', function () {
+                        const idx = parseInt(this.dataset.index);
+                        if (this.checked) {
+                            selectedRemovedIndices.add(idx);
+                        } else {
+                            selectedRemovedIndices.delete(idx);
+                        }
+                        updateSelectAllCheckbox();
+                    });
+                });
+                const selectAllInTable = document.getElementById('selectAllRemovedInTable');
+                if (selectAllInTable) {
+                    selectAllInTable.addEventListener('change', function () {
+                        const isChecked = this.checked;
+                        checkboxes.forEach(cb => {
+                            cb.checked = isChecked;
+                            const idx = parseInt(cb.dataset.index);
+                            if (isChecked) {
+                                selectedRemovedIndices.add(idx);
+                            } else {
+                                selectedRemovedIndices.delete(idx);
+                            }
+                        });
+                    });
+                }
+                removedDetailWrap.querySelectorAll('.restore-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const idx = parseInt(this.dataset.index);
+                        restoreSingleRemovedItem(idx);
+                    });
+                });
+                updateSelectAllCheckbox();
+            }
+
+            function updateSelectAllCheckbox() {
+                const totalItems = removedRowsGlobal.length;
+                const selectedCount = selectedRemovedIndices.size;
+                selectAllRemoved.checked = selectedCount === totalItems && totalItems > 0;
+                const selectAllInTable = document.getElementById('selectAllRemovedInTable');
+                if (selectAllInTable) {
+                    selectAllInTable.checked = selectedCount === totalItems && totalItems > 0;
+                }
+            }
+
+            // ---------- 恢复/删除操作 ----------
+            function restoreSingleRemovedItem(index) {
+                if (index < 0 || index >= removedRowsGlobal.length) return;
+                removedRowsGlobal.splice(index, 1);
+                const newSelected = new Set();
+                selectedRemovedIndices.forEach(i => {
+                    if (i > index) newSelected.add(i - 1);
+                    else if (i < index) newSelected.add(i);
+                });
+                selectedRemovedIndices = newSelected;
+                refreshDisplayWithManualRemoved();
+                statusBadge.textContent = `↩ 已恢复 1 条剔除记录`;
+                setTimeout(() => { statusBadge.textContent = `就绪`; }, 2200);
+            }
+
+            function batchRestoreItems() {
+                if (selectedRemovedIndices.size === 0) {
+                    alert('请先选择要恢复的数据');
+                    return;
+                }
+                const indicesToRestore = Array.from(selectedRemovedIndices).sort((a, b) => b - a);
+                const count = indicesToRestore.length;
+                indicesToRestore.forEach(idx => {
+                    if (idx >= 0 && idx < removedRowsGlobal.length) {
+                        removedRowsGlobal.splice(idx, 1);
+                    }
+                });
+                selectedRemovedIndices.clear();
+                refreshDisplayWithManualRemoved();
+                statusBadge.textContent = `↩ 已批量恢复 ${count} 条剔除记录`;
+                setTimeout(() => { statusBadge.textContent = `就绪`; }, 2200);
+            }
+
+            function batchDeleteItems() {
+                if (selectedRemovedIndices.size === 0) {
+                    alert('请先选择要永久删除的数据');
+                    return;
+                }
+                if (!confirm(`确定要永久删除 ${selectedRemovedIndices.size} 条剔除记录吗？此操作不可撤销！`)) {
+                    return;
+                }
+                const indicesToDelete = Array.from(selectedRemovedIndices).sort((a, b) => b - a);
+                const count = indicesToDelete.length;
+                indicesToDelete.forEach(idx => {
+                    if (idx >= 0 && idx < removedRowsGlobal.length) {
+                        removedRowsGlobal.splice(idx, 1);
+                    }
+                });
+                selectedRemovedIndices.clear();
+                refreshDisplayWithManualRemoved();
+                statusBadge.textContent = `🗑️ 已永久删除 ${count} 条剔除记录`;
+                setTimeout(() => { statusBadge.textContent = `就绪`; }, 2200);
+            }
+
+            // ===== 手动剔除模式刷新 =====
+            function refreshDisplayWithManualRemoved() {
+                if (!baseDedupedRows || baseDedupedRows.length === 0) {
+                    console.warn('没有基础数据，跳过刷新');
+                    return;
+                }
+
+                const headerRow = rawData[0].map(h => String(h).trim());
+                const dedupedRows = baseDedupedRows;
+                dedupedRowsForExport = dedupedRows;
+
+                const columnsData = specColumns.map(col => {
+                    const values = [];
+                    let removedCount = 0;
+                    for (const row of dedupedRows) {
+                        const rawVal = row[col.index];
+                        const num = parseFloat(String(rawVal).trim());
+                        if (isNaN(num)) continue;
+
+                        const isRemoved = removedRowsGlobal.some(
+                            item => item.row === row && item.specInfo === col.header
+                        );
+
+                        if (isRemoved) {
+                            removedCount++;
+                        } else {
+                            values.push(num);
+                        }
+                    }
+                    return { ...col, values, removedCount };
+                });
+
+                const stats = columnsData.map(col => {
+                    const vals = col.values;
+                    const n = vals.length;
+                    if (n === 0) {
+                        return {
+                            max: '-', min: '-', avg: '-', std: '-',
+                            cp: '-', cpk: '-', over: '-', rate: '-',
+                            removed: col.removedCount, _rawCpk: 0, _rawCp: 0
+                        };
+                    }
+                    const max = Math.max(...vals);
+                    const min = Math.min(...vals);
+                    const avg = vals.reduce((a, b) => a + b, 0) / n;
+                    const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - avg) ** 2, 0) / n);
+                    const usl = col.upper;
+                    const lsl = col.lower;
+                    const cp = (usl - lsl) / (6 * std);
+                    const cpu = (usl - avg) / (3 * std);
+                    const cpl = (avg - lsl) / (3 * std);
+                    const cpk = Math.min(cpu, cpl);
+                    const overCount = vals.filter(v => v > usl || v < lsl).length;
+                    const overRate = n > 0 ? (overCount / n * 100) : 0;
+                    return {
+                        max: max.toFixed(2), min: min.toFixed(2),
+                        avg: avg.toFixed(2), std: std.toFixed(2),
+                        cp: cp.toFixed(2), cpk: cpk.toFixed(2),
+                        over: overCount, rate: overRate.toFixed(2) + '%',
+                        removed: col.removedCount,
+                        _rawMax: max, _rawMin: min, _rawAvg: avg,
+                        _rawStd: std, _rawCp: cp, _rawCpk: cpk
+                    };
+                });
+
+                const timeColIdx = parseInt(timeColSelect.value, 10);
+                let times = dedupedRows.map(r => String(r[timeColIdx] || '').trim()).filter(t => t.length > 0);
+                times.sort();
+                timeRangeSpan.textContent = times.length >= 2 ?
+                    `${times[0]} ~ ${times[times.length - 1]}` :
+                    (times.length === 1 ? times[0] : '-');
+
+                colCountSpan.textContent = specColumns.length;
+                rowCountSpan.textContent = dedupedRows.length;
+
+                const removedRowsSet = new Set();
+                removedRowsGlobal.forEach(item => {
+                    const sn = String(item.row[item.snIdx] || '').trim();
+                    const time = String(item.row[item.timeIdx] || '').trim();
+                    const rowKey = `${sn}|${time}`;
+                    removedRowsSet.add(rowKey);
+                });
+                totalRemovedSpan.textContent = removedRowsSet.size;
+                updateStatusStats();
+
+                renderMatrixTable(specColumns, stats);
+                const searchTerm = searchBox.value;
+                renderRawDataTable(dedupedRows, headerRow, specColumns, currentFilterMode, searchTerm);
+                renderRemovedViewer(removedRowsGlobal, headerRow);
+
+                statusBadge.textContent = `✅ ${dedupedRows.length} 样本 · 剔除 ${removedRowsSet.size} 行 (${removedRowsGlobal.length}条记录)`;
+            }
+
+            // ---------- 核心报告生成 ----------
+            function generateReportInternal(preserveFilter = false) {
+                if (!rawData || rawData.length < 2) {
+                    alert('请先上传数据文件');
+                    return;
+                }
+
+                const snLen = parseInt(snLengthInput.value, 10) || 13;
+                const factor = parseFloat(toleranceFactorInput.value) || 1.30;
+                const timeColIdx = parseInt(timeColSelect.value, 10);
+                const snColIdx = parseInt(snColSelect.value, 10);
+
+                const headerRow = rawData[0].map(h => String(h).trim());
+                let dataRows = rawData.slice(1).map(row => [...row]);
+
+                const filteredBySn = dataRows.filter(row => {
+                    const snVal = String(row[snColIdx] || '').trim();
+                    return snVal.length === snLen;
+                });
+
+                const snMap = new Map();
+                for (const row of filteredBySn) {
+                    const sn = String(row[snColIdx] || '').trim();
+                    const timeVal = row[timeColIdx] !== undefined ? String(row[timeColIdx]).trim() : '';
+                    if (snMap.has(sn)) {
+                        const existing = snMap.get(sn);
+                        const existingTime = existing[timeColIdx] !== undefined ? String(existing[timeColIdx]).trim() : '';
+                        if (timeVal > existingTime) {
+                            snMap.set(sn, row);
+                        }
+                    } else {
+                        snMap.set(sn, row);
+                    }
+                }
+
+                const dedupedRows = Array.from(snMap.values());
+                baseDedupedRows = dedupedRows;
+                dedupedRowsForExport = dedupedRows;
+
+                specColumns = findAllSpecColumns(headerRow);
+                if (specColumns.length === 0) {
+                    alert('未找到包含规格 (±) 的列，请检查表头格式');
+                    return;
+                }
+
+                const newRemovedList = [];
+                const processedRows = new Set();
+
+                for (const row of dedupedRows) {
+                    const sn = String(row[snColIdx] || '').trim();
+                    const time = row[timeColIdx] !== undefined ? String(row[timeColIdx]).trim() : '';
+                    const rowKey = `${sn}|${time}`;
+
+                    if (processedRows.has(rowKey)) continue;
+                    processedRows.add(rowKey);
+
+                    for (const spec of specColumns) {
+                        const rawVal = row[spec.index];
+                        const num = parseFloat(String(rawVal).trim());
+                        if (isNaN(num)) continue;
+
+                        const limitLow = spec.center - factor * spec.tolerance;
+                        const limitHigh = spec.center + factor * spec.tolerance;
+
+                        if (num < limitLow || num > limitHigh) {
+                            newRemovedList.push({
+                                row: row,
+                                snIdx: snColIdx,
+                                timeIdx: timeColIdx,
+                                specInfo: spec.header,
+                                reason: `数值 ${num} 超出 [${limitLow.toFixed(2)}, ${limitHigh.toFixed(2)}]`
+                            });
+                        }
+                    }
+                }
+
+                removedRowsGlobal = newRemovedList;
+                selectedRemovedIndices.clear();
+
+                const columnsData = specColumns.map(col => {
+                    const values = [];
+                    let removedCount = 0;
+                    for (const row of dedupedRows) {
+                        const rawVal = row[col.index];
+                        const num = parseFloat(String(rawVal).trim());
+                        if (isNaN(num)) continue;
+
+                        const isRemoved = removedRowsGlobal.some(
+                            item => item.row === row && item.specInfo === col.header
+                        );
+
+                        if (isRemoved) {
+                            removedCount++;
+                        } else {
+                            values.push(num);
+                        }
+                    }
+                    return { ...col, values, removedCount };
+                });
+
+                const stats = columnsData.map(col => {
+                    const vals = col.values;
+                    const n = vals.length;
+                    if (n === 0) {
+                        return {
+                            max: '-', min: '-', avg: '-', std: '-',
+                            cp: '-', cpk: '-', over: '-', rate: '-',
+                            removed: col.removedCount, _rawCpk: 0, _rawCp: 0
+                        };
+                    }
+                    const max = Math.max(...vals);
+                    const min = Math.min(...vals);
+                    const avg = vals.reduce((a, b) => a + b, 0) / n;
+                    const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - avg) ** 2, 0) / n);
+                    const usl = col.upper;
+                    const lsl = col.lower;
+                    const cp = (usl - lsl) / (6 * std);
+                    const cpu = (usl - avg) / (3 * std);
+                    const cpl = (avg - lsl) / (3 * std);
+                    const cpk = Math.min(cpu, cpl);
+                    const overCount = vals.filter(v => v > usl || v < lsl).length;
+                    const overRate = n > 0 ? (overCount / n * 100) : 0;
+                    return {
+                        max: max.toFixed(2), min: min.toFixed(2),
+                        avg: avg.toFixed(2), std: std.toFixed(2),
+                        cp: cp.toFixed(2), cpk: cpk.toFixed(2),
+                        over: overCount, rate: overRate.toFixed(2) + '%',
+                        removed: col.removedCount,
+                        _rawMax: max, _rawMin: min, _rawAvg: avg,
+                        _rawStd: std, _rawCp: cp, _rawCpk: cpk
+                    };
+                });
+
+                let times = dedupedRows.map(r => String(r[timeColIdx] || '').trim()).filter(t => t.length > 0);
+                times.sort();
+                timeRangeSpan.textContent = times.length >= 2 ?
+                    `${times[0]} ~ ${times[times.length - 1]}` :
+                    (times.length === 1 ? times[0] : '-');
+
+                colCountSpan.textContent = specColumns.length;
+                rowCountSpan.textContent = dedupedRows.length;
+                const removedRowsSet = new Set();
+                removedRowsGlobal.forEach(item => {
+                    const rowKey = `${String(item.row[item.snIdx])}|${String(item.row[item.timeIdx])}`;
+                    removedRowsSet.add(rowKey);
+                });
+                totalRemovedSpan.textContent = removedRowsSet.size;
+                updateStatusStats();
+
+                renderMatrixTable(specColumns, stats);
+                const searchTerm = searchBox.value;
+                renderRawDataTable(dedupedRows, headerRow, specColumns,
+                    preserveFilter ? currentFilterMode : 'all', searchTerm);
+                renderRemovedViewer(removedRowsGlobal, headerRow);
+
+                if (!preserveFilter) {
+                    currentFilterMode = 'all';
+                    filterAllBtn.classList.add('active-filter');
+                    filterOutOfSpecBtn.classList.remove('active-filter');
+                }
+                statusBadge.textContent = `✅ ${dedupedRows.length} 样本 · 剔除 ${removedRowsGlobal.length} 点`;
+            }
+
+            // ---------- 表格渲染 ----------
+            function getColorClass(value, type = 'cpk') {
+                const v = parseFloat(value);
+                if (isNaN(v)) return '';
+                if (type === 'cpk' || type === 'cp') {
+                    if (v >= 1.67) return 'cpk-excellent';
+                    if (v >= 1.30) return 'cpk-good';
+                    return 'cpk-poor';
+                }
+                return '';
+            }
+
+            function renderMatrixTable(cols, stats) {
+                if (!cols || cols.length === 0) {
+                    tableContainer.innerHTML = '<table><tr><td>无数据</td></tr></table>';
+                    return;
+                }
+                const rowDefs = [
+                    { label: '规格', key: 'center' },
+                    { label: '偏差参数', key: 'tolerance' },
+                    { label: '上限', key: 'upper' },
+                    { label: '下限', key: 'lower' },
+                    { label: '最大值', key: 'max' },
+                    { label: '最小值', key: 'min' },
+                    { label: '平均值', key: 'avg' },
+                    { label: '标准差', key: 'std' },
+                    { label: 'CP', key: 'cp', colorType: 'cp' },
+                    { label: 'CPK', key: 'cpk', colorType: 'cpk' },
+                    { label: '超标数量', key: 'over' },
+                    { label: '超标率', key: 'rate' },
+                    { label: '剔除数据', key: 'removed' }
+                ];
+                let html = '<table><thead><tr><th>指标</th>';
+                cols.forEach(col => { html += `<th>${col.header}</th>`; });
+                html += '</tr></thead><tbody>';
+                rowDefs.forEach((def) => {
+                    let rowClass = (def.label === '超标数量' || def.label === '超标率') ? 'highlight-over' : '';
+                    if (def.label === '剔除数据') rowClass = 'removed-row';
+                    html += `<tr class="${rowClass}"><td class="row-label">${def.label}</td>`;
+                    cols.forEach((col, ci) => {
+                        let val;
+                        if (def.key === 'center') val = col.center;
+                        else if (def.key === 'tolerance') val = col.tolerance;
+                        else if (def.key === 'upper') val = col.upper;
+                        else if (def.key === 'lower') val = col.lower;
+                        else if (def.key === 'removed') val = stats[ci].removed;
+                        else val = stats[ci][def.key] ?? '-';
+                        let colorClass = '';
+                        if (def.colorType && typeof val === 'string' && val !== '-') {
+                            colorClass = getColorClass(val, def.colorType);
+                        }
+                        html += `<td class="${colorClass}">${val}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                tableContainer.innerHTML = html;
+            }
+
+            // ===== 渲染剔除后数据表（仅正常数据） =====
+            function renderCleanDataTable(rows, headers, specCols) {
+                const container = document.getElementById('cleanDataTableWrap');
+                if (!container) {
+                    console.warn('cleanDataTableWrap element not found');
+                    return;
+                }
+
+                // 过滤出正常数据（未被剔除的行）
+                const cleanRows = rows.filter(row => {
+                    // 检查该行是否在剔除列表中
+                    const isRemoved = removedRowsGlobal.some(item => item.row === row);
+                    return !isRemoved;
+                });
+
+                if (!cleanRows || cleanRows.length === 0) {
+                    container.innerHTML = '<p style="color:#7088a8; padding: 10px;">✅ 所有数据均已被剔除，无正常数据</p>';
+                    return;
+                }
+
+                let html = `<div style="font-size:0.70rem; color:#16a34a; margin-bottom:5px;">✅ 共 ${cleanRows.length} 行正常数据</div>`;
+                html += '<table><thead><tr><th style="background:#ebf2fb;">#</th>';
+                headers.forEach(h => { html += `<th>${h}</th>`; });
+                html += '</tr></thead><tbody>';
+
+                cleanRows.forEach((row, idx) => {
+                    html += `<tr><td class="row-number" style="background:#f5f9fe; font-weight:390;">${idx + 1}</td>`;
+                    headers.forEach((_, colIdx) => {
+                        let cellValue = row[colIdx] !== undefined ? row[colIdx] : '';
+                        // 检查是否超标（但这里不应该有超标数据，因为已经被剔除了）
+                        const spec = specCols.find(s => s.index === colIdx);
+                        if (spec) {
+                            const val = parseFloat(String(row[colIdx]).trim());
+                            if (!isNaN(val) && (val < spec.lower || val > spec.upper)) {
+                                // 理论上不应该出现，但以防万一
+                                cellValue = `<span style="color:red;">${cellValue} [异常]</span>`;
+                            }
+                        }
+                        html += `<td>${cellValue}</td>`;
+                    });
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+
+            // ===== CPK汇总表渲染函数 =====
+            function renderCpkSummaryTable(cols, stats) {
+                const container = document.getElementById('cpkSummaryTableWrap');
+                if (!container) {
+                    console.warn('cpkSummaryTableWrap element not found');
+                    return;
+                }
+
+                if (!cols || cols.length === 0) {
+                    container.innerHTML = '<p style="color:#7088a8; padding: 10px;">暂无数据</p>';
+                    return;
+                }
+
+                let html = '<table><thead><tr><th style="background:#ebf2fb;">指标</th>';
+                cols.forEach(col => { html += `<th>${col.header}</th>`; });
+                html += '</tr></thead><tbody>';
+
+                const rowDefs = [
+                    { label: '规格中心值', key: 'center' },
+                    { label: '公差范围', key: 'tolerance' },
+                    { label: '规格上限', key: 'upper' },
+                    { label: '规格下限', key: 'lower' },
+                    { label: '最大值', key: 'max' },
+                    { label: '最小值', key: 'min' },
+                    { label: '平均值', key: 'avg' },
+                    { label: '标准差', key: 'std' },
+                    { label: 'CP', key: 'cp', colorType: 'cp' },
+                    { label: 'CPK', key: 'cpk', colorType: 'cpk' },
+                    { label: '超标数量', key: 'over' },
+                    { label: '超标率', key: 'rate' },
+                    { label: '剔除记录数', key: 'removed' }
+                ];
+
+                rowDefs.forEach((def) => {
+                    let rowClass = (def.label === '超标数量' || def.label === '超标率') ? 'highlight-over' : '';
+                    if (def.label === '剔除记录数') rowClass = 'removed-row';
+                    html += `<tr class="${rowClass}"><td class="row-label" style="background:#f6faff;font-weight:550;">${def.label}</td>`;
+                    cols.forEach((col, ci) => {
+                        let val;
+                        if (def.key === 'center') val = col.center;
+                        else if (def.key === 'tolerance') val = col.tolerance;
+                        else if (def.key === 'upper') val = col.upper;
+                        else if (def.key === 'lower') val = col.lower;
+                        else if (def.key === 'removed') val = stats[ci].removed;
+                        else val = stats[ci][def.key] ?? '-';
+                        let colorClass = '';
+                        if (def.colorType && typeof val === 'string' && val !== '-') {
+                            colorClass = getColorClass(val, def.colorType);
+                        }
+                        html += `<td class="${colorClass}">${val}</td>`;
+                    });
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            }
+
+            // ---------- 导出功能 ----------
+            // 导出剔除后数据 (XLSX格式) - 保留所有行，被剔除的单元格设为空值
+            // 导出剔除后数据 (XLSX格式) - 保留所有行，被剔除的单元格设为空值
+            function exportCleanDataXlsx() {
+                if (!dedupedRowsForExport || dedupedRowsForExport.length === 0) {
+                    alert('⚠️ 无数据可导出，请先上传数据文件');
+                    return;
+                }
+
+                try {
+                    const wb = XLSX.utils.book_new();
+                    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+
+                    // 准备数据：保留所有行，被剔除的单元格设为空值
+                    const headerRow = rawData[0];
+                    const dataSheetData = [headerRow];
+
+                    dedupedRowsForExport.forEach(row => {
+                        const newRow = [];
+                        headers.forEach((_, colIdx) => {
+                            // 使用全局的 specColumns 而不是 specCols
+                            const spec = specColumns.find(s => s.index === colIdx);
+                            let cellValue = row[colIdx] !== undefined ? row[colIdx] : '';
+
+                            if (spec) {
+                                // 检查该单元格是否被剔除
+                                const isRemoved = removedRowsGlobal.some(
+                                    item => item.row === row && item.specInfo === spec.header
+                                );
+                                if (isRemoved) {
+                                    cellValue = ''; // 被剔除的单元格设为空值
+                                }
+                            }
+                            newRow.push(cellValue);
+                        });
+                        dataSheetData.push(newRow);
+                    });
+
+                    const ws = XLSX.utils.aoa_to_sheet(dataSheetData);
+                    ws['!cols'] = headerRow.map(() => ({ wch: 16 }));
+                    XLSX.utils.book_append_sheet(wb, ws, '剔除后数据');
+
+                    // 添加统计信息
+                    const totalRows = dedupedRowsForExport.length;
+                    const removedCells = removedRowsGlobal.length;
+                    const cleanRows = dedupedRowsForExport.filter(row => {
+                        return !removedRowsGlobal.some(item => item.row === row);
+                    }).length;
+
+                    const infoData = [
+                        ['剔除后数据统计（单元格剔除模式）'],
+                        [''],
+                        ['说明：被剔除的单元格已设为空值，行数据完整保留'],
+                        [''],
+                        ['总数据行数', totalRows],
+                        ['被剔除单元格数', removedCells],
+                        ['完全正常行数（无任何剔除）', cleanRows],
+                        ['剔除率 (%)', ((removedCells / (totalRows * specColumns.length)) * 100).toFixed(2)],
+                        ['导出时间', new Date().toLocaleString()]
+                    ];
+                    const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+                    wsInfo['!cols'] = [{ wch: 25 }, { wch: 20 }];
+                    XLSX.utils.book_append_sheet(wb, wsInfo, '统计信息');
+
+                    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `剔除后数据_${timestamp}.xlsx`;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+
+                    statusBadge.textContent = `✅ 已导出 ${totalRows} 行数据，${removedCells} 个单元格被剔除 (XLSX)`;
+                    setTimeout(() => { statusBadge.textContent = `就绪`; }, 2000);
+                } catch (error) {
+                    alert('导出失败: ' + error.message);
+                    console.error(error);
+                }
+            }
+
+            // ============================================================
+            // 导出汇总报告 - 使用 ExcelJS 实现背景色
+            // ============================================================
+            async function exportReportXlsx() {
+                if (!dedupedRowsForExport || dedupedRowsForExport.length === 0) {
+                    alert('⚠️ 无数据可导出，请先上传数据文件');
+                    return;
+                }
+
+                if (typeof ExcelJS === 'undefined') {
+                    alert('❌ ExcelJS 库未加载，请刷新页面后重试');
+                    console.error('ExcelJS is not defined. Please check the script loading.');
+                    return;
+                }
+
+                try {
+                    const workbook = new ExcelJS.Workbook();
+                    workbook.creator = 'CPK Analyzer';
+                    workbook.created = new Date();
+                    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+
+                    // 计算统计量
+                    const removedRowsSet = new Set();
+                    removedRowsGlobal.forEach(item => {
+                        const sn = String(item.row[item.snIdx] || '').trim();
+                        const time = String(item.row[item.timeIdx] || '').trim();
+                        const rowKey = `${sn}|${time}`;
+                        removedRowsSet.add(rowKey);
+                    });
+                    const removedUniqueRows = removedRowsSet.size;
+                    const normalRows = dedupedRowsForExport.length - removedUniqueRows;
+
+                    // 重新计算统计量
+                    const columnsData = specColumns.map(col => {
+                        const values = [];
+                        let removedCount = 0;
+                        for (const row of dedupedRowsForExport) {
+                            const rawVal = row[col.index];
+                            const num = parseFloat(String(rawVal).trim());
+                            if (isNaN(num)) continue;
+
+                            const isRemoved = removedRowsGlobal.some(
+                                item => item.row === row && item.specInfo === col.header
+                            );
+
+                            if (isRemoved) {
+                                removedCount++;
+                            } else {
+                                values.push(num);
+                            }
+                        }
+                        return { ...col, values, removedCount };
+                    });
+
+                    const stats = columnsData.map(col => {
+                        const vals = col.values;
+                        const n = vals.length;
+                        if (n === 0) return {
+                            max: '-', min: '-', avg: '-', std: '-',
+                            cp: '-', cpk: '-', cpk_rating: '无数据',
+                            over: '-', rate: '-', removed: col.removedCount,
+                            _rawCpk: 0, _rawCp: 0
+                        };
+                        const max = Math.max(...vals);
+                        const min = Math.min(...vals);
+                        const avg = vals.reduce((a, b) => a + b, 0) / n;
+                        const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - avg) ** 2, 0) / n);
+                        const usl = col.upper;
+                        const lsl = col.lower;
+                        const cp = (usl - lsl) / (6 * std);
+                        const cpu = (usl - avg) / (3 * std);
+                        const cpl = (avg - lsl) / (3 * std);
+                        const cpk = Math.min(cpu, cpl);
+                        const overCount = vals.filter(v => v > usl || v < lsl).length;
+                        const overRate = n > 0 ? (overCount / n * 100) : 0;
+
+                        let cpk_rating = '';
+                        if (cpk >= 1.67) cpk_rating = '优秀';
+                        else if (cpk >= 1.30) cpk_rating = '良好';
+                        else if (cpk > 0) cpk_rating = '需改进';
+                        else cpk_rating = '严重不足';
+
+                        return {
+                            max: max.toFixed(4), min: min.toFixed(4),
+                            avg: avg.toFixed(4), std: std.toFixed(4),
+                            cp: cp.toFixed(4), cpk: cpk.toFixed(4),
+                            cpk_rating: cpk_rating,
+                            over: overCount, rate: overRate.toFixed(2),
+                            removed: col.removedCount,
+                            _rawCpk: cpk,
+                            _rawCp: cp
+                        };
+                    });
+
+                    // ===== 工作表1: CPK汇总统计 =====
+                    const ws1 = workbook.addWorksheet('CPK汇总', {
+                        properties: { tabColor: { argb: 'FF2E75B6' } }
+                    });
+
+                    ws1.getColumn(1).width = 22;
+                    for (let i = 2; i <= specColumns.length + 1; i++) {
+                        ws1.getColumn(i).width = 16;
+                    }
+
+                    // 标题
+                    ws1.addRow(['CPK 统计分析报告']);
+                    ws1.addRow([]);
+                    ws1.addRow(['生成时间:', new Date().toLocaleString()]);
+                    ws1.addRow(['数据文件:', currentFileName || '未命名']);
+                    ws1.addRow([]);
+                    ws1.addRow(['数据概览']);
+                    ws1.addRow(['项目', '数值']);
+                    ws1.addRow(['总样本数', dedupedRowsForExport.length]);
+                    ws1.addRow(['剔除记录数（含多规格）', removedRowsGlobal.length]);
+                    ws1.addRow(['被剔除行数（去重）', removedUniqueRows]);
+                    ws1.addRow(['有效样本数', normalRows]);
+                    ws1.addRow(['剔除率 (%)', ((removedUniqueRows / dedupedRowsForExport.length) * 100).toFixed(2)]);
+                    ws1.addRow(['规格列数', specColumns.length]);
+                    ws1.addRow([]);
+                    ws1.addRow(['各规格统计汇总']);
+                    ws1.addRow([]);
+
+                    // 统计表头
+                    const headerRow = ['指标'];
+                    specColumns.forEach(c => headerRow.push(c.header));
+                    ws1.addRow(headerRow);
+
+                    const rowDefs = [
+                        { label: '规格中心值', key: 'center' },
+                        { label: '公差范围', key: 'tolerance' },
+                        { label: '规格上限', key: 'upper' },
+                        { label: '规格下限', key: 'lower' },
+                        { label: '最大值', key: 'max' },
+                        { label: '最小值', key: 'min' },
+                        { label: '平均值', key: 'avg' },
+                        { label: '标准差', key: 'std' },
+                        { label: 'CP (制程能力)', key: 'cp' },
+                        { label: 'CPK (制程能力指数)', key: 'cpk' },
+                        { label: 'CPK 评级', key: 'cpk_rating' },
+                        { label: '超标数量', key: 'over' },
+                        { label: '超标率 (%)', key: 'rate' },
+                        { label: '剔除记录数', key: 'removed' }
+                    ];
+
+                    // 填充数据并应用颜色
+                    rowDefs.forEach(def => {
+                        const rowData = [def.label];
+                        const row = ws1.addRow(rowData);
+
+                        specColumns.forEach((col, ci) => {
+                            let val;
+                            if (def.key === 'center') val = col.center;
+                            else if (def.key === 'tolerance') val = col.tolerance;
+                            else if (def.key === 'upper') val = col.upper;
+                            else if (def.key === 'lower') val = col.lower;
+                            else if (def.key === 'cpk_rating') val = stats[ci].cpk_rating;
+                            else val = stats[ci][def.key] ?? '-';
+                            row.getCell(ci + 2).value = val;
+
+                            // CP 和 CPK 列背景色
+                            if (def.key === 'cp' || def.key === 'cpk') {
+                                const numVal = parseFloat(val);
+                                if (!isNaN(numVal)) {
+                                    let fillColor = '';
+                                    if (numVal >= 1.67) {
+                                        fillColor = 'FF147A37';
+                                    } else if (numVal >= 1.30) {
+                                        fillColor = 'FF78CF99';
+                                    } else {
+                                        fillColor = 'FFF19191';
+                                    }
+                                    row.getCell(ci + 2).fill = {
+                                        type: 'pattern',
+                                        pattern: 'solid',
+                                        fgColor: { argb: fillColor }
+                                    };
+                                    if (numVal >= 1.67) {
+                                        row.getCell(ci + 2).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                                    } else if (numVal >= 1.30) {
+                                        row.getCell(ci + 2).font = { color: { argb: 'FF002610' } };
+                                    } else {
+                                        row.getCell(ci + 2).font = { color: { argb: 'FF630E0E' } };
+                                    }
+                                }
+                            }
+
+                            // CPK 评级列背景色
+                            if (def.key === 'cpk_rating') {
+                                const rating = String(val);
+                                let fillColor = '';
+                                if (rating === '优秀') {
+                                    fillColor = 'FF147A37';
+                                } else if (rating === '良好') {
+                                    fillColor = 'FF78CF99';
+                                } else if (rating === '需改进') {
+                                    fillColor = 'FFF19191';
+                                } else if (rating === '严重不足') {
+                                    fillColor = 'FFFF0000';
+                                }
+                                if (fillColor) {
+                                    row.getCell(ci + 2).fill = {
+                                        type: 'pattern',
+                                        pattern: 'solid',
+                                        fgColor: { argb: fillColor }
+                                    };
+                                    if (rating === '优秀') {
+                                        row.getCell(ci + 2).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                                    }
+                                }
+                            }
+                        });
+                    });
+
+                    // 评级标准
+                    ws1.addRow([]);
+                    ws1.addRow(['CPK 评级标准说明']);
+                    ws1.addRow(['优秀 (CPK ≥ 1.67)', '制程能力非常优秀，值得保持']);
+                    ws1.addRow(['良好 (1.30 ≤ CPK < 1.67)', '制程能力良好，可适当优化']);
+                    ws1.addRow(['需改进 (CPK < 1.30)', '制程能力需要改进，建议分析原因']);
+                    ws1.addRow(['严重不足 (CPK ≤ 0)', '制程能力严重不足，需立即改善']);
+
+                    // 边框
+                    ws1.eachRow((row) => {
+                        row.eachCell((cell) => {
+                            cell.border = {
+                                top: { style: 'thin' },
+                                left: { style: 'thin' },
+                                bottom: { style: 'thin' },
+                                right: { style: 'thin' }
+                            };
+                        });
+                    });
+
+                    // ===== 工作表2: 超标明细 =====
+                    const ws2 = workbook.addWorksheet('超标明细');
+                    ws2.addRow(['超标数据明细']);
+                    ws2.addRow(['说明：红色背景 = 超出规格范围']);
+                    ws2.addRow([]);
+
+                    const specHeaders2 = ['行号', 'SN', '时间'];
+                    specColumns.forEach(c => specHeaders2.push(c.header + ` (${c.center}±${c.tolerance})`));
+                    ws2.addRow(specHeaders2);
+
+                    dedupedRowsForExport.forEach((row, idx) => {
+                        const rowData = [idx + 1];
+                        const snColIdx = parseInt(snColSelect.value, 10);
+                        const timeColIdx = parseInt(timeColSelect.value, 10);
+                        rowData.push(row[snColIdx] || '-');
+                        rowData.push(row[timeColIdx] || '-');
+
+                        const excelRow = ws2.addRow(rowData);
+
+                        specColumns.forEach((spec, ci) => {
+                            const val = parseFloat(String(row[spec.index]).trim());
+                            let cellValue = row[spec.index] !== undefined ? row[spec.index] : '';
+                            excelRow.getCell(ci + 4).value = cellValue;
+
+                            if (!isNaN(val) && (val < spec.lower || val > spec.upper)) {
+                                excelRow.getCell(ci + 4).fill = {
+                                    type: 'pattern',
+                                    pattern: 'solid',
+                                    fgColor: { argb: 'FFFF0000' }
+                                };
+                                excelRow.getCell(ci + 4).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                            }
+                        });
+                    });
+
+                    // ===== 工作表3: 剔除数据 =====
+                    const ws3 = workbook.addWorksheet('剔除数据');
+                    ws3.addRow(['剔除数据列表']);
+                    ws3.addRow(['说明：同一行可能因多个规格超标而有多条剔除记录']);
+                    ws3.addRow([]);
+                    ws3.addRow(['序号', 'SN', '时间', '涉及规格', '剔除原因', '完整数据行']);
+
+                    if (removedRowsGlobal.length > 0) {
+                        removedRowsGlobal.forEach((item, idx) => {
+                            const row = item.row;
+                            const sn = row[item.snIdx] || '-';
+                            const time = row[item.timeIdx] || '-';
+                            const fullData = row.join(' | ');
+                            ws3.addRow([idx + 1, sn, time, item.specInfo, item.reason, fullData]);
+                        });
+                    } else {
+                        ws3.addRow(['无剔除数据', '', '', '', '', '']);
+                    }
+
+                    // ===== 工作表4: 统计看板 =====
+                    const ws4 = workbook.addWorksheet('统计看板');
+                    ws4.addRow(['统计摘要看板']);
+                    ws4.addRow([]);
+                    ws4.addRow(['数据概览']);
+                    ws4.addRow(['指标', '数值']);
+                    ws4.addRow(['总数据行数', dedupedRowsForExport.length]);
+                    ws4.addRow(['有效样本数', normalRows]);
+                    ws4.addRow(['剔除行数（去重）', removedUniqueRows]);
+                    ws4.addRow(['剔除记录总数', removedRowsGlobal.length]);
+                    ws4.addRow(['规格列数', specColumns.length]);
+                    ws4.addRow(['剔除率 (%)', ((removedUniqueRows / dedupedRowsForExport.length) * 100).toFixed(2)]);
+                    ws4.addRow([]);
+                    ws4.addRow(['CPK 评级汇总']);
+                    ws4.addRow(['规格', 'CPK值', '评级']);
+
+                    specColumns.forEach((col, ci) => {
+                        const cpkVal = stats[ci].cpk;
+                        const rating = stats[ci].cpk_rating;
+                        const row = ws4.addRow([col.header, cpkVal, rating]);
+
+                        let fillColor = '';
+                        if (rating === '优秀') {
+                            fillColor = 'FF147A37';
+                        } else if (rating === '良好') {
+                            fillColor = 'FF78CF99';
+                        } else if (rating === '需改进') {
+                            fillColor = 'FFF19191';
+                        } else if (rating === '严重不足') {
+                            fillColor = 'FFFF0000';
+                        }
+                        if (fillColor) {
+                            row.getCell(3).fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: fillColor }
+                            };
+                            if (rating === '优秀') {
+                                row.getCell(3).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                            }
+                        }
+                    });
+
+                    ws4.addRow([]);
+                    ws4.addRow(['CPK 评级标准']);
+                    ws4.addRow(['评级', 'CPK范围', '说明']);
+                    ws4.addRow(['优秀', '≥ 1.67', '制程能力非常优秀']);
+                    ws4.addRow(['良好', '1.30 ~ 1.67', '制程能力良好']);
+                    ws4.addRow(['需改进', '< 1.30', '需要改进']);
+                    ws4.addRow(['严重不足', '≤ 0', '立即改善']);
+
+                    // 导出
+                    const buffer = await workbook.xlsx.writeBuffer();
+                    const blob = new Blob([buffer], {
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `CPK分析报告_${timestamp}.xlsx`;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+
+                    statusBadge.textContent = `✅ 报告已导出 (含背景色)`;
+                    setTimeout(() => { statusBadge.textContent = `就绪`; }, 3000);
+
+                } catch (error) {
+                    alert('导出失败: ' + error.message);
+                    console.error(error);
+                }
+            }
+
+            // ---------- 事件绑定 ----------
+            snLengthInput.addEventListener('change', function () {
+                if (rawData && rawData.length > 0) {
+                    generateReportInternal();
+                }
+            });
+
+            toleranceFactorInput.addEventListener('change', function () {
+                if (rawData && rawData.length > 0) {
+                    generateReportInternal();
+                }
+            });
+
+            snColSelect.addEventListener('change', function () {
+                if (rawData && rawData.length > 0) {
+                    generateReportInternal();
+                }
+            });
+
+            timeColSelect.addEventListener('change', function () {
+                if (rawData && rawData.length > 0) {
+                    generateReportInternal();
+                }
+            });
+
+            // ===== 文件上传（使用 XLSX 库读取） =====
+            fileInput.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                currentFileName = file.name.replace(/\.[^/.]+$/, "");
+                fileNameDisplay.textContent = `(${currentFileName})`;
+
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+
+                if (fileExtension === 'xlsx') {
+                    if (typeof XLSX === 'undefined') {
+                        alert('❌ XLSX 库未加载，请刷新页面后重试');
+                        console.error('XLSX is not defined. Please check the script loading.');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        try {
+                            const data = new Uint8Array(event.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                            if (jsonData.length < 2) {
+                                alert('文件为空或格式不正确');
+                                return;
+                            }
+
+                            const rows = jsonData.filter(row => row.some(cell => cell !== undefined && cell !== null &&
+                                String(cell).trim() !== ''));
+
+                            rawData = rows;
+                            headers = rows[0].map(h => String(h).trim());
+                            updateColSelects(headers);
+                            removedRowsGlobal = [];
+                            selectedRemovedIndices.clear();
+                            dedupedRowsForExport = [];
+                            baseDedupedRows = [];
+                            generateReportInternal();
+                            statusBadge.textContent = `✅ 已加载 ${rawData.length - 1} 行数据 (XLSX)`;
+                            setTimeout(() => { statusBadge.textContent = `就绪`; }, 2500);
+                        } catch (error) {
+                            alert('读取Excel文件失败: ' + error.message);
+                            console.error(error);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        const text = event.target.result;
+                        const rows = parseCSV(text);
+                        if (rows.length < 2) {
+                            alert('文件为空或格式不正确');
+                            return;
+                        }
+                        rawData = rows;
+                        headers = rows[0].map(h => String(h).trim());
+                        updateColSelects(headers);
+                        removedRowsGlobal = [];
+                        selectedRemovedIndices.clear();
+                        dedupedRowsForExport = [];
+                        baseDedupedRows = [];
+                        generateReportInternal();
+                        statusBadge.textContent = `✅ 已加载 ${rawData.length - 1} 行数据`;
+                        setTimeout(() => { statusBadge.textContent = `就绪`; }, 2500);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            // 替换原来的导出按钮事件
+            const exportCleanDataBtn = document.getElementById('exportCleanDataBtn');
+            exportCleanDataBtn.addEventListener('click', exportCleanDataXlsx);
+            exportReportXlsxBtn.addEventListener('click', exportReportXlsx);
+
+            searchBox.addEventListener('input', function () {
+                const searchTerm = this.value;
+                renderRawDataTable(dedupedRowsForExport, headers, specColumns, currentFilterMode, searchTerm);
+            });
+
+            filterAllBtn.addEventListener('click', function () {
+                currentFilterMode = 'all';
+                filterAllBtn.classList.add('active-filter');
+                filterOutOfSpecBtn.classList.remove('active-filter');
+                const searchTerm = searchBox.value;
+                renderRawDataTable(dedupedRowsForExport, headers, specColumns, 'all', searchTerm);
+            });
+
+            filterOutOfSpecBtn.addEventListener('click', function () {
+                currentFilterMode = 'outofspec';
+                filterOutOfSpecBtn.classList.add('active-filter');
+                filterAllBtn.classList.remove('active-filter');
+                const searchTerm = searchBox.value;
+                renderRawDataTable(dedupedRowsForExport, headers, specColumns, 'outofspec', searchTerm);
+            });
+
+            selectAllRemoved.addEventListener('change', function () {
+                const isChecked = this.checked;
+                const checkboxes = removedDetailWrap.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(cb => {
+                    cb.checked = isChecked;
+                    const idx = parseInt(cb.dataset.index);
+                    if (isChecked) {
+                        selectedRemovedIndices.add(idx);
+                    } else {
+                        selectedRemovedIndices.delete(idx);
+                    }
+                });
+            });
+
+            batchRestoreBtn.addEventListener('click', batchRestoreItems);
+            batchDeleteBtn.addEventListener('click', batchDeleteItems);
+
+            // ---------- 加载示例数据 ----------
+            async function loadSampleData() {
+                try {
+                    const response = await fetch('sample_data.csv');
+                    if (!response.ok) throw new Error('No sample data');
+                    const text = await response.text();
+                    const rows = parseCSV(text);
+                    if (rows.length < 2) throw new Error('Empty sample');
+                    rawData = rows;
+                    headers = rows[0].map(h => String(h).trim());
+                    updateColSelects(headers);
+                    removedRowsGlobal = [];
+                    selectedRemovedIndices.clear();
+                    dedupedRowsForExport = [];
+                    baseDedupedRows = [];
+                    generateReportInternal();
+                    statusBadge.textContent = `📂 已加载示例数据 (CSV)`;
+                    setTimeout(() => { statusBadge.textContent = `就绪`; }, 2500);
+                } catch (e) {
+                    console.log('No sample data available, please upload a CSV or XLSX file.');
+                    tableContainer.innerHTML = '<table><tr><td>请上传 CSV 或 XLSX 文件开始分析</td></tr></table>';
+                    rawDataTableWrap.innerHTML = '<p style="color:#7088a8;">暂无数据，请上传文件</p>';
+                    removedDetailWrap.innerHTML = '<p style="color:#607a9a;">暂无数据</p>';
+                }
+            }
+            loadSampleData();
+        })();
+    </script>
+</body>
+
+</html>
