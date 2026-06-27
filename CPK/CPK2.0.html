@@ -558,7 +558,7 @@
             const exportFullReportBtn = document.getElementById('exportFullReportBtn');
             const filterAllBtn = document.getElementById('filterAllBtn');
             const filterOutOfSpecBtn = document.getElementById('filterOutOfSpecBtn');
-            const filterStatus = document.getElementById('filterStatus'); 
+            const filterStatus = document.getElementById('filterStatus');
             const searchBox = document.getElementById('searchBox');
             const searchResultCount = document.getElementById('searchResultCount');
             const selectAllRemoved = document.getElementById('selectAllRemoved');
@@ -828,7 +828,7 @@
                 statusBadge.textContent = `🗑️ 已永久删除 ${indicesToDelete.length} 条数据`;
                 setTimeout(() => { statusBadge.textContent = `就绪`; }, 2200);
             }
-            // ---------- 核心报告生成（修复版） ----------
+            // ===== 修改后的 generateReportInternal 函数 =====
             function generateReportInternal(preserveFilter = false) {
                 if (!rawData || rawData.length < 2) {
                     alert('请先上传数据文件');
@@ -878,19 +878,16 @@
 
                 // 4. 完全重新计算剔除列表（修复关键点）
                 const newRemovedList = [];
-                const processedRows = new Set(); // 用于跟踪已经处理的行的唯一标识
+                const processedRows = new Set();
 
                 for (const row of dedupedRows) {
-                    // 为每一行生成唯一标识（基于SN和时间）
                     const sn = String(row[snColIdx] || '').trim();
                     const time = row[timeColIdx] !== undefined ? String(row[timeColIdx]).trim() : '';
                     const rowKey = `${sn}|${time}`;
 
-                    // 跳过已经处理的重复行
                     if (processedRows.has(rowKey)) continue;
                     processedRows.add(rowKey);
 
-                    // 检查该行是否在任何规格列上超出容差范围
                     let isOutOfSpec = false;
                     let outOfSpecDetails = [];
 
@@ -912,12 +909,7 @@
                         }
                     }
 
-
-
-
-                    // 如果该行有任何规格超出，则加入剔除列表
                     if (isOutOfSpec) {
-                        // 只记录第一个超出的规格作为主要剔除原因
                         const firstIssue = outOfSpecDetails[0];
                         newRemovedList.push({
                             row: row,
@@ -929,7 +921,7 @@
                     }
                 }
 
-                // 5. 完全替换旧的剔除列表（而不是追加）
+                // 5. 完全替换旧的剔除列表
                 removedRowsGlobal = newRemovedList;
 
                 // 6. 清空选中状态
@@ -945,10 +937,8 @@
                         const num = parseFloat(String(rawVal).trim());
                         if (isNaN(num)) continue;
 
-                        // 检查该行是否被剔除（在当前的剔除列表中）
                         const isRemoved = removedRowsGlobal.some(
                             item => {
-                                // 比较行内容是否相同
                                 const itemKey = `${String(item.row[item.snIdx])}|${String(item.row[item.timeIdx])}`;
                                 const rowKey = `${String(row[snColIdx])}|${String(row[timeColIdx])}`;
                                 return itemKey === rowKey && item.specInfo === col.header;
@@ -1036,6 +1026,7 @@
 
                 statusBadge.textContent = `✅ ${dedupedRows.length} 样本 · 剔除 ${removedRowsGlobal.length} 点`;
             }
+
 
             function getColorClass(value, type = 'cpk') {
                 const v = parseFloat(value);
