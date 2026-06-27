@@ -64,7 +64,7 @@
 
         .toolbar input,
         .toolbar select {
-            padding: 5px 14px;
+            padding: 5px 9px;
             border-radius: 44px;
             border: 1px solid #cbd7ea;
             background: white;
@@ -455,6 +455,8 @@
             <label>📏 SN长度 <input type="number" id="snLength" value="15" min="4" max="36" style="width:56px;"></label>
             <label>📐 容差系数 <input type="number" id="toleranceFactor" value="1.30" step="0.05" min="1.0" max="3.0"
                     style="width:56px;"></label>
+
+
             <button id="recalcBtn">🔄 刷新报告</button>
             <span id="statusBadge"
                 style="background:#e4edf9;padding:2px 18px;border-radius:30px;font-size:0.70rem;">就绪</span>
@@ -521,6 +523,8 @@
         </div>
         <div class="note">✅ 自动识别规格列；按SN长度过滤，保留最新时间行；剔除超出 [中心值 ± (系数×公差)]
             的异常点。汇总报告CP/CPK着色：≥1.67深绿，1.30~1.67浅绿，&lt;1.30红。超标数据单元格红底。可手动恢复被剔除的数据点。支持批量操作和实时搜索。</div>
+
+
         <div class="footer">CPK 智能分析 · 现代扁平设计 · 增强版</div>
     </div>
     <script>
@@ -554,7 +558,7 @@
             const exportFullReportBtn = document.getElementById('exportFullReportBtn');
             const filterAllBtn = document.getElementById('filterAllBtn');
             const filterOutOfSpecBtn = document.getElementById('filterOutOfSpecBtn');
-            const filterStatus = document.getElementById('filterStatus');
+            const filterStatus = document.getElementById('filterStatus'); 
             const searchBox = document.getElementById('searchBox');
             const searchResultCount = document.getElementById('searchResultCount');
             const selectAllRemoved = document.getElementById('selectAllRemoved');
@@ -824,26 +828,33 @@
                 statusBadge.textContent = `🗑️ 已永久删除 ${indicesToDelete.length} 条数据`;
                 setTimeout(() => { statusBadge.textContent = `就绪`; }, 2200);
             }
-            // ---------- 核心报告生成 ----------
+            // ---------- 核心报告生成（修复版） ----------
             function generateReportInternal(preserveFilter = false) {
                 if (!rawData || rawData.length < 2) {
                     alert('请先上传数据文件');
                     return;
                 }
+
                 const snLen = parseInt(snLengthInput.value, 10) || 13;
                 const factor = parseFloat(toleranceFactorInput.value) || 1.30;
                 const timeColIdx = parseInt(timeColSelect.value, 10);
                 const snColIdx = parseInt(snColSelect.value, 10);
+
                 const headerRow = rawData[0].map(h => String(h).trim());
                 let dataRows = rawData.slice(1).map(row => [...row]);
+
+                // 1. 按SN长度过滤
                 const filteredBySn = dataRows.filter(row => {
                     const snVal = String(row[snColIdx] || '').trim();
                     return snVal.length === snLen;
                 });
+
+                // 2. 去重（保留最新时间）
                 const snMap = new Map();
                 for (const row of filteredBySn) {
                     const sn = String(row[snColIdx] || '').trim();
                     const timeVal = row[timeColIdx] !== undefined ? String(row[timeColIdx]).trim() : '';
+
                     if (snMap.has(sn)) {
                         const existing = snMap.get(sn);
                         const existingTime = existing[timeColIdx] !== undefined ? String(existing[timeColIdx]).trim() : '';
@@ -854,20 +865,35 @@
                         snMap.set(sn, row);
                     }
                 }
+
                 const dedupedRows = Array.from(snMap.values());
                 dedupedRowsForExport = dedupedRows;
+
+                // 3. 重新识别规格列
                 specColumns = findAllSpecColumns(headerRow);
                 if (specColumns.length === 0) {
                     alert('未找到包含规格 (±) 的列，请检查表头格式');
                     return;
                 }
-                const existingRemovedKeys = new Set(
-                    removedRowsGlobal.map(item =>
-                        `${JSON.stringify(item.row)}|${item.specInfo}`
-                    )
-                );
+
+                // 4. 完全重新计算剔除列表（修复关键点）
                 const newRemovedList = [];
+                const processedRows = new Set(); // 用于跟踪已经处理的行的唯一标识
+
                 for (const row of dedupedRows) {
+                    // 为每一行生成唯一标识（基于SN和时间）
+                    const sn = String(row[snColIdx] || '').trim();
+                    const time = row[timeColIdx] !== undefined ? String(row[timeColIdx]).trim() : '';
+                    const rowKey = `${sn}|${time}`;
+
+                    // 跳过已经处理的重复行
+                    if (processedRows.has(rowKey)) continue;
+                    processedRows.add(rowKey);
+
+                    // 检查该行是否在任何规格列上超出容差范围
+                    let isOutOfSpec = false;
+                    let outOfSpecDetails = [];
+
                     for (const spec of specColumns) {
                         const rawVal = row[spec.index];
                         const num = parseFloat(String(rawVal).trim());
@@ -875,59 +901,99 @@
                         const limitLow = spec.center - factor * spec.tolerance;
                         const limitHigh = spec.center + factor * spec.tolerance;
                         if (num < limitLow || num > limitHigh) {
-                            const key = `${JSON.stringify(row)}|${spec.header}`;
-                            if (!existingRemovedKeys.has(key)) {
-                                newRemovedList.push({
-                                    row: row,
-                                    snIdx: snColIdx,
-                                    timeIdx: timeColIdx,
-                                    specInfo: spec.header,
-                                    reason: `数值 ${num} 超出 [${limitLow.toFixed(2)}, ${limitHigh.toFixed(2)}]`
-                                });
-                            }
-                            break;
+                            isOutOfSpec = true;
+                            outOfSpecDetails.push({
+                                specInfo: spec.header,
+                                reason: `数值 ${num} 超出 [${limitLow.toFixed(2)}, ${limitHigh.toFixed(2)}]`,
+                                value: num,
+                                limitLow: limitLow,
+                                limitHigh: limitHigh
+                            });
                         }
                     }
+
+
+
+
+                    // 如果该行有任何规格超出，则加入剔除列表
+                    if (isOutOfSpec) {
+                        // 只记录第一个超出的规格作为主要剔除原因
+                        const firstIssue = outOfSpecDetails[0];
+                        newRemovedList.push({
+                            row: row,
+                            snIdx: snColIdx,
+                            timeIdx: timeColIdx,
+                            specInfo: firstIssue.specInfo,
+                            reason: firstIssue.reason
+                        });
+                    }
                 }
-                removedRowsGlobal = [...removedRowsGlobal, ...newRemovedList];
+
+                // 5. 完全替换旧的剔除列表（而不是追加）
+                removedRowsGlobal = newRemovedList;
+
+                // 6. 清空选中状态
+                selectedRemovedIndices.clear();
+
+                // 7. 计算统计数据（只使用未剔除的数据）
                 const columnsData = specColumns.map(col => {
                     const values = [];
                     let removedCount = 0;
+
                     for (const row of dedupedRows) {
                         const rawVal = row[col.index];
                         const num = parseFloat(String(rawVal).trim());
                         if (isNaN(num)) continue;
+
+                        // 检查该行是否被剔除（在当前的剔除列表中）
                         const isRemoved = removedRowsGlobal.some(
-                            item => item.row === row && item.specInfo === col.header
+                            item => {
+                                // 比较行内容是否相同
+                                const itemKey = `${String(item.row[item.snIdx])}|${String(item.row[item.timeIdx])}`;
+                                const rowKey = `${String(row[snColIdx])}|${String(row[timeColIdx])}`;
+                                return itemKey === rowKey && item.specInfo === col.header;
+                            }
                         );
+
                         if (isRemoved) {
                             removedCount++;
                         } else {
                             values.push(num);
                         }
                     }
+
                     return { ...col, values, removedCount };
                 });
+
+                // 8. 计算统计量
                 const stats = columnsData.map(col => {
                     const vals = col.values;
                     const n = vals.length;
-                    if (n === 0) return {
-                        max: '-', min: '-', avg: '-', std: '-',
-                        cp: '-', cpk: '-', over: '-', rate: '-',
-                        removed: col.removedCount, _rawCpk: 0, _rawCp: 0
-                    };
+
+                    if (n === 0) {
+                        return {
+                            max: '-', min: '-', avg: '-', std: '-',
+                            cp: '-', cpk: '-', over: '-', rate: '-',
+                            removed: col.removedCount, _rawCpk: 0, _rawCp: 0
+                        };
+                    }
+
                     const max = Math.max(...vals);
                     const min = Math.min(...vals);
                     const avg = vals.reduce((a, b) => a + b, 0) / n;
                     const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - avg) ** 2, 0) / n);
+
                     const usl = col.upper;
                     const lsl = col.lower;
+
                     const cp = (usl - lsl) / (6 * std);
                     const cpu = (usl - avg) / (3 * std);
                     const cpl = (avg - lsl) / (3 * std);
                     const cpk = Math.min(cpu, cpl);
+
                     const overCount = vals.filter(v => v > usl || v < lsl).length;
                     const overRate = n > 0 ? (overCount / n * 100) : 0;
+
                     return {
                         max: max.toFixed(2), min: min.toFixed(2),
                         avg: avg.toFixed(2), std: std.toFixed(2),
@@ -938,26 +1004,39 @@
                         _rawStd: std, _rawCp: cp, _rawCpk: cpk
                     };
                 });
+
+                // 9. 更新时间范围等信息
                 let times = dedupedRows.map(r => String(r[timeColIdx] || '').trim()).filter(t => t.length > 0);
                 times.sort();
+
                 timeRangeSpan.textContent = times.length >= 2 ?
                     `${times[0]} ~ ${times[times.length - 1]}` :
                     (times.length === 1 ? times[0] : '-');
+
                 colCountSpan.textContent = specColumns.length;
                 rowCountSpan.textContent = dedupedRows.length;
                 totalRemovedSpan.textContent = removedRowsGlobal.length;
+
+                // 10. 更新状态统计
                 updateStatusStats();
+
+                // 11. 渲染界面
                 renderMatrixTable(specColumns, stats);
+
                 const searchTerm = searchBox.value;
-                renderRawDataTable(dedupedRows, headerRow, specColumns, preserveFilter ? currentFilterMode : 'all', searchTerm);
+                renderRawDataTable(dedupedRows, headerRow, specColumns,
+                    preserveFilter ? currentFilterMode : 'all', searchTerm);
                 renderRemovedViewer(removedRowsGlobal, headerRow);
+
                 if (!preserveFilter) {
                     currentFilterMode = 'all';
                     filterAllBtn.classList.add('active-filter');
                     filterOutOfSpecBtn.classList.remove('active-filter');
                 }
+
                 statusBadge.textContent = `✅ ${dedupedRows.length} 样本 · 剔除 ${removedRowsGlobal.length} 点`;
             }
+
             function getColorClass(value, type = 'cpk') {
                 const v = parseFloat(value);
                 if (isNaN(v)) return '';
