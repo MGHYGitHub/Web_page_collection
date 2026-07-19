@@ -4554,3 +4554,306 @@ footer p {
         font-size: 13px;
     }
 }
+
+/* Product attribution and source mark. */
+.app-brand-mark { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--ui-secondary, #6e6e73); font-size: 12px; font-weight: 650; }
+.brand-orange { display: inline-grid; place-items: center; width: 21px; height: 21px; font-size: 16px; filter: drop-shadow(0 2px 4px rgba(255,138,0,.22)); }
+.app-signature { width: min(100% - 48px, 1400px); margin: 0 auto 28px; padding: 14px 18px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 12px; color: #5f5f67; background: rgba(255,255,255,.68); border: 1px solid #d9d9de; border-radius: 14px; font-size: 12px; }
+.app-signature strong { color: #18365d; }
+body[data-theme="dark"] .app-brand-mark { color: #c7c7cc; } body[data-theme="dark"] .app-signature { color: #c7c7cc; background: #1c1c1e; border-color: #48484a; } body[data-theme="dark"] .app-signature strong { color: #f5f5f7; }
+@media (max-width: 768px) { .app-signature { width: calc(100% - 24px); margin-bottom: 16px; text-align: center; line-height: 1.5; } .app-brand-mark { font-size: 11px; } }
+
+/* A quiet desk-at-dusk wallpaper: an understated nod to the workstation as a second home. */
+body[data-theme] header {
+    background-image: linear-gradient(90deg, rgba(255,255,255,.98) 0%, rgba(255,255,255,.96) 30%, rgba(255,255,255,.45) 57%, rgba(255,255,255,.12) 100%), url('assets/desk-at-dusk-wallpaper.png') !important;
+    background-position: center, right center !important;
+    background-size: cover, cover !important;
+    background-repeat: no-repeat !important;
+}
+body[data-theme="dark"] header {
+    background-image: linear-gradient(90deg, rgba(28,28,30,.99) 0%, rgba(28,28,30,.96) 32%, rgba(28,28,30,.55) 58%, rgba(28,28,30,.16) 100%), url('assets/desk-at-dusk-wallpaper.png') !important;
+}
+@media (max-width: 768px) {
+    body[data-theme] header { background-size: cover, auto 78% !important; background-position: center, right bottom !important; }
+}
+
+/* v6 update announcement: starts expanded, then becomes a compact side tab. */
+.update-announcement { position: fixed; z-index: 25000; top: 50%; right: 18px; transform: translateY(-50%); width: 340px; transition: width .32s ease, transform .32s ease; }
+.announcement-panel { position: relative; padding: 18px 18px 15px; color: #1d1d1f; background: rgba(255,255,255,.96); border: 1px solid #d9d9de; border-radius: 18px; box-shadow: 0 18px 55px rgba(0,0,0,.18); backdrop-filter: blur(18px); }
+.announcement-heading { display: flex; align-items: center; gap: 10px; }.announcement-heading > span { font-size: 27px; }.announcement-heading strong { display: block; font-size: 16px; }.announcement-heading small { color: #6e6e73; font-size: 11px; }.announcement-panel p { margin: 13px 0 8px; font-size: 12px; color: #51515a; }.announcement-panel ul { margin: 0; padding-left: 18px; color: #3a3a3c; font-size: 12px; line-height: 1.65; }.announcement-close { position: absolute; top: 9px; right: 10px; width: 25px; height: 25px; border: 0; border-radius: 50%; color: #6e6e73; background: #ececf0; font-size: 18px; line-height: 1; }.announcement-option { display: flex; align-items: center; gap: 7px; margin-top: 13px; color: #51515a; font-size: 12px; cursor: pointer; }.announcement-option input { accent-color: #ff8a00; }
+.announcement-tab { display: none; align-items: center; gap: 7px; padding: 12px 10px; color: #fff; background: linear-gradient(180deg,#ff9f0a,#ff6b35); border: 0; border-radius: 14px 0 0 14px; box-shadow: 0 7px 20px rgba(255,128,0,.28); font: inherit; font-size: 12px; font-weight: 700; writing-mode: vertical-rl; letter-spacing: .05em; }
+.update-announcement.is-collapsed { width: auto; right: 0; transform: translateY(-50%); }.update-announcement.is-collapsed .announcement-panel { display: none; }.update-announcement.is-collapsed .announcement-tab { display: inline-flex; }
+body[data-theme="dark"] .announcement-panel { color: #f5f5f7; background: rgba(30,30,32,.98); border-color: #48484a; } body[data-theme="dark"] .announcement-panel p, body[data-theme="dark"] .announcement-panel ul, body[data-theme="dark"] .announcement-option { color: #d1d1d6; } body[data-theme="dark"] .announcement-close { color: #e5e5ea; background: #3a3a3c; }
+@media (max-width: 768px) { .update-announcement { top: auto; bottom: 16px; right: 10px; left: 10px; width: auto; transform: none; }.update-announcement.is-collapsed { right: 0; left: auto; bottom: 78px; transform: none; }.announcement-panel { max-height: min(70vh, 440px); overflow-y: auto; border-radius: 16px; }.update-announcement.is-collapsed .announcement-tab { border-radius: 14px 0 0 14px; } }
+
+/* Dark-mode calendar polish: driven only by the in-page theme switch. */
+body[data-theme="dark"] .calendar-container,
+body[data-theme="dark"] .calendar,
+body[data-theme="dark"] .calendar-header,
+body[data-theme="dark"] .calendar-nav,
+body[data-theme="dark"] .legend {
+    background: #1c1c1e !important;
+    border-color: #48484a !important;
+}
+
+body[data-theme="dark"] .calendar-nav h3,
+body[data-theme="dark"] .calendar-day-header,
+body[data-theme="dark"] .legend-item,
+body[data-theme="dark"] .legend-item span {
+    color: #f5f5f7 !important;
+    opacity: 1 !important;
+}
+
+body[data-theme="dark"] .calendar-day-header {
+    background: #2c2c2e !important;
+    border-radius: 8px;
+    color: #e5e5ea !important;
+    font-weight: 750 !important;
+}
+
+body[data-theme="dark"] .calendar-day {
+    background: #1c1c1e !important;
+    border-color: #48484a !important;
+    color: #f5f5f7 !important;
+}
+
+body[data-theme="dark"] .calendar-day .day-number,
+body[data-theme="dark"] .calendar-day .lunar-date {
+    color: #f5f5f7 !important;
+    opacity: 1 !important;
+}
+
+body[data-theme="dark"] .calendar-day.weekend {
+    background: #102b43 !important;
+    border-color: #3b91cf !important;
+}
+
+body[data-theme="dark"] .calendar-day.weekend .day-number {
+    color: #78d8ff !important;
+}
+
+body[data-theme="dark"] .calendar-day.today {
+    box-shadow: inset 0 0 0 2px #0a84ff !important;
+}
+
+/* Dark-mode text contrast for legends and summary cards. */
+body[data-theme="dark"] .legend,
+body[data-theme="dark"] .legend-item,
+body[data-theme="dark"] .legend-item span,
+body[data-theme="dark"] .legend-item div,
+body[data-theme="dark"] .compact-title,
+body[data-theme="dark"] .compact-title i,
+body[data-theme="dark"] .label-sm,
+body[data-theme="dark"] .value-sm,
+body[data-theme="dark"] .rate-type-sm,
+body[data-theme="dark"] .rate-value-sm,
+body[data-theme="dark"] .rate-multiplier-sm,
+body[data-theme="dark"] .stat-label-compact,
+body[data-theme="dark"] .stat-value-compact,
+body[data-theme="dark"] .stat-subtext-compact,
+body[data-theme="dark"] .global-stats-collapse,
+body[data-theme="dark"] .collapse-header,
+body[data-theme="dark"] .global-stat-name,
+body[data-theme="dark"] .global-stat-num,
+body[data-theme="dark"] .global-stat-limit,
+body[data-theme="dark"] .global-stat-sub {
+    color: #f5f5f7 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+}
+
+body[data-theme="dark"] .legend {
+    border-top-color: #48484a !important;
+}
+
+body[data-theme="dark"] .legend-item span,
+body[data-theme="dark"] .label-sm,
+body[data-theme="dark"] .rate-multiplier-sm,
+body[data-theme="dark"] .stat-subtext-compact,
+body[data-theme="dark"] .global-stat-limit,
+body[data-theme="dark"] .global-stat-sub {
+    color: #c7c7cc !important;
+}
+
+body[data-theme="dark"] .salary-basic-compact,
+body[data-theme="dark"] .overtime-rates-compact,
+body[data-theme="dark"] .stats-compact-container,
+body[data-theme="dark"] .rate-item-compact,
+body[data-theme="dark"] .stat-item-compact,
+body[data-theme="dark"] .global-stat-card {
+    background: #242426 !important;
+    border-color: #48484a !important;
+}
+
+body[data-theme="dark"] .global-stats-collapse,
+body[data-theme="dark"] .collapse-header {
+    background: #1c1c1e !important;
+    border-color: #48484a !important;
+}
+
+body[data-theme="dark"] .legend-item [style*="color: #e74c3c"],
+body[data-theme="dark"] .legend-item [style*="color:#e74c3c"] { color: #ff9f9a !important; }
+body[data-theme="dark"] .legend-item [style*="color: #f39c12"],
+body[data-theme="dark"] .legend-item [style*="color:#f39c12"] { color: #ffd166 !important; }
+body[data-theme="dark"] .legend-item [style*="color: #6c5ce7"],
+body[data-theme="dark"] .legend-item [style*="color:#6c5ce7"] { color: #d4b5ff !important; }
+
+.detail-search {
+    min-width: 170px;
+    padding: 8px 11px;
+    border: 1px solid #b9c8d8;
+    border-radius: 9px;
+    color: #18365d;
+    background: #ffffff;
+    font: inherit;
+}
+body[data-theme="dark"] .detail-search { color: #f5f5f7; background: #2c2c2e; border-color: #545458; }
+
+.overtime-note-input { width: 100%; margin-top: 7px; padding: 7px 9px; border: 1px solid #b9c8d8; border-radius: 8px; font: inherit; font-size: 12px; }
+body[data-theme="dark"] .overtime-note-input { color: #f5f5f7; background: #2c2c2e; border-color: #545458; }
+
+.night-template-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; color: #51515a; font-size: 12px; font-weight: 650; }
+.night-template-select { padding: 7px 9px; border: 1px solid #b9c8d8; border-radius: 8px; color: #18365d; background: #fff; font: inherit; font-size: 12px; }
+body[data-theme="dark"] .night-template-label { color: #c7c7cc; } body[data-theme="dark"] .night-template-select { color: #f5f5f7; background: #2c2c2e; border-color: #545458; }
+
+.mini-chart { display: grid; gap: 11px; margin-top: 8px; }
+.mini-chart-row { display: grid; grid-template-columns: 70px 1fr 45px; align-items: center; gap: 8px; font-size: 12px; color: #18365d; }
+.mini-chart-row > div { height: 10px; overflow: hidden; border-radius: 99px; background: #e5edf6; }.mini-chart-row i { display: block; min-width: 2px; height: 100%; border-radius: inherit; }.mini-chart-row b { text-align: right; }
+body[data-theme="dark"] .mini-chart-row { color: #f5f5f7; } body[data-theme="dark"] .mini-chart-row > div { background: #3a3a3c; }
+
+.trend-caption { margin: 0 0 12px; color: #6e6e73; font-size: 12px; }
+.trend-chart { display: grid; gap: 8px; }.trend-row { display: grid; grid-template-columns: 34px 1fr 42px 60px; align-items: center; gap: 7px; font-size: 11px; color: #18365d; }.trend-row > div { height: 8px; overflow: hidden; border-radius: 99px; background: #e5edf6; }.trend-row i { display: block; min-width: 2px; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0a84ff, #5ac8fa); }.trend-row b, .trend-row em { text-align: right; font-style: normal; }
+body[data-theme="dark"] .trend-caption { color: #c7c7cc; } body[data-theme="dark"] .trend-row { color: #f5f5f7; } body[data-theme="dark"] .trend-row > div { background: #3a3a3c; }
+
+/* Mobile layout polish for toolbar, filters and tables. */
+@media (max-width: 768px) {
+    .calendar-controls { justify-content: flex-start !important; }
+    .calendar-controls .toolbar-btn { flex: 0 0 auto; }
+    .detail-search { order: -1; width: 100%; min-width: 0; }
+    .excel-table-actions { align-items: stretch !important; }
+    .excel-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .excel-table { min-width: 720px; }
+    .trend-row { grid-template-columns: 30px 1fr 38px 54px; font-size: 10px; }
+}
+
+/* ===== Calendar and detail-table readability refresh ===== */
+:root {
+    --calendar-ink: #1d1d1f;
+    --calendar-muted: #51515a;
+    --calendar-surface: #ffffff;
+    --calendar-grid: #d9d9de;
+    --detail-heading: #13233d;
+    --detail-accent: #0a84ff;
+}
+
+body[data-theme="dark"] {
+    --calendar-ink: #f5f5f7;
+    --calendar-muted: #c7c7cc;
+    --calendar-surface: #1c1c1e;
+    --calendar-grid: #48484a;
+    --detail-heading: #f5f5f7;
+    --detail-accent: #64d2ff;
+}
+
+.calendar-container {
+    background: var(--calendar-surface) !important;
+    border: 1px solid var(--calendar-grid) !important;
+}
+
+.calendar-nav h3,
+.calendar-day-header,
+.calendar-day,
+.calendar-day .day-number,
+.calendar-day .lunar-date,
+.legend-item,
+.legend-item span {
+    color: var(--calendar-ink) !important;
+    opacity: 1 !important;
+}
+
+.calendar-day-header {
+    font-weight: 700 !important;
+    color: var(--calendar-muted) !important;
+    letter-spacing: .02em;
+}
+
+.calendar-day {
+    background: var(--calendar-surface) !important;
+    border: 1px solid var(--calendar-grid) !important;
+    text-shadow: none !important;
+}
+
+.calendar-day:hover {
+    background: rgba(10, 132, 255, .10) !important;
+    border-color: var(--detail-accent) !important;
+}
+
+.calendar-day.weekend { background: #edf6ff !important; border-color: #94c9f6 !important; }
+.calendar-day.weekend .day-number { color: #006fc9 !important; }
+.calendar-day.holiday { background: #fff0ef !important; border-color: #f6a29c !important; }
+.calendar-day.holiday .day-number { color: #c52820 !important; }
+.calendar-day.extra-work { background: #fff7e8 !important; border-color: #f2c66d !important; }
+.calendar-day.extra-work .day-number { color: #9a5800 !important; }
+.calendar-day.make-up-work { background: #f5efff !important; border-color: #c9a9ef !important; }
+.calendar-day.make-up-work .day-number { color: #7042a2 !important; }
+
+.excel-table-container { border: 1px solid var(--calendar-grid) !important; background: var(--calendar-surface) !important; }
+.excel-table-header { background: linear-gradient(135deg, #11284a, #1c4f86) !important; border: 0 !important; }
+.excel-table-header::before, .excel-table-header::after { display: none !important; }
+.excel-table-header h3, .excel-table-header h3 i { color: #ffffff !important; text-shadow: none !important; }
+.excel-table-header h3 { font-weight: 750 !important; letter-spacing: .01em; }
+.excel-table { background: var(--calendar-surface) !important; color: var(--calendar-ink) !important; }
+.excel-table th { background: #eaf2fb !important; color: #18365d !important; font-weight: 750 !important; border-color: var(--calendar-grid) !important; }
+.excel-table td { background: var(--calendar-surface) !important; color: var(--calendar-ink) !important; border-color: var(--calendar-grid) !important; font-weight: 550; }
+.excel-table tbody tr:nth-child(even) td { background: rgba(10,132,255,.045) !important; }
+.excel-table tbody tr:hover td { background: rgba(10,132,255,.13) !important; color: var(--calendar-ink) !important; }
+
+body[data-theme="dark"] .calendar-day.weekend { background: #102b43 !important; border-color: #287cb8 !important; }
+body[data-theme="dark"] .calendar-day.weekend .day-number { color: #72d7ff !important; }
+body[data-theme="dark"] .calendar-day.holiday { background: #431c20 !important; border-color: #a94442 !important; }
+body[data-theme="dark"] .calendar-day.holiday .day-number { color: #ff9d98 !important; }
+body[data-theme="dark"] .calendar-day.extra-work { background: #45320f !important; border-color: #a97921 !important; }
+body[data-theme="dark"] .calendar-day.extra-work .day-number { color: #ffd166 !important; }
+body[data-theme="dark"] .calendar-day.make-up-work { background: #302046 !important; border-color: #7b55aa !important; }
+body[data-theme="dark"] .calendar-day.make-up-work .day-number { color: #d7b4ff !important; }
+body[data-theme="dark"] .excel-table-header { background: linear-gradient(135deg, #26364b, #314b6b) !important; }
+body[data-theme="dark"] .excel-table th { background: #2c2c2e !important; color: #e5e5ea !important; }
+body[data-theme="dark"] .excel-table td { background: #1c1c1e !important; color: #f5f5f7 !important; }
+
+/* Keep the global summary aligned with the main calendar panel. */
+#global-stats-collapse {
+    width: min(100% - 48px, 1400px) !important;
+    margin: 24px auto !important;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    #global-stats-collapse {
+        width: calc(100% - 24px) !important;
+        margin: 12px auto !important;
+    }
+}
+body[data-theme="dark"] .excel-table tbody tr:nth-child(even) td { background: #242426 !important; }
+body[data-theme="dark"] .excel-table tbody tr:hover td { background: #16375b !important; color: #ffffff !important; }
+
+@media (max-width: 768px) {
+    .calendar-day, .calendar-day .day-number { color: var(--calendar-ink) !important; font-weight: 650 !important; }
+    .excel-table-header { border-radius: 12px 12px 0 0 !important; }
+}
+
+/* Higher-specificity overrides for the page's legacy inline stylesheet. */
+body[data-theme] .calendar-container { background: var(--calendar-surface) !important; }
+body[data-theme] .calendar-day { color: var(--calendar-ink) !important; background: var(--calendar-surface) !important; border-color: var(--calendar-grid) !important; }
+body[data-theme] .calendar-day.weekend { background: #edf6ff !important; border-color: #94c9f6 !important; }
+body[data-theme] .calendar-day.holiday { background: #fff0ef !important; border-color: #f6a29c !important; }
+body[data-theme] .calendar-day.extra-work { background: #fff7e8 !important; border-color: #f2c66d !important; }
+body[data-theme] .calendar-day.make-up-work { background: #f5efff !important; border-color: #c9a9ef !important; }
+body[data-theme] .excel-table-container, body[data-theme] .excel-table { background: var(--calendar-surface) !important; }
+body[data-theme] .excel-table th { background: #eaf2fb !important; color: #18365d !important; }
+body[data-theme] .excel-table td { background: var(--calendar-surface) !important; color: var(--calendar-ink) !important; }
+body[data-theme="dark"] .calendar-day.weekend { background: #102b43 !important; border-color: #287cb8 !important; }
+body[data-theme="dark"] .calendar-day.holiday { background: #431c20 !important; border-color: #a94442 !important; }
+body[data-theme="dark"] .calendar-day.extra-work { background: #45320f !important; border-color: #a97921 !important; }
+body[data-theme="dark"] .calendar-day.make-up-work { background: #302046 !important; border-color: #7b55aa !important; }
+body[data-theme="dark"] .excel-table th { background: #2c2c2e !important; color: #e5e5ea !important; }
+body[data-theme="dark"] .excel-table td { background: #1c1c1e !important; color: #f5f5f7 !important; }
