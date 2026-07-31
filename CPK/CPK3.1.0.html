@@ -464,6 +464,49 @@
             color: #999999;
             font-style: italic;
         }
+
+        /* Modern CPK dashboard polish */
+        :root { --cpk-blue: #2563eb; --cpk-blue-deep: #1d4ed8; --cpk-ink: #17233b; --cpk-muted: #64748b; --cpk-line: #dbe5f3; }
+        body { min-height: 100vh; margin: 0; padding: 34px; background: radial-gradient(circle at 3% 0%, #dbeafe 0, transparent 29%), radial-gradient(circle at 98% 4%, #e0f2fe 0, transparent 25%), #f7faff; color: var(--cpk-ink); }
+        .container { position: relative; overflow: hidden; max-width: 1680px; padding: 34px; border: 1px solid rgba(255,255,255,.9); border-radius: 26px; box-shadow: 0 24px 70px rgba(36, 66, 112, .12), 0 2px 8px rgba(36, 66, 112, .05); }
+        .container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #2563eb, #38bdf8 58%, #14b8a6); }
+        h2 { margin-bottom: 24px; color: var(--cpk-ink); font-size: clamp(1.35rem, 2.4vw, 2rem); font-weight: 720; letter-spacing: -.035em; }
+        #fileNameDisplay { padding: 5px 10px; color: #2563eb !important; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 999px; font-weight: 600 !important; font-size: .75rem !important; letter-spacing: 0; }
+        .toolbar { gap: 12px; padding: 16px; margin: 0 0 14px; border: 1px solid var(--cpk-line); border-radius: 18px; background: linear-gradient(135deg, #fbfdff, #f4f8ff); box-shadow: inset 0 1px 0 #fff; }
+        .toolbar > * { flex: 0 0 auto; }
+        .toolbar label { min-height: 38px; padding: 0 4px; color: #40516d; font-size: .78rem; font-weight: 650; white-space: nowrap; }
+        .toolbar input, .toolbar select { min-height: 34px; color: var(--cpk-ink); border-color: #cddbee; box-shadow: 0 1px 2px rgba(24, 50, 87, .04); outline: none; transition: border-color .18s, box-shadow .18s; }
+        .toolbar input:focus, .toolbar select:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+        .toolbar button { min-height: 38px; padding: 9px 19px; background: linear-gradient(135deg, #2563eb, #3b82f6); box-shadow: 0 7px 16px rgba(37, 99, 235, .2); font-weight: 700; }
+        .toolbar button:hover { background: linear-gradient(135deg, #1d4ed8, #2563eb); transform: translateY(-1px); }
+        #statusBadge { order: 11; flex: 0 0 auto; max-width: 100%; min-height: 34px; padding: 7px 12px !important; color: #24518c; background: #eaf3ff !important; border: 1px solid #cfe2ff; font-weight: 650; line-height: 1.35; }
+        #snDetectionHint { order: 10; flex: 1 1 360px; min-width: 250px; min-height: 34px; padding: 7px 10px; background: #f8fbff; border: 1px dashed #c9d8eb; border-radius: 9px; }
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; padding: 0; margin: 0 0 18px; background: transparent; }
+        .summary-cards span { padding: 12px 14px; border: 1px solid #e0eaf6; border-radius: 14px; background: #fff; box-shadow: 0 6px 18px rgba(38, 70, 116, .055); font-size: .76rem; }
+        .summary-cards strong { display: inline-block; margin-left: 3px; color: #1e5ed6; font-size: .96rem; }
+        .table-wrap { margin: 18px 0; border-color: #dce6f2; border-radius: 16px; box-shadow: 0 8px 24px rgba(30, 62, 104, .045); }
+        table { font-size: .76rem; }
+        th { position: sticky; top: 0; z-index: 1; padding: 11px 12px; color: #24405f; background: linear-gradient(180deg, #f5f9ff, #edf4ff); border-bottom-color: #cfddf0; font-weight: 720; }
+        td { padding: 8px 12px; border-bottom-color: #edf2f8; }
+        tr:hover td { background: #f3f8ff; }
+        .row-label { color: #27496f; background: #f8fbff !important; }
+        .export-bar, .filter-bar, .batch-actions { gap: 8px; padding: 8px 0; }
+        .export-bar button, .filter-bar button, .batch-actions button { min-height: 32px; padding: 6px 14px; color: #355273; background: #fff; border-color: #d5e1ef; font-weight: 650; box-shadow: 0 2px 5px rgba(30, 62, 104, .04); }
+        .export-bar button:hover, .filter-bar button:hover, .batch-actions button:hover { background: #eff6ff; border-color: #8bb5ef; }
+        .filter-bar button.active-filter { background: #2563eb; border-color: #2563eb; box-shadow: 0 5px 11px rgba(37, 99, 235, .2); }
+        .search-box { min-height: 33px; width: 190px; border-color: #cddbee; }
+        .status-stats { gap: 0; padding: 0; margin: 0 0 16px; overflow: hidden; border: 1px solid #dfe9f4; border-radius: 15px; background: #fff; }
+        .status-stats span { flex: 1 1 140px; padding: 11px 14px; border-right: 1px solid #edf2f7; font-size: .76rem; }
+        .status-stats span:last-child { border-right: 0; }
+        .removed-viewer { border-color: #f0d8d8; border-radius: 16px; background: #fffafb; box-shadow: 0 6px 16px rgba(126, 51, 51, .035); }
+        .data-table-container { margin-top: 24px; padding-top: 16px; border-top-color: #d6e2f0; }
+        .note { padding: 10px 13px; color: #496684; background: #f6faff; border-left: 3px solid #60a5fa; border-radius: 9px; line-height: 1.6; }
+        .footer { padding-top: 14px; color: #8295ad; }
+        @media (max-width: 800px) { body { padding: 12px; } .container { padding: 22px 16px; border-radius: 20px; } .toolbar { align-items: stretch; border-radius: 15px; } .toolbar label { width: calc(50% - 6px); flex: 1 1 145px; justify-content: space-between; } .file-input-wrapper, .file-input-wrapper button { width: 100%; } #statusBadge, #snDetectionHint { flex-basis: 100%; min-width: 0; width: 100%; white-space: normal !important; } .summary-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .status-stats span { min-width: 50%; border-bottom: 1px solid #edf2f7; } th, td { padding: 8px 9px; } }
+        /* Separate the tolerance control so its label and value never crowd each other. */
+        .toolbar .tolerance-setting { gap: 10px; margin-left: 4px; padding-left: 14px; border-left: 1px solid #dce7f4; }
+        .toolbar .tolerance-setting #toleranceFactor { width: 74px !important; }
+        @media (max-width: 800px) { .toolbar .tolerance-setting { margin-left: 0; padding-left: 4px; border-left: 0; } }
     </style>
 </head>
 
@@ -479,7 +522,8 @@
             <label>🔍 SN列 <select id="snColSelect"></select></label>
             <label>⏱️ 时间列 <select id="timeColSelect"></select></label>
             <label>📏 SN长度 <input type="number" id="snLength" value="15" min="4" max="36" style="width:56px;"></label>
-            <label>📐 容差系数 <input type="number" id="toleranceFactor" value="1.30" step="0.05" min="1.0" max="3.0"
+            <span id="snDetectionHint" style="font-size:0.70rem;color:#39619e;white-space:nowrap;">等待识别条码列</span>
+            <label class="tolerance-setting">📐 容差系数 <input type="number" id="toleranceFactor" value="1.30" step="0.05" min="1.0" max="3.0"
                     style="width:56px;"></label>
             <span id="statusBadge"
                 style="background:#e4edf9;padding:2px 18px;border-radius:30px;font-size:0.70rem;">就绪</span>
@@ -545,7 +589,7 @@
                 <div id="rawDataTableWrap" style="overflow-x:auto; margin-top: 5px;"></div>
             </details>
         </div>
-        <div class="note">✅ 自动识别规格列（支持负数规格）；按SN长度过滤，保留最新时间行；剔除超出 [中心值 ± (系数×公差)]
+        <div class="note">✅ 自动识别 SN 列与常见条码长度；规格表头支持“20±30”和“(-10-20-50)”（下限-中心-上限）两种格式；按SN长度过滤，保留最新时间行；剔除超出 [中心值 ± (系数×公差)]
             的异常点。汇总报告CP/CPK着色：≥1.67深绿，1.30~1.67浅绿，&lt;1.30红。超标数据单元格红底。可手动恢复被剔除的数据点。支持批量操作和实时搜索。支持XLSX和CSV格式。</div>
         <div class="footer">CPK 智能分析 · 现代扁平设计 · 增强版</div>
     </div>
@@ -576,6 +620,7 @@
             const toleranceFactorInput = document.getElementById('toleranceFactor');
             const snColSelect = document.getElementById('snColSelect');
             const timeColSelect = document.getElementById('timeColSelect');
+            const snDetectionHint = document.getElementById('snDetectionHint');
             const statusBadge = document.getElementById('statusBadge');
             const colCountSpan = document.getElementById('colCount');
             const rowCountSpan = document.getElementById('rowCount');
@@ -639,8 +684,20 @@
             }
 
             function parseSpecFromHeader(headerStr) {
-                const regex = /([-+]?\d+(?:\.\d+)?)\s*[±±+\-]\s*([-+]?\d+(?:\.\d+)?)/;
-                const match = headerStr.match(regex);
+                const text = String(headerStr || '').replace(/（/g, '(').replace(/）/g, ')');
+                const number = '([-+]?\\d+(?:\\.\\d+)?)';
+                // (-10-20-50) = 下限 -10、中心值 20、上限 50；必须优先识别。
+                const rangeMatch = text.match(new RegExp('\\(?\\s*' + number + '\\s*[-~～—–]\\s*' + number + '\\s*[-~～—–]\\s*' + number + '\\s*\\)?'));
+                if (rangeMatch) {
+                    const lower = parseFloat(rangeMatch[1]);
+                    const center = parseFloat(rangeMatch[2]);
+                    const upper = parseFloat(rangeMatch[3]);
+                    if (lower < upper && center >= lower && center <= upper) {
+                        return { lower, upper, center, tolerance: Math.max(Math.abs(center - lower), Math.abs(upper - center)), format: 'range' };
+                    }
+                }
+                const regex = new RegExp(number + '\\s*(?:±|\\+/-|\\+-|[+\\-])\\s*' + number);
+                const match = text.match(regex);
                 if (match) {
                     const center = parseFloat(match[1]);
                     const tolerance = parseFloat(match[2]);
@@ -649,7 +706,8 @@
                         lower: center - absTolerance,
                         upper: center + absTolerance,
                         center: center,
-                        tolerance: absTolerance
+                        tolerance: absTolerance,
+                        format: 'plusminus'
                     };
                 }
                 return null;
@@ -669,7 +727,59 @@
                 return result;
             }
 
-            function updateColSelects(headers) {
+            function getColumnValues(rows, columnIndex) {
+                return rows.slice(0, 500).map(row => String(row[columnIndex] ?? '').trim()).filter(Boolean);
+            }
+
+            function mostCommonLength(values) {
+                const counts = new Map();
+                values.forEach(value => counts.set(value.length, (counts.get(value.length) || 0) + 1));
+                let result = 0, maxCount = 0;
+                counts.forEach((count, length) => { if (count > maxCount) { result = length; maxCount = count; } });
+                return result;
+            }
+
+            function detectSnColumn(headers, rows) {
+                let best = { index: headers.length > 1 ? 1 : 0, score: -1, length: 0 };
+                headers.forEach((header, index) => {
+                    const name = String(header).toLowerCase().replace(/[\s_\-]/g, '');
+                    const headerScore = /^(sn|serialnumber|barcode|barcodeno|imei|deviceid)$/.test(name) ? 100 :
+                        /(sn|序列号|条码|條碼|barcode|serial|imei|机身码|设备号)/.test(name) ? 65 : 0;
+                    const values = getColumnValues(rows, index);
+                    const candidates = values.filter(value => /^[a-z0-9_-]+$/i.test(value) && value.length >= 4 && value.length <= 36 && !/^\d{4}-\d{1,2}-\d{1,2}/.test(value));
+                    const uniqueRate = candidates.length ? new Set(candidates).size / candidates.length : 0;
+                    const score = headerScore + (values.length ? candidates.length / values.length * 20 : 0) + uniqueRate * 15;
+                    if (score > best.score) best = { index, score, length: mostCommonLength(candidates) };
+                });
+                return best;
+            }
+
+            function detectTimeColumn(headers, rows) {
+                let best = { index: 0, score: -1 };
+                headers.forEach((header, index) => {
+                    const name = String(header).toLowerCase();
+                    const headerScore = /(时间|日期|time|date|timestamp|datetime|测试时间|测量时间)/.test(name) ? 80 : 0;
+                    const values = getColumnValues(rows, index);
+                    const dateRate = values.length ? values.filter(value => /\d{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}:\d{2}/.test(value)).length / values.length : 0;
+                    const score = headerScore + dateRate * 20;
+                    if (score > best.score) best = { index, score };
+                });
+                return best;
+            }
+
+            function refreshSelectedSnHint() {
+                if (!rawData || rawData.length < 2) return;
+                const index = parseInt(snColSelect.value, 10);
+                const values = getColumnValues(rawData.slice(1), index);
+                const candidates = values.filter(value => /^[a-z0-9_-]+$/i.test(value) && value.length >= 4 && value.length <= 36 && !/^\d{4}-\d{1,2}-\d{1,2}/.test(value));
+                const length = mostCommonLength(candidates);
+                if (length >= 4) {
+                    snDetectionHint.textContent = `当前 SN 列：${headers[index]}，常见长度 ${length} 位（可手动修改）`;
+                    snDetectionHint.style.color = '#39619e';
+                }
+            }
+
+            function updateColSelects(headers, dataRows = []) {
                 const timeSel = document.getElementById('timeColSelect');
                 const snSel = document.getElementById('snColSelect');
                 timeSel.innerHTML = '';
@@ -680,8 +790,18 @@
                     timeSel.add(new Option(label, idx));
                     snSel.add(new Option(label, idx));
                 });
-                if (headers.length > 0) timeSel.value = '0';
-                if (headers.length > 1) snSel.value = '1';
+                const snDetection = detectSnColumn(headers, dataRows);
+                const timeDetection = detectTimeColumn(headers, dataRows);
+                if (headers.length > 0) timeSel.value = String(timeDetection.index);
+                if (headers.length > 0) snSel.value = String(snDetection.index);
+                if (snDetection.length >= 4) {
+                    snLengthInput.value = snDetection.length;
+                    snDetectionHint.textContent = `已自动识别：${headers[snDetection.index]}（${snDetection.length} 位，可修改）`;
+                    snDetectionHint.style.color = '#26734d';
+                } else {
+                    snDetectionHint.textContent = '未能确定条码长度，请确认 SN 列和长度';
+                    snDetectionHint.style.color = '#a65b00';
+                }
             }
 
             function updateStatusStats() {
@@ -1145,6 +1265,12 @@
                     return snVal.length === snLen;
                 });
 
+                if (dataRows.length && filteredBySn.length === 0) {
+                    statusBadge.textContent = `⚠️ 没有 ${snLen} 位的 SN 数据，请先核对条码长度或手动调整 SN 列`;
+                    snDetectionHint.textContent = `当前 ${snLen} 位没有匹配数据：请检查条码长度`;
+                    snDetectionHint.style.color = '#b42318';
+                }
+
                 const snMap = new Map();
                 for (const row of filteredBySn) {
                     const sn = String(row[snColIdx] || '').trim();
@@ -1166,7 +1292,7 @@
 
                 specColumns = findAllSpecColumns(headerRow);
                 if (specColumns.length === 0) {
-                    alert('未找到包含规格 (±) 的列，请检查表头格式');
+                    alert('未找到规格列。支持“20±30”和“(-10-20-50)”两种表头格式，请检查表头。');
                     return;
                 }
 
@@ -1285,7 +1411,9 @@
                     filterAllBtn.classList.add('active-filter');
                     filterOutOfSpecBtn.classList.remove('active-filter');
                 }
-                statusBadge.textContent = `✅ ${dedupedRows.length} 样本 · 剔除 ${removedRowsGlobal.length} 点`;
+                if (filteredBySn.length > 0) {
+                    statusBadge.textContent = `✅ ${dedupedRows.length} 样本 · 剔除 ${removedRowsGlobal.length} 点`;
+                }
             }
 
             // ---------- 表格渲染 ----------
@@ -1905,6 +2033,7 @@
 
             snColSelect.addEventListener('change', function () {
                 if (rawData && rawData.length > 0) {
+                    refreshSelectedSnHint();
                     generateReportInternal();
                 }
             });
@@ -1948,14 +2077,12 @@
 
                             rawData = rows;
                             headers = rows[0].map(h => String(h).trim());
-                            updateColSelects(headers);
+                            updateColSelects(headers, rows.slice(1));
                             removedRowsGlobal = [];
                             selectedRemovedIndices.clear();
                             dedupedRowsForExport = [];
                             baseDedupedRows = [];
                             generateReportInternal();
-                            statusBadge.textContent = `✅ 已加载 ${rawData.length - 1} 行数据 (XLSX)`;
-                            setTimeout(() => { statusBadge.textContent = `就绪`; }, 2500);
                         } catch (error) {
                             alert('读取Excel文件失败: ' + error.message);
                             console.error(error);
@@ -1973,14 +2100,12 @@
                         }
                         rawData = rows;
                         headers = rows[0].map(h => String(h).trim());
-                        updateColSelects(headers);
+                        updateColSelects(headers, rows.slice(1));
                         removedRowsGlobal = [];
                         selectedRemovedIndices.clear();
                         dedupedRowsForExport = [];
                         baseDedupedRows = [];
                         generateReportInternal();
-                        statusBadge.textContent = `✅ 已加载 ${rawData.length - 1} 行数据`;
-                        setTimeout(() => { statusBadge.textContent = `就绪`; }, 2500);
                     };
                     reader.readAsText(file);
                 }
@@ -2039,7 +2164,7 @@
                     if (rows.length < 2) throw new Error('Empty sample');
                     rawData = rows;
                     headers = rows[0].map(h => String(h).trim());
-                    updateColSelects(headers);
+                    updateColSelects(headers, rows.slice(1));
                     removedRowsGlobal = [];
                     selectedRemovedIndices.clear();
                     dedupedRowsForExport = [];

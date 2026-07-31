@@ -3,8 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>蓝膜 Mapping 工具 - 工业化版</title>
-  <!-- <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script> -->
+  <title>蓝膜 Mapping 工具 v3.1.0 - 工业离线版</title>
   <script src="./xlsx.full.min.js"></script>
   <style>
     * {
@@ -727,6 +726,48 @@
     .mobile-announcement-btn {
       display: none;
     }
+    /* Mapping 3.0 visual refresh */
+    :root { --map-blue: #2563eb; --map-ink: #17233b; --map-line: #dbe6f4; }
+    body { padding: 28px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: radial-gradient(circle at 4% 0%, #dbeafe 0, transparent 29%), radial-gradient(circle at 100% 0%, #e0f2fe 0, transparent 25%), #f7faff; color: var(--map-ink); }
+    .main-container { grid-template-columns: 292px minmax(0, 1fr); gap: 22px; max-width: 1800px; }
+    .control-panel, .matrix-area { background: rgba(255,255,255,.88); border: 1px solid rgba(219,230,244,.95); box-shadow: 0 18px 45px rgba(42, 73, 119, .10); backdrop-filter: blur(18px); }
+    .control-panel { width: 292px; padding: 22px; border-radius: 20px; gap: 18px; }
+    .control-panel h2 { padding-bottom: 16px; color: #183356; font-size: 20px; letter-spacing: -.03em; border-bottom: 1px solid #e3ebf5; }
+    .control-group { gap: 8px; }.control-group h3 { color: #60718a; font-size: 12px; letter-spacing: .04em; border: 0; text-transform: uppercase; }
+    .control-btn { min-height: 42px; padding: 10px 13px; border: 1px solid rgba(37,99,235,.12); border-radius: 11px; background: #f6f9ff; color: #284462; font-weight: 650; box-shadow: none; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .control-btn:hover { color: #fff; background: linear-gradient(135deg, #2563eb, #3b82f6); border-color: transparent; box-shadow: 0 8px 18px rgba(37,99,235,.22); transform: translateY(-1px); }
+    .control-btn.settings { color: #9a5200; background: #fff7e8; border-color: #f6d59d; }.control-btn.lock { color: #6d2f90; background: #fbf3ff; border-color: #eccfff; }.control-btn.danger { color: #b42318; background: #fff3f2; border-color: #ffd2ce; }.control-btn.success { color: #13734a; background: #effcf5; border-color: #b9ecd0; }.control-btn.info { color: #fff; background: linear-gradient(135deg, #2563eb, #3b82f6); border-color: transparent; }
+    .matrix-area { padding: 24px; border-radius: 20px; }.matrix-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: left; margin-bottom: 18px; }.matrix-header h2 { margin: 0; color: #19385e; font-size: clamp(18px, 2vw, 24px); letter-spacing: -.03em; }
+    .summary { margin: 0; padding: 10px 14px; color: #315577; background: #f2f7ff; border: 1px solid #dbeafe; border-radius: 12px; font-size: 13px; white-space: nowrap; }
+    #matrix-container { min-height: 520px; padding: 14px; border-color: #dce7f4; border-radius: 15px; background: linear-gradient(135deg, #fbfdff, #f2f7ff); box-shadow: inset 0 1px 2px rgba(29,78,216,.04); }
+    #matrix { gap: 3px; }.cell { border-color: #dce6f2; border-radius: 7px; background: #fff; box-shadow: 0 1px 1px rgba(22,50,84,.04); transition: background .13s ease, transform .13s ease, outline .13s ease; }.cell:hover { transform: translateY(-1px); border-color: #9dbfea; }.bin-1 { background: linear-gradient(135deg, #22c55e, #16a34a); }.bin-2 { background: linear-gradient(135deg, #fb7185, #e11d48); }.bin-other { background: linear-gradient(135deg, #fbbf24, #f59e0b); }.selected { outline: 3px solid #2563eb; outline-offset: -1px; box-shadow: 0 0 0 3px rgba(37,99,235,.14); }
+    .selection-box { border-color: #2563eb; background: rgba(37,99,235,.10); border-radius: 6px; }.rendering-indicator { padding: 11px 16px; border-radius: 11px; background: rgba(23,35,59,.88); box-shadow: 0 12px 25px rgba(23,35,59,.28); }
+    #context-menu, .modal-content { border-color: #dce7f4; border-radius: 14px; box-shadow: 0 20px 55px rgba(31,56,92,.2); }.status-message { border-radius: 12px; box-shadow: 0 12px 30px rgba(31,56,92,.2); }.footer { color: #71839b; border-top-color: #dce7f4; }
+    @media (max-width: 1200px) { .main-container { grid-template-columns: 1fr; } .control-panel { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); align-items: start; } .control-panel h2 { grid-column: 1 / -1; text-align: left; } }
+    @media (max-width: 768px) { body { padding: 12px; } .main-container { gap: 12px; } .control-panel, .matrix-area { padding: 16px; border-radius: 16px; } .control-panel { display: flex; } .matrix-header { align-items: flex-start; flex-direction: column; } .summary { width: 100%; white-space: normal; line-height: 1.55; } #matrix-container { min-height: 420px; padding: 10px; } }
+    /* Industrial control-room theme */
+    :root { --industrial-bg: #151a20; --industrial-panel: #202831; --industrial-panel-2: #27313c; --industrial-line: #3b4855; --industrial-ink: #e7edf3; --industrial-muted: #9baabd; --industrial-accent: #f59e0b; --industrial-blue: #38bdf8; }
+    body { background-color: var(--industrial-bg); background-image: linear-gradient(rgba(113,128,150,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(113,128,150,.08) 1px, transparent 1px), radial-gradient(circle at 50% -15%, #30404f 0, transparent 48%); background-size: 24px 24px, 24px 24px, auto; color: var(--industrial-ink); }
+    .main-container { max-width: 1880px; gap: 14px; }
+    .control-panel, .matrix-area { background: linear-gradient(145deg, rgba(39,49,60,.98), rgba(27,34,42,.98)); border: 1px solid var(--industrial-line); border-radius: 6px; box-shadow: 0 16px 28px rgba(0,0,0,.32), inset 0 1px rgba(255,255,255,.035); backdrop-filter: none; }
+    .control-panel { padding: 18px; }.control-panel h2 { color: #f4b640; border-bottom-color: var(--industrial-line); font-family: "Arial Narrow", "Segoe UI", sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+    .control-group { padding: 12px; border: 1px solid #34414d; border-radius: 4px; background: rgba(10,14,18,.2); }.control-group h3 { color: #8ba0b3; font-size: 11px; letter-spacing: .11em; }
+    .control-btn { border-color: #455463; border-radius: 3px; background: linear-gradient(180deg, #35424e, #27323c); color: #eaf0f5; font-family: "Arial Narrow", "Segoe UI", sans-serif; font-weight: 700; letter-spacing: .02em; }.control-btn:hover { color: #151a20; background: linear-gradient(180deg, #f8c65c, #e69a18); box-shadow: 0 6px 14px rgba(245,158,11,.18); }
+    .control-btn.settings { color: #ffd37d; background: linear-gradient(180deg, #5a4827, #40351f); border-color: #806b3b; }.control-btn.lock { color: #e6c5ff; background: linear-gradient(180deg, #513b5e, #382a41); border-color: #76578a; }.control-btn.danger { color: #ffb8ae; background: linear-gradient(180deg, #5a3434, #412727); border-color: #814949; }.control-btn.success { color: #b8efce; background: linear-gradient(180deg, #284d3b, #203b2e); border-color: #40755a; }.control-btn.info { color: #d7f2ff; background: linear-gradient(180deg, #175776, #123d54); border-color: #2d83a9; }
+    .matrix-area { padding: 18px; }.matrix-header h2 { color: #edf4fa; font-family: "Arial Narrow", "Segoe UI", sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }.summary { color: #f6cf79; background: #161d24; border: 1px solid #465462; border-left: 4px solid var(--industrial-accent); border-radius: 3px; box-shadow: inset 0 1px rgba(255,255,255,.03); }
+    #matrix-container { background-color: #11171d; background-image: linear-gradient(rgba(99,116,132,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(99,116,132,.08) 1px, transparent 1px); background-size: 16px 16px; border-color: #43515e; border-radius: 4px; box-shadow: inset 0 0 20px rgba(0,0,0,.28); }
+    #matrix-container::-webkit-scrollbar-track { background: #151d24; }.matrix-area #matrix-container::-webkit-scrollbar-thumb { background: #536777; border: 2px solid #151d24; }.matrix-area #matrix-container::-webkit-scrollbar-thumb:hover { background: #72899b; }
+    .cell { border-color: #3f4e5b; border-radius: 2px; background: #27333d; color: #d8e1e9; box-shadow: inset 0 1px rgba(255,255,255,.035); }.cell:hover { border-color: #f0b23c; transform: none; background: #34434f; }.bin-1 { background: linear-gradient(135deg, #238550, #17663d); }.bin-2 { background: linear-gradient(135deg, #b83e3e, #7d2828); }.bin-other { background: linear-gradient(135deg, #b87918, #875a12); }.selected { outline-color: #f6bd45; box-shadow: 0 0 0 2px rgba(246,189,69,.28), inset 0 0 0 1px #ffda80; }
+    .selection-box { border-color: #f6bd45; background: rgba(246,189,69,.13); border-radius: 1px; }.rendering-indicator { color: #ffe3a6; background: #161d24; border: 1px solid #f6bd45; border-radius: 3px; }
+    #context-menu, .modal-content { color: var(--industrial-ink); background: #222c35; border-color: #4d5c69; border-radius: 4px; }.menu-item:hover { background: #34434f; }.menu-divider { background: #465564; }.modal-header { border-bottom-color: #465564; }.modal-header h3, .form-group label { color: #edf4fa; }.form-group input[type="number"] { color: #edf4fa; background: #172029; border-color: #50606e; }.btn-primary { background: #d88f15; }.btn-secondary { color: #dce6ee; background: #35424e; }
+    .footer { color: #8194a5; border-top-color: #3b4855; }.footer a { color: #f4b640; }.announcement-content, .announcement-toggle { border-radius: 3px; }
+    @media (max-width: 768px) { .control-panel, .matrix-area { border-radius: 5px; }.control-group { padding: 10px; } }
+    .announcement-sidebar { z-index: 2200; }.announcement-toggle { display: flex; align-items: center; gap: 7px; padding: 14px 10px; color: #f9d27a; background: linear-gradient(180deg, #29343e, #1b232b); border: 1px solid #4a5965; border-right: 0; border-radius: 4px 0 0 4px; box-shadow: -8px 10px 24px rgba(0,0,0,.25); font-family: "Arial Narrow", "Segoe UI", sans-serif; font-size: 12px; font-weight: 800; letter-spacing: .08em; }.announcement-toggle span { color: #171d23; background: #f3b63c; padding: 2px 4px; font-size: 9px; }.announcement-toggle:hover { background: linear-gradient(180deg, #354450, #242f39); transform: translateX(-3px); }
+    .announcement-content { width: 330px; padding: 18px; color: #dce6ee; background: linear-gradient(145deg, #26313b, #192128); border: 1px solid #52616d; border-radius: 4px; box-shadow: -18px 18px 42px rgba(0,0,0,.35); }.announcement-header { align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid #45535e; }.announcement-header small { color: #91a7ba; font-size: 9px; font-weight: 700; letter-spacing: .13em; }.announcement-header h3 { margin-top: 4px; color: #f4c560; font-family: "Arial Narrow", "Segoe UI", sans-serif; font-size: 19px; letter-spacing: .04em; }.close-announcement { color: #a8b7c4; font-size: 23px; }.close-announcement:hover { color: #f5c45c; }.announcement-lead { margin: 14px 0; color: #c2cfda; font-size: 12px; line-height: 1.65; }.announcement-list { margin: 0; padding: 0; list-style: none; }.announcement-list li { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 9px 0; color: #dbe5ed; border-bottom: 1px solid rgba(125,147,164,.18); font-size: 12px; line-height: 1.45; }.announcement-list b { flex: 0 0 auto; color: #f2bb4e; font-size: 10px; letter-spacing: .08em; }.announcement-note { margin-top: 13px; padding: 9px 10px; color: #a6cbe0; background: rgba(56,189,248,.08); border-left: 3px solid #38bdf8; font-size: 11px; line-height: 1.6; }.got-it-btn { margin-top: 15px; padding: 10px; color: #1c2228; background: linear-gradient(180deg, #f6c55e, #d99519); border-radius: 3px; font-family: "Arial Narrow", "Segoe UI", sans-serif; font-weight: 800; letter-spacing: .05em; }.got-it-btn:hover { background: #f7ce75; }
+    .matrix-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 9px; color: #aab8c5; font-size: 12px; font-family: "Arial Narrow", "Segoe UI", sans-serif; letter-spacing: .03em; }
+    #selection-info { color: #f5c45c; } #offline-status { color: #87bfe0; } #offline-status.has-error { color: #ff9b91; }
+    #undo-btn:disabled, #redo-btn:disabled { opacity: .38; cursor: not-allowed; filter: grayscale(.4); }.control-btn.lock.is-locked { color: #ffb8ae; background: linear-gradient(180deg, #5a3434, #412727); border-color: #814949; }
+    @media (max-width: 768px) { .matrix-meta { align-items: flex-start; flex-direction: column; gap: 5px; } }
   </style>
 </head>
 
@@ -799,6 +840,9 @@
         <button class="control-btn" onclick="undoDelete()" disabled id="undo-btn">
           <span>↩️</span> 撤销删除
         </button>
+        <button class="control-btn" onclick="redoDelete()" disabled id="redo-btn">
+          <span>↪️</span> 重做删除
+        </button>
 
       </div>
     </div>
@@ -809,6 +853,10 @@
         <h2>蓝膜矩阵 Mapping 视图</h2>
         <div class="summary" id="summary">
           有料 (<span id="bin1-value">1</span>)：0， 无料 (<span id="bin2-value">2</span>)：0， 总数：0
+        </div>
+        <div class="matrix-meta" aria-live="polite">
+          <span id="selection-info">未选择单元格</span>
+          <span id="offline-status">● 离线本地模式 · 等待保存</span>
         </div>
       </div>
       <div id="matrix-container">
@@ -827,35 +875,30 @@
         👨‍💻 开发者：廖子宸 |
         📧 技术支持：<a href="84376722">84376722</a>
       </p>
-      <p>© 2025 蓝膜 Mapping 工具 v3.0.0 工业化版 - 版权所有</p>
+      <p>© 2025 蓝膜 Mapping 工具 v3.1.0 工业离线版 - 版权所有</p>
     </div>
   </div>
 
   <!-- 右侧贴边公告栏 -->
   <div class="announcement-sidebar">
     <div class="announcement-toggle" onclick="toggleAnnouncement()">
-      📢 系统公告
+      <span>SYS</span> 更新公告
     </div>
     <div class="announcement-content" id="announcement-content">
       <div class="announcement-header">
-        <h3>蓝膜 Mapping 工具 v3.0</h3>
+        <div><small>CHANGE LOG · LOCAL MODE</small><h3>V3.1 离线增强</h3></div>
         <button class="close-announcement" onclick="closeAnnouncement()">×</button>
       </div>
-      <p>欢迎使用蓝膜矩阵Mapping专业工具！</p>
-      <p>本工具支持以下功能：</p>
-      <ul>
-        <li>Excel数据导入导出</li>
-        <li>智能框选与多选</li>
-        <li>自定义矩阵尺寸</li>
-        <li>自定义有料/无料数值</li>
-        <li>右键菜单快捷操作</li>
-        <li>状态管理与保护单元格</li>
+      <p class="announcement-lead">页面可在断网环境下完整使用，数据自动保存在当前浏览器。</p>
+      <ul class="announcement-list">
+        <li><b>01</b><span>本地 Excel 导入、模板下载与导出</span></li>
+        <li><b>02</b><span>自动保存状态与最后保存时间</span></li>
+        <li><b>03</b><span>大矩阵分批渲染，框选更流畅</span></li>
+        <li><b>04</b><span>新增撤销 / 重做与框选统计</span></li>
       </ul>
-      <div class="warning">
-        ⚠️ 注意：请勿随意修改受保护的单元格
-      </div>
+      <div class="announcement-note">快捷键：Ctrl+Z 撤销 · Ctrl+Y 重做 · 1/2 设置 Bin · Esc 清空选择</div>
       <button class="got-it-btn" onclick="closeAnnouncement()">
-        我知道了
+        已了解
       </button>
     </div>
   </div>
@@ -995,15 +1038,23 @@
     let customOtherBin = 0;
 
     // 公告状态
-    let announcementShown = localStorage.getItem('announcementShown') === 'true';
+    const announcementVersion = 'v3.1.0-offline-industrial';
+    let announcementShown = localStorage.getItem('mappingAnnouncementVersion') === announcementVersion;
 
     // 选择框相关
     let selectionBox = null;
     let lastMousePos = null;
 
     // 性能优化：渲染批处理
-    let renderBatchSize = 1000; // 每次渲染的单元格数量
+    let renderBatchSize = 600; // 每帧渲染数量，避免大矩阵阻塞界面
+    const matrixGap = 3;
     let renderTimeout = null;
+    let renderVersion = 0;
+    let pendingStyleFrame = null;
+    let lastStyledSelection = new Set();
+    let lastSelectionBounds = '';
+    let saveTimer = null;
+    const cellElements = new Map();
 
     // 事件监听
     document.getElementById('upload').addEventListener('change', handleFile);
@@ -1013,12 +1064,18 @@
 
     // 使用文档级鼠标移动事件，而不是单元格级
     document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('keydown', handleKeyboardShortcuts);
+    document.getElementById('matrix').addEventListener('mousedown', handleCellMouseDown);
+    document.getElementById('matrix').addEventListener('contextmenu', handleCellContextMenu);
 
     // 初始化
     window.onload = () => {
       loadFromLocalStorage();
       updateBinDisplays();
       createSelectionBox();
+      updateOfflineStatus('已就绪，数据保存在本机浏览器');
+      updateUndoButton();
+      updateLockButton();
 
       // 根据本地存储状态显示/隐藏公告
       if (!announcementShown) {
@@ -1042,53 +1099,81 @@
       const file = e.target.files[0];
       if (!file) return;
 
+      showStatusMessage(`正在读取 ${file.name}…`, "info");
       const reader = new FileReader();
       reader.onload = function (evt) {
-        processFileData(evt.target.result);
+        requestAnimationFrame(() => processFileData(evt.target.result));
       };
+      reader.onerror = () => showStatusMessage("文件读取失败，请重新选择文件", "error");
       reader.readAsArrayBuffer(file);
     }
 
+    function handleKeyboardShortcuts(e) {
+      const target = e.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoDelete(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redoDelete(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); searchCell(); return; }
+      if (e.key === '1') { setBin(1); return; }
+      if (e.key === '2') { setBin(2); return; }
+      if (e.key === 'Escape') clearAllSelections();
+    }
+
     function processFileData(arrayBuffer) {
-      const data = new Uint8Array(arrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-      matrixData = {};
-      validPositions.clear();
-      protectedPositions.clear();
-      maxRow = 0;
-      maxCol = 0;
-
-      json.forEach(row => {
-        const r = parseInt(row["Bar_Y"]);
-        const c = parseInt(row["Chip No"]);
-        const bin = parseInt(row["Bin"]);
-        const protectCode = (row["Protect_Code"] || row["Edit_Code"] || "").toString().trim();
-
-        if (!isNaN(r) && !isNaN(c)) {
-          const key = `${r}-${c}`;
-          matrixData[key] = bin;
-          validPositions.add(key);
-
-          if (protectCode === "LOCKED") {
-            protectedPositions.add(key);
-          }
-
-          if (r > maxRow) maxRow = r;
-          if (c > maxCol) maxCol = c;
+      try {
+        if (typeof XLSX === 'undefined') throw new Error('Excel 解析组件未加载');
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!sheet) throw new Error('文件中没有可读取的工作表');
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if (!json.length) throw new Error('工作表没有有效数据');
+        const sample = json[0] || {};
+        if (!("Bar_Y" in sample) || !("Chip No" in sample) || !("Bin" in sample)) {
+          throw new Error('缺少 Bar_Y、Chip No 或 Bin 列，请使用 Mapping 模板');
         }
-      });
 
-      renderMatrix();
-      saveToLocalStorage();
-      showStatusMessage("文件加载成功", "success");
+        matrixData = {};
+        validPositions.clear();
+        protectedPositions.clear();
+        maxRow = 0;
+        maxCol = 0;
+
+        json.forEach(row => {
+          const r = parseInt(row["Bar_Y"]);
+          const c = parseInt(row["Chip No"]);
+          const bin = parseInt(row["Bin"]);
+          const protectCode = (row["Protect_Code"] || row["Edit_Code"] || "").toString().trim();
+
+          if (!isNaN(r) && !isNaN(c)) {
+            const key = `${r}-${c}`;
+            matrixData[key] = bin;
+            validPositions.add(key);
+
+            if (protectCode === "LOCKED") protectedPositions.add(key);
+
+            if (r > maxRow) maxRow = r;
+            if (c > maxCol) maxCol = c;
+          }
+        });
+
+        if (!validPositions.size) throw new Error('没有读取到有效坐标数据');
+        renderMatrix();
+        saveToLocalStorage();
+        showStatusMessage(`文件加载成功：${validPositions.size} 个有效单元格`, "success");
+      } catch (error) {
+        console.error('Mapping 文件解析失败：', error);
+        showStatusMessage(`导入失败：${error.message}`, "error");
+      }
     }
 
     function renderMatrix() {
       const container = document.getElementById('matrix');
       const totalCells = (maxRow + 1) * (maxCol + 1);
+      const currentRenderVersion = ++renderVersion;
+      cellElements.clear();
+      lastStyledSelection.clear();
+      updateSelectedCells();
 
       // 如果单元格数量过多，显示加载指示器并分批渲染
       if (totalCells > 2000) {
@@ -1099,48 +1184,48 @@
         container.style.gridTemplateColumns = `repeat(${maxCol + 1}, ${cellSize}px)`;
 
         // 分批渲染
-        renderMatrixInBatches(container, 0);
+        renderMatrixInBatches(container, 0, currentRenderVersion);
       } else {
         // 小矩阵直接渲染
         renderMatrixDirectly(container);
+        updateCellStyles(true);
       }
 
-      updateSelectedCells();
-      updateCellStyles();
       updateSummary();
     }
 
     function renderMatrixDirectly(container) {
       container.innerHTML = '';
       container.style.gridTemplateColumns = `repeat(${maxCol + 1}, ${cellSize}px)`;
+      const fragment = document.createDocumentFragment();
 
       for (let r = 0; r <= maxRow; r++) {
         for (let c = 0; c <= maxCol; c++) {
-          createCell(container, r, c);
+          createCell(fragment, r, c);
         }
       }
+      container.appendChild(fragment);
     }
 
-    function renderMatrixInBatches(container, startIndex) {
+    function renderMatrixInBatches(container, startIndex, currentRenderVersion) {
+      if (currentRenderVersion !== renderVersion) return;
       const totalCells = (maxRow + 1) * (maxCol + 1);
       let rendered = 0;
+      const fragment = document.createDocumentFragment();
 
       for (let i = startIndex; i < totalCells && rendered < renderBatchSize; i++) {
         const r = Math.floor(i / (maxCol + 1));
         const c = i % (maxCol + 1);
-        createCell(container, r, c);
+        createCell(fragment, r, c);
         rendered++;
       }
+      container.appendChild(fragment);
 
       if (startIndex + rendered < totalCells) {
-        // 继续下一批
-        setTimeout(() => {
-          renderMatrixInBatches(container, startIndex + rendered);
-        }, 0);
+        requestAnimationFrame(() => renderMatrixInBatches(container, startIndex + rendered, currentRenderVersion));
       } else {
-        // 渲染完成
         hideRenderingIndicator();
-        updateCellStyles();
+        updateCellStyles(true);
       }
     }
 
@@ -1163,6 +1248,7 @@
       cell.dataset.row = r;
       cell.dataset.col = c;
       cell.dataset.bin = bin;
+      cellElements.set(key, cell);
 
       if (protectedPositions.has(key)) {
         cell.classList.add('protected');
@@ -1179,44 +1265,30 @@
 
       container.appendChild(cell);
 
-      cell.addEventListener('mousedown', e => {
-        if (e.button === 0 && !isLocked) {
-          // 如果是受保护的格子，不允许开始选择
-          if (protectedPositions.has(key)) {
-            return;
-          }
+    }
 
-          isSelecting = true;
-          startCell = { row: r, col: c };
-          isAddingSelection = e.ctrlKey || e.metaKey;
-          if (!isAddingSelection) {
-            selectedCells.clear();
-          }
+    function handleCellMouseDown(e) {
+      const cell = e.target.closest('.cell');
+      if (!cell || e.button !== 0 || isLocked) return;
+      const key = cell.dataset.key;
+      if (protectedPositions.has(key)) return;
+      const r = Number(cell.dataset.row);
+      const c = Number(cell.dataset.col);
+      isSelecting = true;
+      startCell = { row: r, col: c };
+      lastSelectionBounds = '';
+      isAddingSelection = e.ctrlKey || e.metaKey;
+      if (!isAddingSelection) selectedCells.clear();
+      if (validPositions.has(key)) selectedCells.add(key);
+      updateSelectionBox(startCell, startCell);
+      updateCellStyles();
+    }
 
-          // 添加当前单元格到选择
-          if (validPositions.has(key) && !protectedPositions.has(key)) {
-            selectedCells.add(key);
-          }
-
-          // 显示选择框 - 修复：直接使用单元格坐标计算
-          const left = c * cellSize;
-          const top = r * cellSize;
-
-          selectionBox.style.left = left + 'px';
-          selectionBox.style.top = top + 'px';
-          selectionBox.style.width = cellSize + 'px';
-          selectionBox.style.height = cellSize + 'px';
-          selectionBox.style.display = 'block';
-
-          updateCellStyles();
-        }
-      });
-
-      cell.addEventListener('contextmenu', e => {
-        if (protectedPositions.has(key)) return;
-        e.preventDefault();
-        showContextMenu(e);
-      });
+    function handleCellContextMenu(e) {
+      const cell = e.target.closest('.cell');
+      if (!cell || protectedPositions.has(cell.dataset.key)) return;
+      e.preventDefault();
+      showContextMenu(e);
     }
 
     function showRenderingIndicator() {
@@ -1263,7 +1335,7 @@
       const effectiveY = mouseY - matrixTop;
 
       // 计算单元格索引（考虑单元格间距 2px）
-      const gap = 2;
+      const gap = matrixGap;
       const cellX = Math.floor(effectiveX / (cellSize + gap));
       const cellY = Math.floor(effectiveY / (cellSize + gap));
 
@@ -1289,7 +1361,7 @@
       const startCol = Math.min(start.col, end.col);
       const endCol = Math.max(start.col, end.col);
 
-      const gap = 2; // 单元格间距
+      const gap = matrixGap;
       const left = startCol * (cellSize + gap);
       const top = startRow * (cellSize + gap);
       const width = (endCol - startCol + 1) * (cellSize + gap) - gap;
@@ -1308,6 +1380,9 @@
       const maxRow = Math.max(start.row, end.row);
       const minCol = Math.min(start.col, end.col);
       const maxCol = Math.max(start.col, end.col);
+      const boundsKey = `${minRow}:${maxRow}:${minCol}:${maxCol}:${isAddingSelection}`;
+      if (boundsKey === lastSelectionBounds) return;
+      lastSelectionBounds = boundsKey;
 
       if (!isAddingSelection) selectedCells.clear();
 
@@ -1336,30 +1411,38 @@
     }
 
     function updateCellStyles() {
-      if (renderTimeout) {
-        clearTimeout(renderTimeout);
-      }
-      renderTimeout = setTimeout(() => {
-        document.querySelectorAll('.cell').forEach(cell => {
-          const key = cell.dataset.key;
-          const bin = parseInt(cell.dataset.bin) || 0;
-
-          // 重置类
+      const force = arguments[0] === true;
+      if (pendingStyleFrame) cancelAnimationFrame(pendingStyleFrame);
+      pendingStyleFrame = requestAnimationFrame(() => {
+        const keys = force ? cellElements.keys() : new Set([...lastStyledSelection, ...selectedCells]);
+        for (const key of keys) {
+          const cell = cellElements.get(key);
+          if (!cell) continue;
+          const bin = Number(cell.dataset.bin) || 0;
           cell.className = 'cell';
-
-          // 根据自定义值添加类
-          if (bin === customBin1) {
-            cell.classList.add('bin-1');
-          } else if (bin === customBin2) {
-            cell.classList.add('bin-2');
-          } else if (bin !== 0) {
-            cell.classList.add('bin-other');
-          }
-
+          if (bin === customBin1) cell.classList.add('bin-1');
+          else if (bin === customBin2) cell.classList.add('bin-2');
+          else if (bin !== 0) cell.classList.add('bin-other');
           if (selectedCells.has(key)) cell.classList.add('selected');
           if (protectedPositions.has(key)) cell.classList.add('protected');
-        });
-      }, 50);
+        }
+        lastStyledSelection = new Set(selectedCells);
+        updateSelectionInfo();
+        pendingStyleFrame = null;
+      });
+    }
+
+    function updateSelectionInfo() {
+      const info = document.getElementById('selection-info');
+      if (!info) return;
+      if (!selectedCells.size) { info.textContent = '未选择单元格'; return; }
+      let bin1 = 0, bin2 = 0, locked = 0;
+      selectedCells.forEach(key => {
+        if (matrixData[key] === customBin1) bin1++;
+        if (matrixData[key] === customBin2) bin2++;
+        if (protectedPositions.has(key)) locked++;
+      });
+      info.textContent = `已选 ${selectedCells.size} 格 · 有料 ${bin1} · 无料 ${bin2} · 锁定 ${locked}`;
     }
 
 
@@ -1370,11 +1453,12 @@
 
       // ✅ 修复：更新选择框以匹配新尺寸
       if (isSelecting && startCell) {
-        const endCell = { row: Math.floor((lastMousePos?.y || 0) / (cellSize + 2)), col: Math.floor((lastMousePos?.x || 0) / (cellSize + 2)) };
+        const endCell = { row: Math.floor((lastMousePos?.y || 0) / (cellSize + matrixGap)), col: Math.floor((lastMousePos?.x || 0) / (cellSize + matrixGap)) };
         updateSelectionBox(startCell, endCell);
       }
 
       renderMatrix();
+      queueLocalSave();
       showStatusMessage(`单元格尺寸: ${cellSize}px`, "info");
     }
 
@@ -1447,6 +1531,9 @@
           if (config.customBin1) customBin1 = config.customBin1;
           if (config.customBin2) customBin2 = config.customBin2;
           if (config.customOtherBin) customOtherBin = config.customOtherBin;
+          if (Number.isFinite(config.cellSize)) cellSize = Math.max(10, Math.min(80, config.cellSize));
+          isLocked = config.isLocked === true;
+          document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
 
           renderMatrix();
           updateBinDisplays();
@@ -1459,18 +1546,40 @@
     }
 
     function saveToLocalStorage() {
-      const config = {
-        matrixData,
-        maxRow,
-        maxCol,
-        validPositions: Array.from(validPositions),
-        protectedPositions: Array.from(protectedPositions),
-        customBin1,
-        customBin2,
-        customOtherBin,
-        cellSize
-      };
-      localStorage.setItem('mappingConfig', JSON.stringify(config));
+      try {
+        const config = {
+          version: 3,
+          matrixData,
+          maxRow,
+          maxCol,
+          validPositions: Array.from(validPositions),
+          protectedPositions: Array.from(protectedPositions),
+          customBin1,
+          customBin2,
+          customOtherBin,
+          cellSize,
+          isLocked,
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem('mappingConfig', JSON.stringify(config));
+        updateOfflineStatus(`已保存到本机 · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+      } catch (error) {
+        console.error('本地保存失败：', error);
+        updateOfflineStatus('本地保存失败，请及时导出备份', true);
+      }
+    }
+
+    function queueLocalSave() {
+      clearTimeout(saveTimer);
+      updateOfflineStatus('正在保存到本机…');
+      saveTimer = setTimeout(saveToLocalStorage, 180);
+    }
+
+    function updateOfflineStatus(message, isError = false) {
+      const status = document.getElementById('offline-status');
+      if (!status) return;
+      status.textContent = `● 离线本地模式 · ${message}`;
+      status.classList.toggle('has-error', isError);
     }
 
     function downloadTemplate() {
@@ -1483,15 +1592,20 @@
 
     function toggleLock() {
       isLocked = !isLocked;
+      updateLockButton();
+      showStatusMessage(isLocked ? "已锁定编辑" : "已解锁编辑", isLocked ? "warning" : "success");
+      queueLocalSave();
+    }
+
+    function updateLockButton() {
       const lockButton = document.querySelector('#lock-toggle');
+      if (!lockButton) return;
       if (isLocked) {
         lockButton.innerHTML = '<span>🔒</span> 已锁定';
-        lockButton.style.background = '#f44336';
-        showStatusMessage("已锁定编辑", "warning");
+        lockButton.classList.add('is-locked');
       } else {
         lockButton.innerHTML = '<span>🔓</span> 可编辑模式';
-        lockButton.style.background = '#9c27b0';
-        showStatusMessage("已解锁编辑", "success");
+        lockButton.classList.remove('is-locked');
       }
     }
 
@@ -1575,6 +1689,7 @@
     function clearAllSelections() {
       selectedCells.clear();
       updateCellStyles();
+      updateSelectionInfo();
       hideContextMenu();
       showStatusMessage("已清空选择", "info");
     }
@@ -1593,7 +1708,11 @@
 
       const count = selectedCells.size;
 
-      // 保存当前状态
+      if (!confirm(`确定要删除 ${count} 个选中单元格吗？\n\n删除后将永久移除，且导出的 Excel 文件中不再包含这些行。`)) {
+        return;
+      }
+
+      // 用户确认后才写入撤销历史，避免取消操作也生成无效撤销项。
       undoStack.push({
         matrixData: { ...matrixData },
         validPositions: new Set(validPositions),
@@ -1601,10 +1720,6 @@
         selectedCells: new Set(selectedCells)
       });
       redoStack = [];
-
-      if (!confirm(`确定要删除 ${count} 个选中单元格吗？\n\n删除后将永久移除，且导出的 Excel 文件中不再包含这些行。`)) {
-        return;
-      }
 
       selectedCells.forEach(key => {
         delete matrixData[key];
@@ -1642,8 +1757,28 @@
       updateUndoButton();
     }
 
+    function redoDelete() {
+      if (redoStack.length === 0) return;
+      const nextState = redoStack.pop();
+      undoStack.push({
+        matrixData: { ...matrixData },
+        validPositions: new Set(validPositions),
+        protectedPositions: new Set(protectedPositions),
+        selectedCells: new Set(selectedCells)
+      });
+      matrixData = nextState.matrixData;
+      validPositions = new Set(nextState.validPositions);
+      protectedPositions = new Set(nextState.protectedPositions);
+      selectedCells = new Set(nextState.selectedCells);
+      renderMatrix();
+      saveToLocalStorage();
+      showStatusMessage("已重做删除", "info");
+      updateUndoButton();
+    }
+
     function updateUndoButton() {
       document.getElementById('undo-btn').disabled = undoStack.length === 0;
+      document.getElementById('redo-btn').disabled = redoStack.length === 0;
     }
 
 
@@ -1664,36 +1799,10 @@
     }
 
     function loadSourceFile() {
-      if (isLocked) {
-        showStatusMessage("已锁定，请先解锁编辑", "error");
-        hideContextMenu();
-        return;
-      }
-
-      showStatusMessage("正在自动加载源文件...", "info");
-
-      fetch(SOURCE_FILE_URL)
-        .then(response => {
-          if (!response.ok) throw new Error(`网络响应不正常: ${response.status}`);
-          return response.arrayBuffer();
-        })
-        .then(data => {
-          processFileData(data);
-          showStatusMessage("源文件自动加载成功！", "success");
-        })
-        .catch(error => {
-          console.error('加载源文件失败:', error);
-          showStatusMessage(`加载失败: ${error.message}`, "error");
-
-          setTimeout(() => {
-            if (confirm('自动加载失败，是否手动选择文件？')) {
-              document.getElementById('upload').click();
-            }
-          }, 3000);
-        })
-        .finally(() => {
-          hideContextMenu();
-        });
+      // 离线版不尝试 fetch 本地路径：部分浏览器会阻止 file:// 跨文件读取。
+      document.getElementById('upload').click();
+      showStatusMessage("离线模式：请选择本地 Mapping 文件", "info");
+      hideContextMenu();
     }
 
     function showStatusMessage(message, type = 'info') {
@@ -1734,7 +1843,7 @@
     function closeAnnouncement() {
       hideAnnouncement();
       announcementShown = true;
-      localStorage.setItem('announcementShown', 'true');
+      localStorage.setItem('mappingAnnouncementVersion', announcementVersion);
     }
 
     // 设置功能

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高级在线计时器</title>
+    <title>本地效率计时器</title>
     <link rel="icon" type="image/x-icon" href="../icons/jsq.ico">
     <style>
         :root {
@@ -519,10 +519,26 @@
                 }
             }
         }
+        /* Local timer workbench refresh */
+        :root{--timer-bg:#10161d;--timer-panel:#18232d;--timer-line:#344555;--timer-text:#e9f0f5;--timer-muted:#94a8b9;--timer-accent:#f2b84b;--timer-blue:#38bdf8;--bg-color:var(--timer-bg);--text-color:var(--timer-text);--accent-color:var(--timer-blue);--card-bg:var(--timer-panel)}
+        body{display:flex;justify-content:flex-start;min-height:100vh;padding:28px 18px 42px;background-color:var(--timer-bg);background-image:linear-gradient(rgba(127,150,168,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(127,150,168,.06) 1px,transparent 1px),radial-gradient(circle at 80% 0,#263f54 0,transparent 32%);background-size:26px 26px,26px 26px,auto;color:var(--timer-text)}
+        .timer-title{width:min(900px,100%);margin:20px auto 14px}.timer-title small{display:block;color:#7fc2e2;font-weight:800;letter-spacing:.16em}.timer-title h1{margin:6px 0 0;color:#f3c15a;font-size:clamp(25px,4vw,40px);letter-spacing:-.04em}.timer-title p{margin:8px 0 0;color:var(--timer-muted);font-size:13px}
+        #top-controls{position:relative;top:auto;left:auto;width:min(900px,100%);margin:0 auto 16px;padding:12px;background:linear-gradient(145deg,#202c37,#172029);border:1px solid var(--timer-line);border-radius:6px;box-shadow:0 15px 28px rgba(0,0,0,.24)}
+        .control-btn,.mode-btn,.preset-btn{border:1px solid #405464;border-radius:3px;background:linear-gradient(180deg,#354551,#26323c);color:#eaf2f7;font-weight:700;box-shadow:none}.control-btn:hover,.preset-btn:hover{opacity:1;background:linear-gradient(180deg,#f5c967,#d8951d);color:#172029;transform:translateY(-1px)}.control-btn.on{background:#1f8055}.stats-mini{margin-left:auto;background:#111920;border:1px solid #344555;border-radius:3px;box-shadow:none}.stat-label{color:#8ba0b2}.stat-item-mini span:last-child{color:#f3c15a}
+        #mode-selector{width:min(900px,100%);margin:0 auto 14px;padding:6px;background:#18222c;border:1px solid #344555;border-radius:5px}.mode-btn{padding:9px 17px;color:#b6c5d1}.mode-btn.active{background:#f0b541;color:#172029;border-color:#f0b541}
+        #project-selector{width:min(900px,100%);margin:0 auto 10px;text-align:left}#project-select{min-width:145px;padding:8px 10px;color:#eaf1f6;background:#18222c;border:1px solid #405464;border-radius:3px}
+        #preset-timers{width:min(900px,100%);margin:0 auto 18px;justify-content:flex-start}.preset-btn{padding:7px 13px;color:#bfd0dc}
+        #timer{width:min(900px,100%);margin:0 auto 14px;padding:34px 20px;color:#edf7ff;background:linear-gradient(145deg,#1e2b35,#141c23);border:1px solid #40515e;border-radius:6px;box-shadow:inset 0 1px rgba(255,255,255,.04),0 18px 34px rgba(0,0,0,.22);font-family:"Cascadia Mono","SFMono-Regular",Consolas,monospace;font-size:clamp(42px,9vw,88px);font-weight:700;letter-spacing:.035em;text-shadow:0 0 20px rgba(56,189,248,.16)}
+        #countdown-input{width:min(900px,100%);padding:12px;background:#18222c;border:1px solid #344555;border-radius:5px;text-align:center}#countdown-input input{color:#eef6fb;background:#10171e;border:1px solid #435667;border-radius:3px}#countdown-input .control-button{margin:0 0 0 7px}
+        .control-button{padding:12px 24px;border-radius:3px;background:linear-gradient(180deg,#f2bf52,#d99015);color:#161d23;font-weight:800;box-shadow:none}.control-button:hover{transform:translateY(-1px);box-shadow:0 7px 14px rgba(245,181,50,.17)}#pauseBtn{background:linear-gradient(180deg,#ef7b72,#b73f39);color:#fff}#resetBtn{background:linear-gradient(180deg,#536573,#34434f);color:#eaf2f7}
+        #records{width:min(900px,100%);max-height:330px;margin:22px auto 0;color:#dce6ed;background:#18222c;border:1px solid #344555;border-radius:5px;box-shadow:0 14px 24px rgba(0,0,0,.17)}#records:empty::before{content:'暂无记录 · 按 C 添加一次计时记录';display:block;padding:22px;color:#8196a8;text-align:center}.record{border-bottom-color:#2f3d49}.record:hover{background:#22303b}.index,.separator{color:#f2ba4d}.time{color:#e4eff7}.interval{color:#79c6eb}.remark{color:#eaf2f7}.announcement-panel{color:#dce7ee;background:#1b2630;border:1px solid #465867;border-radius:5px;box-shadow:0 18px 40px rgba(0,0,0,.36)}.announcement-header{background:#253441;border-bottom-color:#465867}.announcement-section h5,.announcement-header h4{color:#f2c15b}.shortcut-item{border-bottom-color:#344555}.key{color:#172029;background:#f2ba4d}.desc,.feature-list li{color:#c6d4de}.announcement-footer{border-top-color:#465867}.announcement-toggle{border-radius:3px;background:#354754}.status-message{border-radius:4px}
+        @media(max-width:768px){body{padding:12px}.timer-title{margin-top:10px}#top-controls{justify-content:flex-start}.stats-mini{margin-left:0;width:100%;justify-content:space-around}#mode-selector{display:flex;flex-wrap:wrap}.mode-btn{flex:1 1 120px}#preset-timers{gap:7px}#timer{padding:26px 8px}#records{margin-top:18px}}
+        body[data-theme="light"]{--timer-bg:#edf3f8;--timer-panel:#ffffff;--timer-line:#cddae6;--timer-text:#172b3d;--timer-muted:#62758a;--card-bg:#fff;background-color:#edf3f8;background-image:linear-gradient(rgba(80,110,140,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(80,110,140,.07) 1px,transparent 1px),radial-gradient(circle at 80% 0,#d8ecfb 0,transparent 32%)}body[data-theme="light"] #top-controls,body[data-theme="light"] #mode-selector,body[data-theme="light"] #records,body[data-theme="light"] #countdown-input{background:#fff;border-color:#cbd9e5}body[data-theme="light"] #timer{color:#17354d;background:linear-gradient(145deg,#fff,#eef5fa);border-color:#c8d7e4;text-shadow:none}body[data-theme="light"] .timer-title h1{color:#ac6b00}body[data-theme="light"] .control-btn,body[data-theme="light"] .mode-btn,body[data-theme="light"] .preset-btn{color:#26465f;background:linear-gradient(180deg,#fff,#e9f1f7);border-color:#c3d3e0}body[data-theme="light"] .stats-mini{background:#f7fbfe;border-color:#cfdae5}body[data-theme="light"] .record:hover{background:#f0f6fa}body[data-theme="light"] .time,body[data-theme="light"] .remark{color:#23415a}
     </style>
 </head>
 
-<body>
+<body data-theme="dark">
+    <div class="timer-title"><small>MGHY / LOCAL TIMEKEEPER</small><h1>本地效率计时器</h1><p>无需联网 · 秒表、倒计时、间隔记录均在本机运行</p></div>
     <!-- 公告栏 -->
     <div id="announcement-panel" class="announcement-panel">
         <div class="announcement-header">
@@ -620,7 +636,7 @@
         </button>
 
         <!-- 主题切换 -->
-        <button id="theme-toggle" class="control-btn">🌙 暗色模式</button>
+        <button id="theme-toggle" class="control-btn">☀️ 亮色模式</button>
     </div>
 
     <!-- 模式选择 -->
@@ -668,12 +684,8 @@
     <script>
         // 配置和状态管理
         const CONFIG = {
-            sounds: {
-                start: 'https://assets.mixkit.co/active_storage/sfx/286/286-preview.mp3',
-                pause: 'https://assets.mixkit.co/active_storage/sfx/257/257-preview.mp3',
-                count: 'https://assets.mixkit.co/active_storage/sfx/250/250-preview.mp3',
-                complete: 'https://assets.mixkit.co/active_storage/sfx/269/269-preview.mp3'
-            },
+            // 声音由浏览器 Web Audio 本地合成，不依赖在线音频资源。
+            sounds: {},
             themes: {
                 light: {
                     '--bg-color': '#e0f7fa',
@@ -699,6 +711,7 @@
         // 全局状态
         let state = {
             timerInterval: null,
+            animationFrame: null,
             milliseconds: 0,
             countdownTime: 0,
             isRunning: false,
@@ -899,14 +912,13 @@
             const startTime = Date.now() - state.milliseconds;
 
             function tick() {
-                if (state.isRunning) {
-                    state.milliseconds = Date.now() - startTime;
-                    updateDisplay();
-                    setTimeout(tick, 10);
-                }
+                if (!state.isRunning) return;
+                state.milliseconds = Date.now() - startTime;
+                updateDisplay();
+                if (state.isRunning) state.animationFrame = requestAnimationFrame(tick);
             }
 
-            tick();
+            state.animationFrame = requestAnimationFrame(tick);
             playSound('start');
 
             // 记录会话开始
@@ -919,6 +931,7 @@
 
         function pauseTimer() {
             state.isRunning = false;
+            if (state.animationFrame) cancelAnimationFrame(state.animationFrame);
             document.getElementById('pauseBtn').style.display = 'none';
             document.getElementById('startBtn').innerText = '继续';
             document.getElementById('startBtn').style.display = 'inline-block';
@@ -935,6 +948,8 @@
 
         function resetTimer() {
             clearInterval(state.timerInterval);
+            if (state.animationFrame) cancelAnimationFrame(state.animationFrame);
+            state.animationFrame = null;
             state.milliseconds = 0;
             state.recordCount = 0;
             state.lastRecordTime = 0;
