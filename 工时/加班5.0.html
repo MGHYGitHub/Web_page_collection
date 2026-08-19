@@ -1367,6 +1367,14 @@
         .excel-table tbody tr:hover { background: rgba(10,132,255,.08) !important; }
         .modal { background: rgba(0,0,0,.36) !important; backdrop-filter: blur(8px); }
         .modal-content, .upgrade-content { color: var(--ui-text) !important; background: var(--ui-bg-elevated) !important; border: 1px solid var(--ui-separator); border-radius: 18px !important; box-shadow: var(--ui-shadow) !important; }
+        .custom-confirm-dialog { color: var(--ui-text); background: var(--ui-card); border: 1px solid var(--ui-separator); }
+        .custom-confirm-header h3, .custom-confirm-body, .mini-chart-row, .trend-row { color: var(--ui-text) !important; }
+        .custom-confirm-footer { border-top-color: var(--ui-separator); }
+        .custom-confirm-btn.cancel { color: var(--ui-text); background: var(--ui-fill); }
+        .custom-confirm-btn.cancel:hover { background: var(--ui-separator); }
+        .mini-chart-row > div, .trend-row > div { background: rgba(118,118,128,.28) !important; }
+        .mini-chart-row span, .mini-chart-row b, .trend-row span, .trend-row b, .trend-row em { color: inherit; opacity: 1; }
+        .trend-caption { color: var(--ui-secondary) !important; opacity: 1; }
         .global-progress-bar, .weekly-progress-bar-fill { background: var(--ui-blue) !important; }
         .night-sheet-overlay { position: fixed; inset: 0; z-index: 30000; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.38); backdrop-filter: blur(10px); animation: sheet-fade .18s ease; }
         .night-sheet { position: relative; width: min(430px,100%); padding: 26px; color: var(--ui-text); background: var(--ui-bg-elevated); border: 1px solid var(--ui-separator); border-radius: 22px; box-shadow: 0 28px 80px rgba(0,0,0,.3); }
@@ -1847,7 +1855,7 @@
                     resolve(true);
                 };
 
-                footer.appendChild(cancelBtn);
+                if (options.showCancel !== false) footer.appendChild(cancelBtn);
                 footer.appendChild(confirmBtn);
 
                 dialog.appendChild(header);
@@ -2849,7 +2857,7 @@
             const max = Math.max(1, ...Object.values(buckets));
             const colors = ['#0a84ff', '#30d158', '#ff9f0a', '#bf5af2', '#ff453a'];
             const chart = Object.entries(buckets).map(([name, value], index) => `<div class="mini-chart-row"><span>${name}</span><div><i style="width:${(value / max * 100).toFixed(1)}%;background:${colors[index]}"></i></div><b>${value.toFixed(1)}H</b></div>`).join('');
-            customConfirm({ title: `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月统计图`, type: 'info', message: `<div class="mini-chart">${chart}</div>`, confirmText: '关闭', cancelText: '关闭' });
+            customConfirm({ title: `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月统计图`, type: 'info', message: `<div class="mini-chart">${chart}</div>`, confirmText: '关闭', showCancel: false });
         }
 
         function showTrendChart() {
@@ -2868,7 +2876,7 @@
             }
             const maxHours = Math.max(1, ...months.map(item => item.hours));
             const rows = months.map(item => `<div class="trend-row"><span>${item.label}</span><div><i style="width:${(item.hours / maxHours * 100).toFixed(1)}%"></i></div><b>${item.hours.toFixed(1)}H</b><em>¥${item.pay.toFixed(0)}</em></div>`).join('');
-            customConfirm({ title: `${year}年加班趋势`, type: 'info', message: `<p class="trend-caption">按月展示加班时长与预计加班费</p><div class="trend-chart">${rows}</div>`, confirmText: '关闭', cancelText: '关闭' });
+            customConfirm({ title: `${year}年加班趋势`, type: 'info', message: `<p class="trend-caption">按月展示加班时长与预计加班费</p><div class="trend-chart">${rows}</div>`, confirmText: '关闭', showCancel: false });
         }
 
 
@@ -3180,7 +3188,12 @@
                     return;
                 }
                 if (++retry < 30) setTimeout(wait, 500);
-                else { if (pv) pv.innerHTML = '?'; if (uv) uv.innerHTML = '?'; document.getElementById('today-visit-count').innerHTML = '?'; }
+                else {
+                    if (pv) pv.innerHTML = '?';
+                    if (uv) uv.innerHTML = '?';
+                    const todayVisitCount = document.getElementById('today-visit-count');
+                    if (todayVisitCount) todayVisitCount.innerHTML = '?';
+                }
             }
             window.refreshBusuanzi = function () {
                 const tip = document.querySelector('.refresh-tip');

@@ -589,7 +589,7 @@
                 <div id="rawDataTableWrap" style="overflow-x:auto; margin-top: 5px;"></div>
             </details>
         </div>
-        <div class="note">✅ 自动识别 SN 列与常见条码长度；规格表头支持“20±30”和“(-10-20-50)”（下限-中心-上限）两种格式；按SN长度过滤，保留最新时间行；剔除超出 [中心值 ± (系数×公差)]
+        <div class="note">✅ 自动识别 SN 列与常见条码长度；规格表头支持“20±30”、“(-10-20-50)”（下限-中心-上限）和“(-20--50--20)”（50±20）格式；按SN长度过滤，保留最新时间行；剔除超出 [中心值 ± (系数×公差)]
             的异常点。汇总报告CP/CPK着色：≥1.67深绿，1.30~1.67浅绿，&lt;1.30红。超标数据单元格红底。可手动恢复被剔除的数据点。支持批量操作和实时搜索。支持XLSX和CSV格式。</div>
         <div class="footer">CPK 智能分析 · 现代扁平设计 · 增强版</div>
     </div>
@@ -686,6 +686,22 @@
             function parseSpecFromHeader(headerStr) {
                 const text = String(headerStr || '').replace(/（/g, '(').replace(/）/g, ')');
                 const number = '([-+]?\\d+(?:\\.\\d+)?)';
+                // (-20--50--20) = 中心值 50、公差 ±20；首尾公差必须相同。
+                const wrappedToleranceMatch = text.match(/\(\s*-(\d+(?:\.\d+)?)\s*-\s*-(\d+(?:\.\d+)?)\s*-\s*-(\d+(?:\.\d+)?)\s*\)/);
+                if (wrappedToleranceMatch) {
+                    const leftTolerance = parseFloat(wrappedToleranceMatch[1]);
+                    const center = parseFloat(wrappedToleranceMatch[2]);
+                    const rightTolerance = parseFloat(wrappedToleranceMatch[3]);
+                    if (leftTolerance === rightTolerance) {
+                        return {
+                            lower: center - leftTolerance,
+                            upper: center + rightTolerance,
+                            center,
+                            tolerance: leftTolerance,
+                            format: 'wrapped-tolerance'
+                        };
+                    }
+                }
                 // (-10-20-50) = 下限 -10、中心值 20、上限 50；必须优先识别。
                 const rangeMatch = text.match(new RegExp('\\(?\\s*' + number + '\\s*[-~～—–]\\s*' + number + '\\s*[-~～—–]\\s*' + number + '\\s*\\)?'));
                 if (rangeMatch) {
