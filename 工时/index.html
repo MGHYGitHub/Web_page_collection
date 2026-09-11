@@ -1391,6 +1391,21 @@
         body[data-theme="dark"] .calendar-day-header, body[data-theme="dark"] .legend-item, body[data-theme="dark"] .calendar-day, body[data-theme="dark"] .day-number, body[data-theme="dark"] .excel-table td, body[data-theme="dark"] .excel-table th, body[data-theme="dark"] .dropdown-item, body[data-theme="dark"] .collapse-header, body[data-theme="dark"] .global-stats-collapse { color: var(--ui-text) !important; }
         body[data-theme="dark"] .calendar-day.weekend { background: rgba(10,132,255,.22) !important; border-color: rgba(10,132,255,.48) !important; } body[data-theme="dark"] .calendar-day.holiday { background: rgba(255,69,58,.22) !important; border-color: rgba(255,69,58,.5) !important; } body[data-theme="dark"] .calendar-day.extra-work { background: rgba(255,159,10,.23) !important; border-color: rgba(255,159,10,.5) !important; } body[data-theme="dark"] .calendar-day.make-up-work { background: rgba(191,90,242,.24) !important; border-color: rgba(191,90,242,.5) !important; }
         body[data-theme="dark"] .calendar-day.weekend .day-number { color:#64d2ff !important; } body[data-theme="dark"] .calendar-day.holiday .day-number { color:#ff9b94 !important; } body[data-theme="dark"] .calendar-day.extra-work .day-number { color:#ffd60a !important; } body[data-theme="dark"] .calendar-day.make-up-work .day-number { color:#d4a7ff !important; }
+        .calendar .calendar-day.weekly-limit-warning {
+            border: 2px solid var(--warning-orange) !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 159, 10, .35), 0 0 0 1px rgba(255, 159, 10, .25) !important;
+        }
+        .calendar .calendar-day.weekly-limit-warning .overtime-badge.weekly-warning::after {
+            content: '周超';
+            margin-left: 4px;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+        }
+        body[data-theme="dark"] .calendar .calendar-day.weekly-limit-warning {
+            border-color: #ffb340 !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 179, 64, .5), 0 0 10px rgba(255, 159, 10, .28) !important;
+        }
         @media (max-width: 768px) { body{padding:0;background:var(--ui-bg)} .container{border:0;border-radius:0;box-shadow:none;min-height:100vh} header{min-height:112px;padding:38px 64px 17px 68px} header::after{left:19px;top:24px}.header-theme-toggle{top:20px;right:17px} header h1{font-size:1.4rem;margin:4px 0} header p{font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card{margin:10px 12px !important;border-radius:15px !important}.calendar-container{padding:16px 12px !important}.calendar-header{gap:12px;align-items:flex-start}.calendar-controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.toolbar-btn{min-height:32px;padding:0 10px;font-size:12px}.toolbar-btn span{display:none}.calendar-day{min-height:48px !important;border-radius:10px !important}.day-number{font-size:.82rem}.excel-table-actions{gap:6px}.night-sheet-overlay{align-items:end;padding:0}.night-sheet{width:100%;border-bottom-left-radius:0;border-bottom-right-radius:0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));animation:sheet-up .24s ease}.night-sheet-actions button{min-height:46px}@keyframes sheet-up{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}} }
     </style>
 
@@ -1464,6 +1479,12 @@
                 return 11;
             }
             return 3;
+        }
+
+        // 普通工作日和补班日计入 8 小时基础工时；节假日、周末和调休日只计实际加班。
+        function shouldCountBaseWorkHours(date) {
+            const dateType = getDateType(date);
+            return dateType === 'makeUpWork' || dateType === 'workday';
         }
 
         // ========== 辅助函数 ==========
@@ -1562,14 +1583,7 @@
                     const date = new Date(dateString);
                     if (date >= weekRange.start && date <= weekRange.end) {
                         const hours = parseFloat(data.hours) || 0;
-                        const dateType = getDateType(date);
-                        const dayOfWeek = date.getDay();
-                        const isWeekday = (dayOfWeek >= 1 && dayOfWeek <= 5);
-                        const isOfficialHoliday = (dateType === 'holiday');
-                        const isWeekend = (dateType === 'weekend' || dateType === 'extraWork');
-
-                        // ✅ 只对工作日(非假日)计算基础工时
-                        const needBaseHours = isWeekday && !isOfficialHoliday && !isWeekend;
+                        const needBaseHours = shouldCountBaseWorkHours(date);
 
                         if (data && !data.isLeave) {
                             if (needBaseHours && !baseHoursCalculated.has(dateString)) {
@@ -1672,12 +1686,7 @@
                         const checkDate = new Date(dateString);
                         if (checkDate >= weekRange.start && checkDate <= weekRange.end) {
                             const hours = parseFloat(data.hours) || 0;
-                            const checkDateType = getDateType(checkDate);
-                            const checkDayOfWeek = checkDate.getDay();
-                            const isCheckWeekday = (checkDayOfWeek >= 1 && checkDayOfWeek <= 5);
-                            const isOfficialHoliday = (checkDateType === 'holiday');
-                            const isWeekend = (checkDateType === 'weekend');
-                            const needBaseHours = isCheckWeekday && !isOfficialHoliday && !isWeekend;
+                            const needBaseHours = shouldCountBaseWorkHours(checkDate);
 
                             if (data && !data.isLeave) {
                                 if (needBaseHours && !baseHoursCalculated.has(dateString)) {
@@ -1920,19 +1929,16 @@
                         const date = new Date(dateString);
                         if (date >= weekStart && date <= weekEnd) {
                             const hours = parseFloat(data.hours) || 0;
-                            const dateType = getDateType(date);
-                            const dayOfWeek = date.getDay();
-                            const isWeekday = (dayOfWeek >= 1 && dayOfWeek <= 5);
-                            const isOfficialHoliday = (dateType === 'holiday');
+                            const needBaseHours = shouldCountBaseWorkHours(date);
 
                             if (data && !data.isLeave) {
-                                if (isWeekday && !isOfficialHoliday) {
+                                if (needBaseHours) {
                                     weeklyTotalHours += 8 + hours;
                                 } else {
                                     weeklyTotalHours += hours;
                                 }
                             } else if (data && data.isLeave) {
-                                if (isWeekday && !isOfficialHoliday) {
+                                if (needBaseHours) {
                                     weeklyTotalHours -= 8;
                                 }
                                 weeklyTotalHours -= hours;
@@ -1975,7 +1981,7 @@
                             if (mobileIndicator) mobileIndicator.classList.add('daily-exceed');
                         }
 
-                        if (isWeeklyTotalHoursOverLimit) {
+                        if (isWeeklyTotalHoursOverLimit && hours > 0) {
                             dayElement.classList.add('weekly-limit-warning');
                             const badge = dayElement.querySelector('.overtime-badge');
                             if (badge && !badge.classList.contains('daily-exceed')) {
@@ -2599,11 +2605,18 @@
             if (selectedDates.size === 0) { showNotification('请至少选择一个日期', 'warning'); return; }
             const overtimeData = getCurrentOvertimeData();
             let overtimeCount = 0, leaveCount = 0, deleteCount = 0;
-            if (hours !== 0 && hours > 0 && hours > MAX_DAILY_OVERTIME) {
+            const dailyExceededDates = hours > 0
+                ? [...selectedDates].filter(dateString => hours > getMaxDailyOvertime(new Date(dateString)))
+                : [];
+            if (dailyExceededDates.length > 0) {
+                const exceededSummary = dailyExceededDates.map(dateString => {
+                    const date = new Date(dateString);
+                    return `${date.getMonth() + 1}月${date.getDate()}日（上限 ${getMaxDailyOvertime(date)}H）`;
+                }).join('、');
                 const userConfirmed = await customConfirm({
                     title: '批量设置警告',
                     type: 'warning',
-                    message: `批量设置加班 ${hours} 小时\n每日加班上限为 ${MAX_DAILY_OVERTIME} 小时！\n这将影响多个日期\n\n是否仍要批量保存？`,
+                    message: `批量设置加班 ${hours} 小时\n以下日期超过对应类型的每日上限：\n${exceededSummary}\n\n是否仍要批量保存？`,
                     confirmText: '仍要保存',
                     cancelText: '取消'
                 });
