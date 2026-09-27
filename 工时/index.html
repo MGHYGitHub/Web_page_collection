@@ -829,7 +829,7 @@
         <header>
             <h1><i class="fas fa-clock"></i> 加班工时计算系统</h1>
             <p>精确计算加班时长与加班费用，数据本地保存不丢失</p>
-            <div class="app-brand-mark" aria-label="版本与作者"><span class="brand-orange">🍊</span><span>v6.0</span><span>MGHYGitHub · 橙子🍊</span></div>
+            <div class="app-brand-mark" aria-label="版本与作者"><span class="brand-orange">🍊</span><span>v6.2</span><span>MGHYGitHub · 橙子🍊</span></div>
             <button class="toolbar-btn icon-only header-theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" title="切换深色模式"><i class="fas fa-moon"></i></button>
         </header>
 
@@ -839,7 +839,10 @@
                 <div class="input-group-compact">
                     <label for="salary">月标准工资 (元)</label>
                     <input type="number" id="salary" value="4900" min="0">
+                    <label for="night-subsidy">夜班补贴 (元/天)</label>
+                    <input type="number" id="night-subsidy" value="20" min="0" step="1">
                 </div>
+                <label class="pay-option"><input type="checkbox" id="social-insurance-toggle"> 估算深圳五险一金与个税</label>
                 <div class="salary-display-compact">
                     <div class="salary-item-compact">
                         <div class="label-sm">日薪</div>
@@ -850,6 +853,7 @@
                         <div class="value-sm" id="hourly-salary">26.94</div>
                     </div>
                 </div>
+                <div id="deduction-detail" class="deduction-detail">五险一金/个税：未启用</div><div class="deduction-source">数据来源于：<a href="https://hrss.sz.gov.cn/" target="_blank" rel="noopener">深圳市人力资源和社会保障局公开政策</a> · 更新时间：<span id="deduction-updated"></span></div>
             </div>
 
             <div class="overtime-rates-compact">
@@ -908,7 +912,7 @@
                     <div class="stat-item-compact">
                         <div class="stat-value-compact" id="total-leave">0.0H</div>
                         <div class="stat-label-compact">总请假</div>
-                        <div class="stat-subtext-compact">扣款: <span id="leave-deduction">0.00</span></div>
+                        <div class="stat-subtext-compact">扣款: <span id="leave-deduction">0.00</span></div><div class="stat-subtext-compact deduction-card-detail" id="deduction-card-detail">五险一金：未启用</div>
                     </div>
                 </div>
 
@@ -1130,15 +1134,27 @@
         </div>
     </div>
 
-    <footer class="app-signature"><span class="brand-orange">🍊</span><strong>加班工时计算系统 v6.0</strong><span>作者：MGHYGitHub · 橙子🍊</span></footer>
+    <footer class="app-signature"><span class="brand-orange">🍊</span><strong>加班工时计算系统 v6.2</strong><span>作者：MGHYGitHub · 橙子🍊</span><button id="holiday-settings-trigger" class="holiday-settings-trigger" type="button" title="连续点击两次打开节假日设置" aria-label="节假日设置"><i class="fas fa-calendar-alt"></i></button></footer>
+    <div id="holiday-settings-modal" class="holiday-settings-modal" hidden>
+        <section class="holiday-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="holiday-settings-title">
+            <button id="holiday-settings-close" class="holiday-settings-close" type="button" aria-label="关闭">&times;</button>
+            <div class="holiday-settings-icon"><i class="fas fa-calendar-check"></i></div>
+            <p class="holiday-settings-eyebrow">HOLIDAY CALENDAR</p><h2 id="holiday-settings-title">节假日可视化设置</h2>
+            <div class="holiday-calendar-toolbar"><button id="holiday-prev-month" type="button">‹</button><select id="holiday-year-select" aria-label="年份"></select><select id="holiday-month-select" aria-label="月份"></select><button id="holiday-next-month" type="button">›</button></div>
+            <p class="holiday-settings-help">导入国家节假日表后，可在右侧 JSON 中微调。红色为法定节假日，橙色为调休日，紫色为补班日。</p>
+            <div class="holiday-settings-grid"><div class="holiday-calendar-preview" id="holiday-calendar-preview"></div><textarea id="holiday-json-editor" spellcheck="false" aria-label="节假日 JSON"></textarea></div>
+            <div class="holiday-legend"><span><i class="legend-dot holiday"></i>法定节假日</span><span><i class="legend-dot extra"></i>调休日</span><span><i class="legend-dot makeup"></i>补班日</span><span><i class="legend-dot normal"></i>普通日期</span></div>
+            <div class="holiday-settings-actions"><button id="holiday-clear-btn" type="button" class="holiday-clear-btn"><i class="fas fa-eraser"></i> 一键清除全部标记</button><label class="holiday-import-btn"><i class="fas fa-file-import"></i> 导入 JSON<input id="holiday-import-input" type="file" accept="application/json,.json" hidden></label><button id="holiday-reset-btn" type="button">恢复当前年份</button><button id="holiday-export-btn" class="holiday-export-btn" type="button"><i class="fas fa-download"></i> 导出 holiday-config.js</button></div>
+        </section>
+    </div>
 
     <aside class="update-announcement" id="update-announcement" aria-live="polite">
-        <button class="announcement-tab" id="announcement-tab" type="button"><i class="fas fa-bullhorn"></i><span>v6.0 更新</span></button>
+        <button class="announcement-tab" id="announcement-tab" type="button"><i class="fas fa-bullhorn"></i><span>v6.2 更新</span></button>
         <div class="announcement-panel">
             <button class="announcement-close" id="announcement-close" type="button" aria-label="收起公告">&times;</button>
-            <div class="announcement-heading"><span>🍊</span><div><strong>v6.0 更新公告</strong><small>MGHYGitHub · 橙子🍊</small></div></div>
+            <div class="announcement-heading"><span>🍊</span><div><strong>v6.2 更新公告（含 v6.1）</strong><small>MGHYGitHub · 橙子🍊</small></div></div>
             <p>这次把页面从“记录工具”升级成了更完整的加班管理台：</p>
-            <ul><li>新增夜班录入、周末夜班、时段选择与快速模板</li><li>新增深浅色主题、趋势图、月度汇总与预算提醒</li><li>支持备注、明细筛选、撤销、复制上次、备份恢复</li><li>Excel 导入冲突处理；Excel 与 Datalink 均支持导出预览</li><li>日历、全局统计、移动端与深色模式均已重新优化</li></ul>
+            <ul><li>v6.2：夜班节假日、调休日启用 8H 主班，并统一填报 01:00–03:00 休息时间</li><li>v6.1：新增节假日可视化设置、JSON 导入导出和深色模式兼容</li><li>v6.2：优化手机端明细表横向浏览，新增移动端自适应布局</li><li>v6.2：新增夜班补贴、五险一金及个税估算明细</li></ul>
             <label class="announcement-option"><input id="announcement-dismiss" type="checkbox"> 此版本不再自动弹出</label>
         </div>
     </aside>
@@ -1410,11 +1426,16 @@
     </style>
 
     <script>
-        console.info('%c🍊 加班工时计算系统 v6.0', 'color:#ff8a00;font-size:18px;font-weight:700;');
+      document.getElementById('holiday-clear-btn')?.addEventListener('click',()=>{const e=document.getElementById('holiday-json-editor');if(!e)return;e.value=JSON.stringify({holidays:[],extraWorkDays:[],makeUpWorkDays:[]},null,2);e.dispatchEvent(new Event('input'));});
+    </script>
+    <script>
+        console.info('%c🍊 加班工时计算系统 v6.2', 'color:#ff8a00;font-size:18px;font-weight:700;');
         console.info('%c作者：MGHYGitHub · 橙子🍊  |  请认准官方署名', 'color:#ff8a00;font-size:13px;font-weight:600;');
         // ========== 初始化变量 ==========
         let currentDate = new Date();
         let salary = localStorage.getItem('salary') || 4900;
+        let nightSubsidy = Number(localStorage.getItem('nightSubsidy') || 20);
+        let socialInsuranceEnabled = localStorage.getItem('socialInsuranceEnabled') === 'true';
         let isMultiselectMode = false;
         let isNightShiftMode = false;
         let selectedDates = new Set();
@@ -1429,6 +1450,8 @@
 
         // DOM 元素
         const salaryInput = document.getElementById('salary');
+        const nightSubsidyInput = document.getElementById('night-subsidy');
+        const socialInsuranceToggle = document.getElementById('social-insurance-toggle');
         const dailySalaryEl = document.getElementById('daily-salary');
         const hourlySalaryEl = document.getElementById('hourly-salary');
         const totalOvertimeEl = document.getElementById('total-overtime');
@@ -2166,7 +2189,13 @@
             const overtimePayC = (overtimeC * hourlySalary * 3).toFixed(2);
             const totalOvertimePay = (parseFloat(overtimePayA) + parseFloat(overtimePayB) + parseFloat(overtimePayC)).toFixed(2);
             const leaveDeduction = (totalLeaveHours * hourlySalary * 1.5).toFixed(2);
-            const netIncome = (parseFloat(salary) + parseFloat(totalOvertimePay) - parseFloat(leaveDeduction)).toFixed(2);
+            const nightDays = Object.values(overtimeData).filter(item => item.nightShift && !item.isLeave).length;
+            const subsidy = nightDays * (Number(nightSubsidy) || 0);
+            const grossIncome = parseFloat(salary) + parseFloat(totalOvertimePay) + subsidy - parseFloat(leaveDeduction);
+            const insurance = socialInsuranceEnabled ? grossIncome * 0.105 : 0;
+            const taxable = Math.max(0, grossIncome - insurance - 5000);
+            const tax = socialInsuranceEnabled ? (taxable <= 36000 ? taxable * 0.03 : 36000 * 0.03 + (taxable - 36000) * 0.1) : 0;
+            const netIncome = (grossIncome - insurance - tax).toFixed(2);
 
             // ✅ 更新UI
             totalOvertimeEl.textContent = totalOvertimeHours.toFixed(1) + 'H';           // 原始加班总时长
@@ -2178,6 +2207,10 @@
             overtimeBEl.textContent = 'B：' + overtimePayB;
             overtimeCEl.textContent = 'C：' + overtimePayC;
             netIncomeEl.textContent = netIncome;
+            netIncomeEl.title = `夜班补贴 ${subsidy.toFixed(2)} 元｜五险一金估算 ${insurance.toFixed(2)} 元｜个税估算 ${tax.toFixed(2)} 元`;
+            const detailEl = document.getElementById('deduction-detail'); if (detailEl) detailEl.innerHTML = socialInsuranceEnabled ? `养老 ${ (grossIncome*.08).toFixed(2)}｜医疗 ${(grossIncome*.02).toFixed(2)}｜失业 ${(grossIncome*.005).toFixed(2)}｜工伤 ${(grossIncome*.002).toFixed(2)}｜生育 ${(grossIncome*.001).toFixed(2)}｜公积金 ${(grossIncome*.05).toFixed(2)}<br>五险一金估算：${insurance.toFixed(2)} 元｜个税估算：${tax.toFixed(2)} 元｜夜班补贴：${subsidy.toFixed(2)} 元` : `夜班补贴：${subsidy.toFixed(2)} 元｜五险一金/个税未启用`;
+            const updatedEl = document.getElementById('deduction-updated'); if (updatedEl) updatedEl.textContent = new Date().toLocaleDateString('zh-CN');
+            const deductionCard = document.getElementById('deduction-card-detail'); if (deductionCard) deductionCard.textContent = socialInsuranceEnabled ? `五险一金：${insurance.toFixed(2)}｜个税：${tax.toFixed(2)}` : '五险一金：未启用';
 
             updateWeeklyProgress();
             markLimitWarnings();
@@ -2463,7 +2496,8 @@
             const nextDate = new Date(date);
             nextDate.setDate(nextDate.getDate() + 1);
             const nextText = formatNightShiftDate(nextDate);
-            const isWeekendNight = getDateType(date) === 'weekend';
+            const dateType = getDateType(date);
+            const isWeekendNight = ['weekend', 'holiday', 'extraWork'].includes(dateType);
             const coreHours = isWeekendNight ? 8 : 0;
             const overlay = document.createElement('div');
             overlay.className = 'night-sheet-overlay';
@@ -2478,7 +2512,7 @@
                     ${isWeekendNight ? `<label class="night-slot"><input type="checkbox" checked disabled><i class="far fa-moon"></i><div><strong>21:00 – 次日 07:00</strong><span>${formatNightShiftDate(date)} · 休息 ${nextText} 01:00 – 03:00</span></div><b>8H 必选</b></label>` : ''}
                     <label class="night-slot"><input class="night-slot-choice" type="checkbox" value="0" ${!existingSlots || existingSlots.some(slot => slot.start === getNightShiftSlots(date)[0].start) ? 'checked' : ''}><i class="far fa-clock"></i><div><strong>02:00 – 03:00</strong><span>${nextText}</span></div><b>1H</b></label>
                     <label class="night-slot"><input class="night-slot-choice" type="checkbox" value="1" ${!existingSlots || existingSlots.some(slot => slot.start === getNightShiftSlots(date)[1].start) ? 'checked' : ''}><i class="far fa-clock"></i><div><strong>07:30 – 08:30</strong><span>${nextText}</span></div><b>1H</b></label>
-                    <p class="night-sheet-note"><i class="fas fa-info-circle"></i> 休息时间按 ${nextText} 00:00 至 00:00 填报。</p>
+                    <p class="night-sheet-note"><i class="fas fa-info-circle"></i> 8H 主班休息时间按 ${nextText} 01:00 至 03:00 填报；其余时段休息时间留空。</p>
                     <div class="night-sheet-actions">${existingData?.nightShift ? '<button class="night-sheet-delete" type="button"><i class="fas fa-trash-alt"></i> 删除</button>' : '<button class="night-sheet-cancel" type="button">取消</button>'}<button class="night-sheet-save" type="button"><i class="fas fa-check"></i> 保存夜班</button></div>
                 </div>`;
             const close = () => overlay.remove();
@@ -2526,7 +2560,7 @@
                     close();
                     showNotification(`已记录 ${formatNightShiftDate(date)} 的夜班加班 ${hours} 小时`, 'success');
                 };
-                await validateAndSaveOvertime(date, selected.length, false, dayElement, dateString, overtimeData, saveNightShift);
+                await validateAndSaveOvertime(date, coreHours + selected.length, false, dayElement, dateString, overtimeData, saveNightShift);
             };
             document.body.appendChild(overlay);
             overlay.querySelector('.night-sheet-save').focus();
@@ -2542,9 +2576,8 @@
         }
 
         function initAppearance() {
-            const savedTheme = localStorage.getItem('overtimeTheme');
-            setTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-            themeToggle.onclick = () => setTheme(document.body.dataset.theme === 'dark' ? 'light' : 'dark');
+            setTheme('dark');
+            themeToggle.hidden = true;
             setNightShiftMode(localStorage.getItem('nightShiftMode') === 'true');
             nightModeToggle.onclick = () => setNightShiftMode(!isNightShiftMode, true);
         }
@@ -2897,12 +2930,16 @@
             initAppearance();
             initUpdateAnnouncement();
             salaryInput.value = salary;
+            nightSubsidyInput.value = nightSubsidy;
+            socialInsuranceToggle.checked = socialInsuranceEnabled;
             calculateSalaries();
             renderCalendar();
             updateExcelTable();
             initMultiselect();
             initKeyboardShortcuts();
             salaryInput.oninput = () => { salary = parseFloat(salaryInput.value) || 0; calculateSalaries(); updateStats(); updateExcelTable(); saveToLocalStorage(); };
+            nightSubsidyInput.oninput = () => { nightSubsidy = Math.max(0, Number(nightSubsidyInput.value) || 0); localStorage.setItem('nightSubsidy', nightSubsidy); updateStats(); };
+            socialInsuranceToggle.onchange = () => { socialInsuranceEnabled = socialInsuranceToggle.checked; localStorage.setItem('socialInsuranceEnabled', String(socialInsuranceEnabled)); updateStats(); };
             prevMonthBtn.onclick = () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); updateExcelTable(); };
             nextMonthBtn.onclick = () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); updateExcelTable(); };
             exportExcelBtn.onclick = async () => {
@@ -3057,10 +3094,13 @@
                 const endDateDash = endDateSlash.replaceAll('/', '-');
                 const startTime = slot.start.slice(-5);
                 const endTime = slot.end.slice(-5);
+                const isCore = Boolean(slot.weekendCore);
+                const restStartTime = isCore ? '01:00' : '';
+                const restEndTime = isCore ? '03:00' : '';
                 return [
                 settings.reporterInfo, settings.employeeId, settings.employeeName, settings.teamGroup, '夜班',
                 startDateDash, startTime, endDateDash, endTime,
-                '', '', attendanceDate,
+                restStartTime, restEndTime, attendanceDate,
                 slot.start, slot.end, slot.restStart, slot.restEnd,
                 '转加班费/Overtime For Salary', settings.overtimeReason, '',
                 settings.backupOvertime || '70', null, null, null, null, null, null, null, null
@@ -3387,6 +3427,29 @@
         updateGlobalStats();
         bindGlobalStatsEvents();
     </script>
+    <style>
+      .holiday-settings-trigger{margin-left:auto;width:34px;height:34px;border:1px solid var(--ui-separator,#d9d9de);border-radius:50%;background:var(--ui-fill,#f2f2f7);color:var(--ui-blue,#0a84ff);cursor:pointer;transition:.2s}.holiday-settings-trigger:hover{transform:scale(1.08);background:var(--ui-blue,#0a84ff);color:#fff}.holiday-settings-modal{position:fixed;inset:0;z-index:31000;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.45);backdrop-filter:blur(12px)}.holiday-settings-modal[hidden]{display:none}.holiday-settings-dialog{position:relative;width:min(900px,100%);max-height:90vh;overflow:auto;padding:28px;color:var(--ui-text,#1d1d1f);background:var(--ui-bg-elevated,#fff);border:1px solid var(--ui-separator,#d9d9de);border-radius:24px;box-shadow:0 28px 90px rgba(0,0,0,.28)}.holiday-settings-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border:0;border-radius:50%;background:var(--ui-fill,#f2f2f7);color:inherit;font-size:22px;cursor:pointer}.holiday-settings-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#0a84ff;color:#fff;font-size:20px}.holiday-settings-eyebrow{margin:16px 0 4px;color:#0a84ff;font-size:11px;font-weight:800;letter-spacing:.12em}.holiday-settings-dialog h2{margin:0;font-size:25px}.holiday-settings-help{color:var(--ui-secondary,#6e6e73);font-size:13px}.holiday-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.holiday-calendar-preview,.holiday-settings-grid textarea{min-height:300px;padding:14px;border:1px solid var(--ui-separator,#d9d9de);border-radius:14px;background:var(--ui-fill,#f7f7f9);box-sizing:border-box}.holiday-calendar-preview{display:grid;align-content:start;gap:8px;font-size:13px}.holiday-preview-row{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:9px;background:rgba(10,132,255,.08)}.holiday-dot{width:9px;height:9px;border-radius:50%;background:#ff453a}.holiday-dot.extra{background:#ff9f0a}.holiday-dot.makeup{background:#bf5af2}.holiday-settings-grid textarea{width:100%;resize:vertical;font:12px/1.5 ui-monospace,Consolas,monospace;color:inherit}.holiday-settings-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:14px}.holiday-settings-actions button,.holiday-import-btn{padding:10px 14px;border:1px solid var(--ui-separator,#d9d9de);border-radius:10px;background:var(--ui-fill,#f2f2f7);color:inherit;cursor:pointer;font:inherit}.holiday-import-btn,.holiday-export-btn{color:#fff!important;background:#0a84ff!important;border-color:transparent!important}@media(max-width:700px){.holiday-settings-grid{grid-template-columns:1fr}.holiday-settings-dialog{padding:22px 16px}.holiday-calendar-preview,.holiday-settings-grid textarea{min-height:220px}}
+      body[data-theme="dark"] .holiday-settings-dialog{color:#f5f5f7;background:#1c1c1e;border-color:#48484a}body[data-theme="dark"] .holiday-calendar-preview,body[data-theme="dark"] .holiday-settings-grid textarea,body[data-theme="dark"] .holiday-settings-actions button,body[data-theme="dark"] .holiday-import-btn{background:#2c2c2e;border-color:#545458;color:#f5f5f7}
+      body{color-scheme:light}body[data-theme="dark"]{color-scheme:dark}body[data-theme="dark"] input,body[data-theme="dark"] select,body[data-theme="dark"] textarea{color-scheme:dark}body[data-theme="dark"] ::placeholder{color:#98989d!important;opacity:1}body[data-theme="dark"] .card,body[data-theme="dark"] .modal-content,body[data-theme="dark"] .custom-confirm-dialog{color:#f5f5f7;background:#1c1c1e;border-color:#48484a}body[data-theme="dark"] label,body[data-theme="dark"] small,body[data-theme="dark"] p{ text-shadow:none }
+      html,body{background:#101012!important;color:#f5f5f7!important;color-scheme:dark!important}body[data-theme="dark"] .container,body[data-theme="dark"] header,body[data-theme="dark"] .card,body[data-theme="dark"] .global-stats-collapse{background:#1c1c1e!important;border-color:#38383c!important}body[data-theme="dark"] .excel-table th{background:#303034!important;color:#f5f5f7!important}body[data-theme="dark"] .excel-table td{background:#1c1c1e!important;color:#f5f5f7!important}body[data-theme="dark"] .stat-label-compact,body[data-theme="dark"] .label-sm,body[data-theme="dark"] .card-title,body[data-theme="dark"] .compact-title{color:#d1d1d6!important}body[data-theme="dark"] .holiday-calendar-preview{display:block;min-height:320px}.holiday-month-title{display:flex;justify-content:space-between;margin-bottom:10px;font-weight:700}.holiday-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.holiday-week b,.holiday-date{padding:7px 2px;text-align:center;border-radius:7px}.holiday-week b{color:#a1a1a6;font-size:11px}.holiday-date{min-height:30px;background:#242428;color:#f5f5f7;cursor:context-menu}.holiday-date.empty{visibility:hidden}.holiday-date.holiday{background:#5b2428;color:#ff9b94}.holiday-date.extra{background:#5a4217;color:#ffd166}.holiday-date.makeup{background:#49316b;color:#d7b4ff}.holiday-context{position:fixed;z-index:32000;padding:6px;background:#2c2c2e;border:1px solid #545458;border-radius:10px;box-shadow:0 10px 30px #0008}.holiday-context button{display:block;width:130px;padding:8px;border:0;border-radius:6px;background:transparent;color:#f5f5f7;text-align:left;cursor:pointer}.holiday-context button:hover{background:#0a84ff}
+      body[data-theme="dark"] header{background-image:linear-gradient(90deg,rgba(28,28,30,.99) 0%,rgba(28,28,30,.82) 36%,rgba(28,28,30,.28) 72%,rgba(28,28,30,.08) 100%),url('assets/desk-at-dusk-wallpaper.png')!important;background-position:center,right center!important;background-size:cover,cover!important}.pay-option{display:flex!important;align-items:center;gap:8px;margin-top:12px!important;color:#d1d1d6!important;font-size:12px!important}.pay-option input{accent-color:#0a84ff}.holiday-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;color:#d1d1d6;font-size:12px}.legend-dot{display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:50%}.legend-dot.holiday{background:#ff453a}.legend-dot.extra{background:#ff9f0a}.legend-dot.makeup{background:#bf5af2}.legend-dot.normal{background:#626267}.holiday-clear-btn{color:#ff9b94!important;border-color:#74373b!important;background:#3b2024!important}
+      #theme-toggle,.header-theme-toggle{display:none!important}.holiday-calendar-toolbar{display:flex;justify-content:center;align-items:center;gap:8px;margin:14px 0}.holiday-calendar-toolbar button,.holiday-calendar-toolbar select{padding:8px 12px;border:1px solid #545458;border-radius:8px;background:#2c2c2e;color:#f5f5f7;font:inherit}.holiday-calendar-toolbar button{font-size:20px;line-height:1;cursor:pointer}
+      .pay-option{padding:8px 10px;border-radius:9px;background:#8f2d35!important;color:#fff!important;font-weight:700!important;cursor:pointer}.pay-option:has(input:checked){background:#1f8f57!important}.pay-option input{display:none}.deduction-detail{margin-top:8px;color:#f5f5f7;font-size:12px;font-weight:700}.deduction-source{margin-top:3px;color:#64b5ff;font-size:11px}
+      .deduction-detail{line-height:1.7;white-space:nowrap}.deduction-source{line-height:1.5}.deduction-source::first-line{color:#64b5ff}.deduction-source{cursor:pointer}.deduction-source:hover{text-decoration:underline}
+      .compact-salary-card{display:flex!important;flex-wrap:wrap!important;align-items:center!important}.compact-salary-card .salary-basic-compact,.compact-salary-card .overtime-rates-compact,.compact-salary-card .stats-compact-container{min-width:0}.compact-salary-card .salary-basic-compact{flex:1 1 100%!important;display:flex!important;align-items:center!important;gap:14px!important;flex-wrap:wrap!important}.compact-salary-card .salary-basic-compact>.compact-title{flex:0 0 auto}.compact-salary-card .salary-basic-compact>.input-group-compact{display:flex!important;align-items:center!important;gap:10px!important;flex:1 1 auto}.compact-salary-card .salary-display-compact{flex:0 0 auto!important}.compact-salary-card .deduction-detail,.compact-salary-card .deduction-source{flex:0 0 100%!important;width:100%!important;box-sizing:border-box!important;padding-left:4px}.compact-salary-card .deduction-detail{white-space:normal!important;overflow-wrap:anywhere!important}.deduction-source a{color:#64b5ff!important;text-decoration:none}.deduction-source a:hover{text-decoration:underline}
+      .compact-salary-card>.overtime-rates-compact,.compact-salary-card>.stats-compact-container{flex:1 1 100%!important;width:100%!important;max-width:none!important;box-sizing:border-box!important}.compact-salary-card>.overtime-rates-compact .rates-grid-compact,.compact-salary-card>.stats-compact-container .stats-grid-compact{width:100%!important}
+      .salary-basic-compact>.pay-option{flex:0 0 auto!important;margin:0!important;white-space:nowrap;align-self:center}.deduction-card-detail{color:#64b5ff!important;font-size:11px!important;margin-top:4px}
+      @media(max-width:768px){.excel-table-container{width:100%!important;max-width:100vw!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch!important}.excel-table{min-width:720px!important;width:720px!important}.excel-table-header{min-width:720px!important}.excel-table-actions{flex-wrap:wrap!important}.update-announcement{bottom:12px!important;top:auto!important;right:8px!important}.update-announcement.is-collapsed{bottom:70px!important}.compact-salary-card .salary-basic-compact{gap:8px!important}.compact-salary-card .salary-basic-compact>.input-group-compact{flex-wrap:wrap!important}.compact-salary-card .salary-basic-compact>.pay-option{font-size:11px!important}}
+    </style>
+    <script>
+      (()=>{const trigger=document.getElementById('holiday-settings-trigger'),modal=document.getElementById('holiday-settings-modal'),close=document.getElementById('holiday-settings-close'),editor=document.getElementById('holiday-json-editor'),preview=document.getElementById('holiday-calendar-preview');if(!trigger||!modal)return;let taps=0,timer;const year=String(new Date().getFullYear());const current=()=>holidayConfig[year]||{holidays:[],extraWorkDays:[],makeUpWorkDays:[]};const render=()=>{try{const data=JSON.parse(editor.value),rows=[...(data.holidays||[]).map(d=>['holiday','法定节假日',d]),...(data.extraWorkDays||[]).map(d=>['extra','调休日',d]),...(data.makeUpWorkDays||[]).map(d=>['makeup','补班日',d])].sort((a,b)=>a[2].localeCompare(b[2]));preview.innerHTML=`<strong>${year} 年已配置 ${rows.length} 天</strong>`+rows.slice(0,18).map(r=>`<div class="holiday-preview-row"><i class="holiday-dot ${r[0]}"></i><span>${r[2]}</span><b>${r[1]}</b></div>`).join('')+(rows.length>18?`<small>还有 ${rows.length-18} 天，请在右侧编辑器查看</small>`:'')}catch{preview.innerHTML='<span>JSON 格式暂不可预览，请检查括号和引号。</span>'}};const open=()=>{editor.value=JSON.stringify(current(),null,2);render();modal.hidden=false;editor.focus()};trigger.onclick=()=>{taps++;clearTimeout(timer);timer=setTimeout(()=>taps=0,650);if(taps>=2){taps=0;open()}};close.onclick=()=>modal.hidden=true;modal.onclick=e=>{if(e.target===modal)modal.hidden=true};editor.oninput=render;document.getElementById('holiday-reset-btn').onclick=()=>{editor.value=JSON.stringify(current(),null,2);render()};document.getElementById('holiday-import-input').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result);editor.value=JSON.stringify(parsed[year]||parsed,null,2);render()}catch{alert('导入失败：请使用 JSON 格式')}};r.readAsText(f);e.target.value=''};document.getElementById('holiday-export-btn').onclick=()=>{try{const data=JSON.parse(editor.value),source=`// 节假日配置（由 v6.2 可视化设置导出）\nconst holidayConfig = ${JSON.stringify({[year]:data},null,2)};\n\n`+'// 运行时函数请保留原 holiday-config.js 中的实现。';const blob=new Blob([source],{type:'text/javascript;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='holiday-config.js';a.click();URL.revokeObjectURL(a.href)}catch{alert('无法导出：请先修正 JSON')}}})()
+    </script>
+    <script>
+      (()=>{const modal=document.getElementById('holiday-settings-modal'),preview=document.getElementById('holiday-calendar-preview'),editor=document.getElementById('holiday-json-editor');if(!modal||!preview||!editor)return;let menu;const closeMenu=()=>{menu?.remove();menu=null};const draw=()=>{let d;try{d=JSON.parse(editor.value)}catch{return}const y=new Date().getFullYear(),m=new Date().getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),type=(s)=>d.holidays?.includes(s)?'holiday':d.extraWorkDays?.includes(s)?'extra':d.makeUpWorkDays?.includes(s)?'makeup':'';let h=`<div class="holiday-month-title"><span>${y} 年 ${m+1} 月</span><small>右键日期设置类型</small></div><div class="holiday-week"><b>日</b><b>一</b><b>二</b><b>三</b><b>四</b><b>五</b><b>六</b>`;for(let i=0;i<first;i++)h+='<span class="holiday-date empty"></span>';for(let day=1;day<=days;day++){const s=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;h+=`<span class="holiday-date ${type(s)}" data-date="${s}">${day}</span>`}preview.innerHTML=h+'</div>';preview.querySelectorAll('.holiday-date[data-date]').forEach(el=>el.oncontextmenu=e=>{e.preventDefault();closeMenu();menu=document.createElement('div');menu.className='holiday-context';menu.style.left=e.clientX+'px';menu.style.top=e.clientY+'px';[['holiday','法定节假日'],['extra','调休日'],['makeup','补班日'],['clear','清除标记']].forEach(([kind,label])=>{const b=document.createElement('button');b.textContent=label;b.onclick=()=>{let x=JSON.parse(editor.value);for(const k of ['holidays','extraWorkDays','makeUpWorkDays'])x[k]=(x[k]||[]).filter(v=>v!==el.dataset.date);if(kind==='holiday')x.holidays.push(el.dataset.date);if(kind==='extra')x.extraWorkDays.push(el.dataset.date);if(kind==='makeup')x.makeUpWorkDays.push(el.dataset.date);editor.value=JSON.stringify(x,null,2);draw();closeMenu()};menu.appendChild(b)});document.body.appendChild(menu)});};editor.addEventListener('input',draw);modal.addEventListener('click',e=>{if(e.target===modal)closeMenu()});new MutationObserver(()=>{if(!modal.hidden)draw()}).observe(modal,{attributes:true,attributeFilter:['hidden']});document.addEventListener('click',e=>{if(menu&&!menu.contains(e.target))closeMenu()})})()
+    </script>
+<script>document.getElementById('holiday-clear-btn')?.addEventListener('click',()=>{const e=document.getElementById('holiday-json-editor');if(!e)return;e.value=JSON.stringify({holidays:[],extraWorkDays:[],makeUpWorkDays:[]},null,2);e.dispatchEvent(new Event('input'));});(()=>{const p=document.getElementById('holiday-calendar-preview'),e=document.getElementById('holiday-json-editor'),ys=document.getElementById('holiday-year-select'),ms=document.getElementById('holiday-month-select');if(!p||!e||!ys||!ms)return;let cy=new Date().getFullYear(),cm=new Date().getMonth();for(let y=2020;y<=2035;y++)ys.add(new Option(y+' 年',y));for(let m=0;m<12;m++)ms.add(new Option((m+1)+' 月',m));ys.value=cy;ms.value=cm;const draw=()=>{let d;try{d=JSON.parse(e.value)}catch{return}ys.value=cy;ms.value=cm;const first=new Date(cy,cm,1).getDay(),days=new Date(cy,cm+1,0).getDate(),kind=s=>d.holidays?.includes(s)?'holiday':d.extraWorkDays?.includes(s)?'extra':d.makeUpWorkDays?.includes(s)?'makeup':'';let h=`<div class="holiday-month-title"><span>${cy} 年 ${cm+1} 月</span><small>右键日期设置类型</small></div><div class="holiday-week"><b>日</b><b>一</b><b>二</b><b>三</b><b>四</b><b>五</b><b>六</b>`;for(let i=0;i<first;i++)h+='<span class="holiday-date empty"></span>';for(let i=1;i<=days;i++){const s=`${cy}-${String(cm+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;h+=`<span class="holiday-date ${kind(s)}" data-date="${s}">${i}</span>`}p.innerHTML=h+'</div>';p.querySelectorAll('[data-date]').forEach(x=>x.oncontextmenu=a=>{a.preventDefault();const c=prompt('输入类型：holiday=法定节假日，extra=调休日，makeup=补班日，clear=清除',kind(x.dataset.date)||'holiday');if(!c)return;let z=JSON.parse(e.value);for(const k of ['holidays','extraWorkDays','makeUpWorkDays'])z[k]=(z[k]||[]).filter(v=>v!==x.dataset.date);if(c==='holiday')z.holidays.push(x.dataset.date);if(c==='extra')z.extraWorkDays.push(x.dataset.date);if(c==='makeup')z.makeUpWorkDays.push(x.dataset.date);e.value=JSON.stringify(z,null,2);draw()})};ys.onchange=()=>{cy=+ys.value;draw()};ms.onchange=()=>{cm=+ms.value;draw()};document.getElementById('holiday-prev-month').onclick=()=>{cm--;if(cm<0){cm=11;cy--}draw()};document.getElementById('holiday-next-month').onclick=()=>{cm++;if(cm>11){cm=0;cy++}draw()};document.getElementById('holiday-reset-btn')?.addEventListener('click',()=>setTimeout(draw,50));setInterval(()=>{if(!document.getElementById('holiday-settings-modal')?.hidden)draw()},300);})();</script>
+<script>document.getElementById('holiday-reset-btn')?.addEventListener('click',()=>{const p=document.getElementById('holiday-calendar-preview');if(p){p.style.visibility='hidden';setTimeout(()=>p.style.visibility='visible',360)}} ,true);</script>
+<script>document.getElementById('holiday-calendar-preview')?.addEventListener('contextmenu',e=>{const d=e.target.closest('[data-date]');if(!d)return;e.preventDefault();e.stopImmediatePropagation();document.querySelector('.holiday-context')?.remove();const m=document.createElement('div');m.className='holiday-context';m.style.cssText=`position:fixed;z-index:40000;left:${e.clientX}px;top:${e.clientY}px`;[['holiday','法定节假日'],['extra','调休日'],['makeup','补班日'],['clear','清除标记']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{const j=document.getElementById('holiday-json-editor'),x=JSON.parse(j.value);for(const a of ['holidays','extraWorkDays','makeUpWorkDays'])x[a]=(x[a]||[]).filter(v=>v!==d.dataset.date);if(k==='holiday')x.holidays.push(d.dataset.date);if(k==='extra')x.extraWorkDays.push(d.dataset.date);if(k==='makeup')x.makeUpWorkDays.push(d.dataset.date);j.value=JSON.stringify(x,null,2);j.dispatchEvent(new Event('input'));m.remove()};m.appendChild(b)});document.body.appendChild(m);setTimeout(()=>document.addEventListener('click',()=>m.remove(),{once:true}),0)},true);</script>
 </body>
 
 </html>
