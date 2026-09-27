@@ -1,4 +1,28 @@
 const linksData = [
+  {
+    category: "本地工具",
+    name: "蓝膜 Mapping v3.1",
+    url: "./Mapping/Mapping3.1.0.html",
+    mainDesc: "",
+    subDesc: "工业离线矩阵管理与导出",
+    icon: "▦"
+  },
+  {
+    category: "本地工具",
+    name: "CPK 分析 v3.1",
+    url: "./CPK/CPK3.1.0.html",
+    mainDesc: "",
+    subDesc: "规格识别、条码筛选与 CPK 分析",
+    icon: "◫"
+  },
+  {
+    category: "本地工具",
+    name: "站点监控中心",
+    url: "./站点监控/站点监控.html",
+    mainDesc: "",
+    subDesc: "mghy.top 子域名在线状态与响应延迟",
+    icon: "◉"
+  },
   // {
   //   category: "搜索引擎",
   //   name: "百度",

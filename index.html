@@ -117,13 +117,7 @@
       const cardModal = document.getElementById('cardModal');
       const cardForm = document.getElementById('cardForm');
       const CUSTOM_CARDS_KEY = 'mghyPortalCustomCards';
-      const localTools = [
-        { category: '本地工具', name: '蓝膜 Mapping v3.1', url: './Mapping/Mapping3.1.0.html', mainDesc: '', subDesc: '工业离线矩阵管理与导出', icon: '▦' },
-        { category: '本地工具', name: 'CPK 分析 v3.1', url: './CPK/CPK3.1.0.html', mainDesc: '', subDesc: '规格识别、条码筛选与 CPK 分析', icon: '◫' },
-        { category: '本地工具', name: '在线计时器', url: './在线计时器/在线计时器.html', mainDesc: '', subDesc: '秒表、倒计时与工作记录', localIcon: 'icons/jsq.ico' },
-        { category: '本地工具', name: '工时记录表', url: './工时3.0/加班4.0.html', mainDesc: '', subDesc: '工资、加班与工时管理', localIcon: 'icons/gs.ico' },
-        { category: '本地工具', name: '站点监控中心', url: './站点监控/站点监控.html', mainDesc: '', subDesc: 'mghy.top 子域名在线状态与响应延迟', icon: '◉' }
-      ];
+      const localTools = [];
       let customCards = loadCustomCards();
       let portalLinks = buildPortalLinks();
 
@@ -133,8 +127,14 @@
       }
 
       function buildPortalLinks() {
-        const defaults = linksData.filter(item => !localTools.some(tool => tool.url === item.url || tool.name === item.name));
-        return [...localTools, ...defaults, ...customCards.map(item => ({ ...item, isCustom: true }))];
+        const merged = [...localTools, ...linksData, ...customCards.map(item => ({ ...item, isCustom: true }))];
+        const seen = new Set();
+        return merged.filter(item => {
+          const key = `${item.name}|${item.url}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       }
 
       function escapeHtml(value) {
