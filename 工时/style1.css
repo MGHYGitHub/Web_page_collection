@@ -4857,3 +4857,59 @@ body[data-theme="dark"] .calendar-day.extra-work { background: #45320f !importan
 body[data-theme="dark"] .calendar-day.make-up-work { background: #302046 !important; border-color: #7b55aa !important; }
 body[data-theme="dark"] .excel-table th { background: #2c2c2e !important; color: #e5e5ea !important; }
 body[data-theme="dark"] .excel-table td { background: #1c1c1e !important; color: #f5f5f7 !important; }
+/* Explicit dark surfaces and text, independent of OS/browser appearance. */
+html body[data-theme] .compact-salary-card .salary-display-compact .salary-item-compact,
+html body[data-theme] .compact-salary-card .salary-display-compact .salary-item-compact:hover,
+html body[data-theme] .calendar-container .legend .legend-item,
+html body[data-theme] .calendar-container .legend .legend-item:hover,
+html body[data-theme] .legend .legend-item,
+html body[data-theme] .legend .legend-item:hover {
+    background: #242428 !important;
+    background-image: none !important;
+    border: 1px solid #54545c !important;
+    color: #f5f5f7 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+    color-scheme: dark !important;
+}
+html body[data-theme] .compact-salary-card .salary-item-compact .label-sm {
+    color: #d1d1d6 !important;
+    -webkit-text-fill-color: #d1d1d6 !important;
+    opacity: 1 !important;
+}
+html body[data-theme] .compact-salary-card .salary-item-compact .value-sm {
+    color: #64d2ff !important;
+    -webkit-text-fill-color: #64d2ff !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+}
+html body[data-theme] .legend .legend-item span {
+    color: #f5f5f7 !important;
+    -webkit-text-fill-color: #f5f5f7 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+}
+/* Keep overtime rate cards readable independently of the browser theme. */
+body[data-theme] .compact-salary-card .overtime-rates-compact .rate-item-compact {
+    background: #242428 !important;
+    border-color: #54545c !important;
+    color: #f5f5f7 !important;
+}
+body[data-theme] .compact-salary-card .overtime-rates-compact .rate-type-sm {
+    color: #d1d1d6 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #d1d1d6 !important;
+}
+body[data-theme] .compact-salary-card .overtime-rates-compact .rate-value-sm {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #ffffff !important;
+    text-shadow: none !important;
+}
+body[data-theme] .compact-salary-card .overtime-rates-compact .rate-multiplier-sm {
+    color: #ffffff !important;
+    background: #35353d !important;
+    border: 1px solid #73737d !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
