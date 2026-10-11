@@ -7,20 +7,19 @@ const holidayConfig = {
         // 法定节假日（3倍工资）
         holidays: [
             '2026-01-01',  // 元旦
-            '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', // 春节（2月8日为除夕）
+            '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', // 春节
             '2026-04-05', // 清明节
             '2026-05-01', '2026-05-02',  // 劳动节
             '2026-06-19', // 端午节
             '2026-10-01', '2026-10-02', '2026-10-03', // 国庆节
             '2026-09-25', // 中秋节（与国庆节相邻）
         ],
-        // 调休日（周末上班但按2倍计算）
+        // 调休日（休息日加班按2倍计算）
         extraWorkDays: [
             '2026-01-02',
-            '2026-02-20', '2026-02-23', // 春节调休（2月7日周六、2月20日周五上班）
+            '2026-02-20', '2026-02-23', // 春节调休
             '2026-04-06',
-            '2026-05-04', '2026-05-05', // 劳动节调休（4月25日周六、5月8日周五上班）
-            '2026-06-27', // 端午节调休（6月27日周六上班）
+            '2026-05-04', '2026-05-05', // 劳动节调休
             '2026-10-05', '2026-10-06', '2026-10-07',
         ],
         // 补班日（工作日上班，按1.5倍计算）
@@ -43,6 +42,7 @@ const holidayConfig = {
 
 // 日期类型相关函数
 function getDateType(date) {
+    if (!(date instanceof Date) || !Number.isFinite(date.getTime())) return 'workday';
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -56,12 +56,12 @@ function getDateType(date) {
         return dayOfWeek === 0 || dayOfWeek === 6 ? 'weekend' : 'workday';
     }
 
-    if (yearConfig.holidays.includes(dateString)) {
+    if (yearConfig.holidays?.includes(dateString)) {
         return 'holiday';
-    } else if (yearConfig.extraWorkDays.includes(dateString)) {
-        return 'extraWork';
-    } else if (yearConfig.makeUpWorkDays.includes(dateString)) {
+    } else if (yearConfig.makeUpWorkDays?.includes(dateString)) {
         return 'makeUpWork';
+    } else if (yearConfig.extraWorkDays?.includes(dateString)) {
+        return 'extraWork';
     } else {
         const dayOfWeek = date.getDay();
         return dayOfWeek === 0 || dayOfWeek === 6 ? 'weekend' : 'workday';

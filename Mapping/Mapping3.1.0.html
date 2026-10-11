@@ -3,6 +3,9 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" type="image/x-icon" href="../icons/dh.ico">
   <title>蓝膜 Mapping 工具 v3.1.0 - 工业离线版</title>
   <script src="./xlsx.full.min.js"></script>
   <style>
@@ -768,6 +771,31 @@
     #selection-info { color: #f5c45c; } #offline-status { color: #87bfe0; } #offline-status.has-error { color: #ff9b91; }
     #undo-btn:disabled, #redo-btn:disabled { opacity: .38; cursor: not-allowed; filter: grayscale(.4); }.control-btn.lock.is-locked { color: #ffb8ae; background: linear-gradient(180deg, #5a3434, #412727); border-color: #814949; }
     @media (max-width: 768px) { .matrix-meta { align-items: flex-start; flex-direction: column; gap: 5px; } }
+    :root { color-scheme: dark; }
+    .matrix-header { flex-wrap: wrap; }
+    .matrix-meta { flex-basis: 100%; min-width: 0; line-height: 1.5; }
+    .summary { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+    #matrix-container { max-height: 72vh; overscroll-behavior: contain; }
+    .modal { z-index: 3000; padding: 20px; overflow-y: auto; }
+    .modal-content { min-width: 0; width: min(500px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; margin: auto; }
+    .close-btn, .close-btn:hover { color: #dce6ee; }
+    .form-group .field-hint { color: #aab8c5; font-size: 12px; margin-top: 5px; }
+    .form-actions { flex-wrap: wrap; }
+    button:focus-visible, .menu-item:focus-visible, input:focus-visible { outline: 2px solid #f6bd45; outline-offset: 3px; }
+    .control-btn:disabled:hover { transform: none; box-shadow: none; }
+    .protected { color: #aab8c5; background: #2c3641 !important; }
+    .protected.bin-1 { color: #bfdfcc; background: #244737 !important; }
+    .protected.bin-2 { color: #e5b5b5; background: #4e3033 !important; }
+    @media (max-width: 768px) {
+      .matrix-header { flex-wrap: nowrap; }
+      .matrix-meta { flex-basis: auto; width: 100%; margin-top: 0; }
+      .matrix-meta > span { max-width: 100%; overflow-wrap: anywhere; }
+      .modal { padding: 12px; }
+      .modal-content { width: 100%; margin: auto; padding: 20px; max-height: calc(100dvh - 24px); }
+      .announcement-sidebar:has(.announcement-content.show) { display: flex; right: 12px; top: auto; bottom: 92px; }
+      .announcement-sidebar .announcement-toggle { display: none; }
+      .announcement-content { width: min(330px, calc(100vw - 24px)); max-height: calc(100dvh - 120px); border: 1px solid #52616d; }
+    }
   </style>
 </head>
 
@@ -777,6 +805,7 @@
     <!-- 左侧控制面板 -->
     <div class="control-panel">
       <h2>蓝膜 Mapping 控制台</h2>
+      <a href="../index.html" style="display:inline-block;color:#93cfff;font-size:13px;margin-bottom:12px;text-decoration:none">← 返回工具集</a>
 
       <div class="control-group">
         <h3>📐 矩阵设置</h3>
@@ -803,7 +832,7 @@
           <span>📥</span> 下载模板
         </button>
         <button class="control-btn" onclick="exportToExcel()">
-          <span>📊</span> 导出 Excel
+          <span>📊</span> 导出 CSV（Excel）
         </button>
       </div>
 
@@ -816,7 +845,7 @@
           <span>❌</span> 设置为无料 (<span id="bin2-display">2</span>)
         </button>
         <div class="menu-item danger" onclick="deleteSelectedRows()">
-          <span style="color:#f44336">🗑️</span> 删除选中行
+          <span style="color:#f44336">🗑️</span> 删除选中单元格
         </div>
         <button class="control-btn" onclick="searchCell()">
           <span>🔍</span> 搜索定位
@@ -873,7 +902,7 @@
       <p>
         🔐 防伪标识：TIA-MAP-2025-PRO |
         👨‍💻 开发者：廖子宸 |
-        📧 技术支持：<a href="84376722">84376722</a>
+        💬 技术支持 QQ：84376722
       </p>
       <p>© 2025 蓝膜 Mapping 工具 v3.1.0 工业离线版 - 版权所有</p>
     </div>
@@ -918,7 +947,7 @@
     </div>
     <div class="menu-divider"></div>
     <div class="menu-item danger" onclick="deleteSelectedRows()">
-      <span style="color:#f44336">🗑️</span> 删除选中行
+      <span style="color:#f44336">🗑️</span> 删除选中单元格
     </div>
 
     <div class="menu-divider"></div>
@@ -942,34 +971,34 @@
   </div>
 
   <!-- 设置模态框 -->
-  <div id="settings-modal" class="modal">
+  <div id="settings-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>⚙️ 系统设置</h3>
-        <button class="close-btn" onclick="hideSettingsModal()">×</button>
+        <h3 id="settings-modal-title">⚙️ 系统设置</h3>
+        <button class="close-btn" onclick="hideSettingsModal()" aria-label="关闭系统设置">×</button>
       </div>
 
       <div class="form-group">
-        <label>有料单元格数值：</label>
+        <label for="bin1-input">有料单元格数值：</label>
         <input type="number" id="bin1-input" min="0" max="99" value="1">
-        <div style="margin-top: 5px; font-size: 12px; color: #666;">
+        <div class="field-hint">
           颜色：<span style="color:#4caf50">● 绿色</span>
         </div>
       </div>
 
       <div class="form-group">
-        <label>无料单元格数值：</label>
+        <label for="bin2-input">无料单元格数值：</label>
         <input type="number" id="bin2-input" min="0" max="99" value="2">
-        <div style="margin-top: 5px; font-size: 12px; color: #666;">
+        <div class="field-hint">
           颜色：<span style="color:#f44336">● 红色</span>
         </div>
       </div>
 
       <div class="form-group">
-        <label>其他状态数值：</label>
+        <label for="other-bin-input">其他状态数值：</label>
         <input type="number" id="other-bin-input" min="0" max="99" value="0">
-        <div style="margin-top: 5px; font-size: 12px; color: #666;">
-          颜色：<span style="color:#2196f3">● 蓝色</span>
+        <div class="field-hint">
+          颜色：<span style="color:#f5c45c">● 橙色</span>
         </div>
       </div>
 
@@ -981,20 +1010,20 @@
   </div>
 
   <!-- 矩阵尺寸设置模态框 -->
-  <div id="matrix-modal" class="modal">
+  <div id="matrix-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="matrix-modal-title">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>📐 设置矩阵尺寸</h3>
-        <button class="close-btn" onclick="hideMatrixModal()">×</button>
+        <h3 id="matrix-modal-title">📐 设置矩阵尺寸</h3>
+        <button class="close-btn" onclick="hideMatrixModal()" aria-label="关闭矩阵设置">×</button>
       </div>
 
       <div class="form-group">
-        <label>行数 (最大120行)：</label>
+        <label for="rows-input">行数 (最大120行)：</label>
         <input type="number" id="rows-input" min="1" max="120" value="10">
       </div>
 
       <div class="form-group">
-        <label>列数 (最大120列)：</label>
+        <label for="cols-input">列数 (最大120列)：</label>
         <input type="number" id="cols-input" min="1" max="120" value="10">
       </div>
 
@@ -1018,6 +1047,8 @@
 
     // 核心数据
     let matrixData = {};
+    let importedRows = {};
+    let importedHeaders = [];
     let validPositions = new Set();
     let selectedCells = new Set();
     let isSelecting = false;
@@ -1070,7 +1101,7 @@
 
     // 初始化
     window.onload = () => {
-      loadFromLocalStorage();
+      if (!loadFromLocalStorage()) renderMatrix();
       updateBinDisplays();
       createSelectionBox();
       updateOfflineStatus('已就绪，数据保存在本机浏览器');
@@ -1109,14 +1140,22 @@
     }
 
     function handleKeyboardShortcuts(e) {
+      if (e.key === 'Escape') {
+        hideSettingsModal();
+        hideMatrixModal();
+        hideAnnouncement();
+        hideContextMenu();
+        if (selectedCells.size) clearAllSelections();
+        return;
+      }
       const target = e.target;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (document.getElementById('settings-modal').style.display === 'flex' || document.getElementById('matrix-modal').style.display === 'flex') return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoDelete(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redoDelete(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); searchCell(); return; }
       if (e.key === '1') { setBin(1); return; }
       if (e.key === '2') { setBin(2); return; }
-      if (e.key === 'Escape') clearAllSelections();
     }
 
     function processFileData(arrayBuffer) {
@@ -1133,34 +1172,48 @@
           throw new Error('缺少 Bar_Y、Chip No 或 Bin 列，请使用 Mapping 模板');
         }
 
-        matrixData = {};
-        validPositions.clear();
-        protectedPositions.clear();
-        maxRow = 0;
-        maxCol = 0;
+        const nextData = {};
+        const nextValidPositions = new Set();
+        const nextProtectedPositions = new Set();
+        const nextImportedRows = {};
+        let nextMaxRow = 0;
+        let nextMaxCol = 0;
+        let skippedRows = 0;
 
         json.forEach(row => {
-          const r = parseInt(row["Bar_Y"]);
-          const c = parseInt(row["Chip No"]);
-          const bin = parseInt(row["Bin"]);
+          const r = String(row["Bar_Y"]).trim() === '' ? NaN : Number(row["Bar_Y"]);
+          const c = String(row["Chip No"]).trim() === '' ? NaN : Number(row["Chip No"]);
+          const bin = String(row["Bin"]).trim() === '' ? customOtherBin : Number(row["Bin"]);
           const protectCode = (row["Protect_Code"] || row["Edit_Code"] || "").toString().trim();
 
-          if (!isNaN(r) && !isNaN(c)) {
-            const key = `${r}-${c}`;
-            matrixData[key] = bin;
-            validPositions.add(key);
-
-            if (protectCode === "LOCKED") protectedPositions.add(key);
-
-            if (r > maxRow) maxRow = r;
-            if (c > maxCol) maxCol = c;
-          }
+          if (!Number.isInteger(r) || !Number.isInteger(c) || r < 0 || c < 0 ||
+              !Number.isInteger(bin) || bin < 0 || bin > 99) { skippedRows++; return; }
+          if (r >= 120 || c >= 120) throw new Error('坐标超出 120×120 的支持范围');
+          const key = `${r}-${c}`;
+          nextData[key] = bin;
+          nextImportedRows[key] = { ...row };
+          nextValidPositions.add(key);
+          if (protectCode.toUpperCase() === "LOCKED") nextProtectedPositions.add(key);
+          if (r > nextMaxRow) nextMaxRow = r;
+          if (c > nextMaxCol) nextMaxCol = c;
         });
 
-        if (!validPositions.size) throw new Error('没有读取到有效坐标数据');
+        if (!nextValidPositions.size) throw new Error('没有读取到有效坐标数据，原矩阵已保留');
+        // 文件完整校验后再替换状态，导入失败不会清空当前矩阵。
+        matrixData = nextData;
+        importedRows = nextImportedRows;
+        importedHeaders = Object.keys(sample);
+        validPositions = nextValidPositions;
+        protectedPositions = nextProtectedPositions;
+        maxRow = nextMaxRow;
+        maxCol = nextMaxCol;
+        selectedCells.clear();
+        undoStack = [];
+        redoStack = [];
+        updateUndoButton();
         renderMatrix();
         saveToLocalStorage();
-        showStatusMessage(`文件加载成功：${validPositions.size} 个有效单元格`, "success");
+        showStatusMessage(`文件加载成功：${validPositions.size} 个有效单元格${skippedRows ? `，跳过 ${skippedRows} 行无效数据` : ''}`, "success");
       } catch (error) {
         console.error('Mapping 文件解析失败：', error);
         showStatusMessage(`导入失败：${error.message}`, "error");
@@ -1257,7 +1310,7 @@
       if (validPositions.has(key)) {
         cell.innerHTML = `
           <div style="font-size:10px; line-height:1; opacity:0.8;">${r}-${c}</div>
-          <div style="font-size:14px; font-weight:bold;">${bin || ''}</div>
+          <div style="font-size:14px; font-weight:bold;">${bin ?? ''}</div>
         `;
       } else {
         cell.innerText = '';
@@ -1286,8 +1339,13 @@
 
     function handleCellContextMenu(e) {
       const cell = e.target.closest('.cell');
-      if (!cell || protectedPositions.has(cell.dataset.key)) return;
+      if (!cell || isLocked || !validPositions.has(cell.dataset.key) || protectedPositions.has(cell.dataset.key)) return;
       e.preventDefault();
+      if (!selectedCells.has(cell.dataset.key)) {
+        selectedCells.clear();
+        selectedCells.add(cell.dataset.key);
+        updateCellStyles();
+      }
       showContextMenu(e);
     }
 
@@ -1308,7 +1366,7 @@
     function updateSelectedCells() {
       const newSelectedCells = new Set();
       selectedCells.forEach(key => {
-        if (validPositions.has(key)) {
+        if (validPositions.has(key) && !protectedPositions.has(key)) {
           newSelectedCells.add(key);
         }
       });
@@ -1317,24 +1375,13 @@
 
     function handleMouseMove(e) {
       if (!isSelecting || !startCell) return;
+      const rect = document.getElementById('matrix').getBoundingClientRect();
+      // 实际矩阵位置包含容器内边距和滚动偏移。
+      const effectiveX = e.clientX - rect.left;
+      const effectiveY = e.clientY - rect.top;
+      lastMousePos = { x: effectiveX, y: effectiveY };
 
-      const matrixContainer = document.getElementById('matrix-container');
-      const rect = matrixContainer.getBoundingClientRect(); // ✅ 相对于视口
-
-      // ✅ 直接用 e.clientX / e.clientY 减去 rect.left / rect.top
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      // ✅ 关键：减去 container 的 padding + border，得到相对于 #matrix 的坐标
-      const containerPadding = 10;
-      const containerBorder = 1;
-      const matrixLeft = containerPadding + containerBorder;
-      const matrixTop = containerPadding + containerBorder;
-
-      const effectiveX = mouseX - matrixLeft;
-      const effectiveY = mouseY - matrixTop;
-
-      // 计算单元格索引（考虑单元格间距 2px）
+      // 计算单元格索引，始终使用当前矩阵间距。
       const gap = matrixGap;
       const cellX = Math.floor(effectiveX / (cellSize + gap));
       const cellY = Math.floor(effectiveY / (cellSize + gap));
@@ -1362,8 +1409,9 @@
       const endCol = Math.max(start.col, end.col);
 
       const gap = matrixGap;
-      const left = startCol * (cellSize + gap);
-      const top = startRow * (cellSize + gap);
+      const matrix = document.getElementById('matrix');
+      const left = matrix.offsetLeft + startCol * (cellSize + gap);
+      const top = matrix.offsetTop + startRow * (cellSize + gap);
       const width = (endCol - startCol + 1) * (cellSize + gap) - gap;
       const height = (endRow - startRow + 1) * (cellSize + gap) - gap;
 
@@ -1483,7 +1531,15 @@
     }
 
     function exportToExcel() {
-      const headers = [
+      if (typeof XLSX === 'undefined') {
+        showStatusMessage("Excel 导出组件未加载，请刷新后重试", "error");
+        return;
+      }
+      if (!validPositions.size) {
+        showStatusMessage("暂无有效矩阵数据可导出", "warning");
+        return;
+      }
+      const defaultHeaders = [
         "CUSTOMER PRODUCT ID ", "COL QTY BAR", "ROW QTY BAR", "DIE ON BAR STD",
         "BAR No", "Lot ID", "Wafer ID ", "Carrier ID", "Bar_X",
         "Bar_Y", "Chip No", "Die ID", "Bin"
@@ -1493,8 +1549,7 @@
         "OC3610-TX1 V200-Chip-CH4", 4, 24, 23,
         0, "A120J62#01-2", "A120J62#01-2", "A120J62#01-2CC02", 0
       ];
-
-      const dieIdList = Array.from({ length: 1311 }, (_, i) => "FD" + String(i + 1).padStart(2, '0'));
+      const headers = importedHeaders.length ? importedHeaders : defaultHeaders;
       const data = [headers];
       let dieIndex = 0;
 
@@ -1503,9 +1558,11 @@
           const key = `${r}-${c}`;
           if (!validPositions.has(key)) continue;
           const bin = matrixData[key];
-          const dieId = dieIdList[dieIndex++] || '';
-          const row = [...fixedFields, r, c, dieId, bin];
-          data.push(row);
+          const dieId = "FD" + String(++dieIndex).padStart(2, '0');
+          const fallback = Object.fromEntries(defaultHeaders.map((name, index) => [name, [...fixedFields, r, c, dieId, bin][index]]));
+          const source = importedRows[key] || fallback;
+          // 保留导入文件的产品、批次、Die ID 与原列顺序，只更新坐标和 Bin。
+          data.push(headers.map(name => name === 'Bar_Y' ? r : name === 'Chip No' ? c : name === 'Bin' ? bin : source[name] ?? ''));
         }
       }
 
@@ -1522,15 +1579,17 @@
         try {
           const config = JSON.parse(saved);
           matrixData = config.matrixData || {};
-          maxRow = config.maxRow || 9;
-          maxCol = config.maxCol || 9;
+          importedRows = config.importedRows && typeof config.importedRows === 'object' ? config.importedRows : {};
+          importedHeaders = Array.isArray(config.importedHeaders) ? config.importedHeaders : [];
+          maxRow = Number.isInteger(config.maxRow) && config.maxRow >= 0 ? config.maxRow : 9;
+          maxCol = Number.isInteger(config.maxCol) && config.maxCol >= 0 ? config.maxCol : 9;
           validPositions = new Set(config.validPositions || []);
           protectedPositions = new Set(config.protectedPositions || []);
 
           // 加载自定义设置
-          if (config.customBin1) customBin1 = config.customBin1;
-          if (config.customBin2) customBin2 = config.customBin2;
-          if (config.customOtherBin) customOtherBin = config.customOtherBin;
+          if (Number.isInteger(config.customBin1)) customBin1 = config.customBin1;
+          if (Number.isInteger(config.customBin2)) customBin2 = config.customBin2;
+          if (Number.isInteger(config.customOtherBin)) customOtherBin = config.customOtherBin;
           if (Number.isFinite(config.cellSize)) cellSize = Math.max(10, Math.min(80, config.cellSize));
           isLocked = config.isLocked === true;
           document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
@@ -1550,6 +1609,8 @@
         const config = {
           version: 3,
           matrixData,
+          importedRows,
+          importedHeaders,
           maxRow,
           maxCol,
           validPositions: Array.from(validPositions),
@@ -1584,7 +1645,7 @@
 
     function downloadTemplate() {
       const a = document.createElement('a');
-      a.href = "TIA蓝膜20250818-【源文件】新版本使用V1.1.11.3以上.csv";
+      a.href = "./TIA.xlsx";
       a.download = "TIA_Mapping_Template.xlsx";
       a.click();
       showStatusMessage("模板下载开始", "info");
@@ -1631,6 +1692,7 @@
       }
 
       selectedCells.forEach(key => {
+        if (protectedPositions.has(key) || !validPositions.has(key)) return;
         matrixData[key] = actualBinValue;
       });
       renderMatrix();
@@ -1656,6 +1718,9 @@
     }
 
     function handleContextMenu(e) {
+      if (!e.target.closest('#matrix-container')) return;
+      const cell = e.target.closest('.cell');
+      if (cell && (isLocked || !validPositions.has(cell.dataset.key) || protectedPositions.has(cell.dataset.key))) return;
       e.preventDefault();
       showContextMenu(e);
     }
@@ -1674,12 +1739,12 @@
       const menuHeight = menu.offsetHeight;
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
-      let left = e.pageX;
-      let top = e.pageY;
+      let left = e.clientX;
+      let top = e.clientY;
       if (left + menuWidth > windowWidth) left = windowWidth - menuWidth - 10;
       if (top + menuHeight > windowHeight) top = windowHeight - menuHeight - 10;
-      menu.style.left = left + 'px';
-      menu.style.top = top + 'px';
+      menu.style.left = Math.max(10, left) + 'px';
+      menu.style.top = Math.max(10, top) + 'px';
     }
 
     function hideContextMenu() {
@@ -1706,7 +1771,13 @@
         return;
       }
 
-      const count = selectedCells.size;
+      const editableCells = Array.from(selectedCells).filter(key => validPositions.has(key) && !protectedPositions.has(key));
+      const count = editableCells.length;
+      if (!count) {
+        showStatusMessage("所选单元格受保护，无法删除", "warning");
+        hideContextMenu();
+        return;
+      }
 
       if (!confirm(`确定要删除 ${count} 个选中单元格吗？\n\n删除后将永久移除，且导出的 Excel 文件中不再包含这些行。`)) {
         return;
@@ -1721,7 +1792,7 @@
       });
       redoStack = [];
 
-      selectedCells.forEach(key => {
+      editableCells.forEach(key => {
         delete matrixData[key];
         validPositions.delete(key);
         protectedPositions.delete(key);
@@ -1859,9 +1930,15 @@
     }
 
     function saveSettings() {
-      const newBin1 = parseInt(document.getElementById('bin1-input').value) || 1;
-      const newBin2 = parseInt(document.getElementById('bin2-input').value) || 2;
-      const newOtherBin = parseInt(document.getElementById('other-bin-input').value) || 0;
+      const values = ['bin1-input', 'bin2-input', 'other-bin-input'].map(id => {
+        const value = document.getElementById(id).value.trim();
+        return value === '' ? NaN : Number(value);
+      });
+      if (values.some(value => !Number.isInteger(value) || value < 0 || value > 99)) {
+        showStatusMessage("错误：状态数值必须为 0–99 的整数", "error");
+        return;
+      }
+      const [newBin1, newBin2, newOtherBin] = values;
 
       if (newBin1 === newBin2 || newBin1 === newOtherBin || newBin2 === newOtherBin) {
         showStatusMessage("错误：有料、无料和其他数值不能相同", "error");
@@ -1900,10 +1977,16 @@
     }
 
     function applyMatrixSize() {
-      const newRows = parseInt(document.getElementById('rows-input').value) || 10;
-      const newCols = parseInt(document.getElementById('cols-input').value) || 10;
+      if (isLocked) {
+        showStatusMessage("已锁定，无法修改矩阵尺寸", "error");
+        return;
+      }
+      const rowInput = document.getElementById('rows-input').value.trim();
+      const colInput = document.getElementById('cols-input').value.trim();
+      const newRows = rowInput === '' ? NaN : Number(rowInput);
+      const newCols = colInput === '' ? NaN : Number(colInput);
 
-      if (newRows < 1 || newRows > 120 || newCols < 1 || newCols > 120) {
+      if (!Number.isInteger(newRows) || !Number.isInteger(newCols) || newRows < 1 || newRows > 120 || newCols < 1 || newCols > 120) {
         showStatusMessage("错误：行数和列数必须在1-120之间", "error");
         return;
       }
@@ -1915,8 +1998,11 @@
         }
       }
 
-      const oldMaxRow = maxRow;
-      const oldMaxCol = maxCol;
+      const trimmedCount = Array.from(validPositions).filter(key => {
+        const [r, c] = key.split('-').map(Number);
+        return r >= newRows || c >= newCols;
+      }).length;
+      if (trimmedCount && !confirm(`缩小矩阵将移除 ${trimmedCount} 个超出范围的单元格，请先导出需要保留的数据。是否继续？`)) return;
 
       maxRow = newRows - 1;
       maxCol = newCols - 1;
@@ -1945,9 +2031,14 @@
         const [r, c] = key.split('-').map(Number);
         if (r > maxRow || c > maxCol) {
           delete matrixData[key];
+          delete importedRows[key];
+          protectedPositions.delete(key);
         }
       });
 
+      undoStack = [];
+      redoStack = [];
+      updateUndoButton();
       renderMatrix();
       saveToLocalStorage();
       hideMatrixModal();

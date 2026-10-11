@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>CPK 智能分析 · 增强版</title>
+    <link rel="icon" type="image/x-icon" href="../icons/dh.ico">
     <!-- 保留 XLSX 用于读取文件 -->
     <script src="./js/CPK3.0JS/xlsx.full.min.js">
     </script>
@@ -507,11 +508,28 @@
         .toolbar .tolerance-setting { gap: 10px; margin-left: 4px; padding-left: 14px; border-left: 1px solid #dce7f4; }
         .toolbar .tolerance-setting #toleranceFactor { width: 74px !important; }
         @media (max-width: 800px) { .toolbar .tolerance-setting { margin-left: 0; padding-left: 4px; border-left: 0; } }
+        :root { color-scheme: light; }
+        button, input, select { font: inherit; }
+        button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+        .table-wrap, #removedDetailWrap { max-width: 100%; overflow: auto; overscroll-behavior: contain; }
+        #removedDetailWrap { max-height: 460px; }
+        .summary-cards span { min-width: 0; white-space: normal; line-height: 1.55; overflow-wrap: anywhere; }
+        .export-bar { flex-wrap: wrap; }
+        .search-box { min-width: 0; max-width: 100%; color: #17233b; background: #fff; }
+        @media (max-width: 480px) {
+            .container { padding: 20px 12px; }
+            .toolbar label { flex-basis: 100%; width: 100%; }
+            .toolbar select { min-width: 0; max-width: 65%; }
+            .summary-cards { grid-template-columns: 1fr; }
+            .export-bar button { flex: 1 1 100%; }
+            .filter-bar .search-box { flex: 1 1 100%; width: 100%; margin-left: 0; }
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
+        <a href="../index.html" style="display:inline-block;color:#285da3;font-size:13px;margin-bottom:14px;text-decoration:none">← 返回工具集</a>
         <h2>📊 CPK 增强分析 <span id="fileNameDisplay"
                 style="font-size: 0.93rem; font-weight: 290; color: #39619e;">(示例数据)</span></h2>
         <div class="toolbar">
@@ -538,7 +556,8 @@
         <div class="summary-cards">
             <span>📌 测量项: <strong id="colCount">0</strong></span>
             <span>👥 有效样本: <strong id="rowCount">0</strong></span>
-            <span>🗑️ 剔除点数: <strong id="totalRemoved">0</strong></span>
+            <span>🗑️ 剔除 PCS: <strong id="totalRemoved">0</strong></span>
+            <span>📉 误测率 (PCS): <strong id="pcsMisdetectRate">0.00%</strong></span>
             <span>📅 时间范围: <strong id="timeRange">-</strong></span>
         </div>
         <div class="export-bar">
@@ -568,7 +587,7 @@
                 <div class="batch-actions" style="margin: 5px 0;">
                     <label><input type="checkbox" id="selectAllRemoved" class="select-all-checkbox"> 全选</label>
                     <button class="batch-restore" id="batchRestoreBtn">↩ 批量恢复选中</button>
-                    <button class="batch-delete" id="batchDeleteBtn">🗑️ 批量永久删除</button>
+                    <button class="batch-delete" id="batchDeleteBtn">🗑️ 永久清空所选单元格</button>
                 </div>
                 <div id="removedDetailWrap" style="overflow-x:auto; margin-top:6px;">
                     <p style="color:#607a9a;">暂无剔除数据</p>
@@ -590,7 +609,7 @@
             </details>
         </div>
         <div class="note">✅ 自动识别 SN 列与常见条码长度；规格表头支持“20±30”、“(-10-20-50)”（下限-中心-上限）和“(-20--50--20)”（50±20）格式；按SN长度过滤，保留最新时间行；剔除超出 [中心值 ± (系数×公差)]
-            的异常点。汇总报告CP/CPK着色：≥1.67深绿，1.30~1.67浅绿，&lt;1.30红。超标数据单元格红底。可手动恢复被剔除的数据点。支持批量操作和实时搜索。支持XLSX和CSV格式。</div>
+            的异常点。误测率按原始有效行 / PCS 统计，同一行多个测量项超标只计 1 PCS，网页与导出报告保持一致。汇总报告CP/CPK着色：≥1.67深绿，1.30~1.67浅绿，&lt;1.30红。样本不足或标准差为 0 时不判定 CP/CPK。超标数据单元格红底。可手动恢复被剔除的数据点。支持批量操作和实时搜索。支持XLSX和CSV格式。</div>
         <div class="footer">CPK 智能分析 · 现代扁平设计 · 增强版</div>
     </div>
 
@@ -645,6 +664,29 @@
             const removedCountStat = document.getElementById('removedCountStat');
 
             // ---------- 工具函数 ----------
+            function escapeHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, char => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                })[char]);
+            }
+
+            function getPcsMisdetectStats(rows, columns) {
+                const count = rows.filter(row => columns.some(spec => {
+                    const value = parseFloat(String(row[spec.index]).trim());
+                    return Number.isFinite(value) && (value > spec.upper || value < spec.lower);
+                })).length;
+                return { count, rate: rows.length ? count / rows.length * 100 : 0 };
+            }
+
+            function getCapabilityIndices(n, std, avg, usl, lsl) {
+                if (n < 2 || std === 0) return { cp: null, cpk: null };
+                return { cp: (usl - lsl) / (6 * std), cpk: Math.min((usl - avg) / (3 * std), (avg - lsl) / (3 * std)) };
+            }
+
+            function formatCapability(value, digits) {
+                return Number.isFinite(value) ? value.toFixed(digits) : '-';
+            }
+
             function parseCSV(text) {
                 const rows = [];
                 let currentRow = [];
@@ -801,7 +843,7 @@
                 timeSel.innerHTML = '';
                 snSel.innerHTML = '';
                 headers.forEach((h, idx) => {
-                    const letter = String.fromCharCode(65 + idx);
+                    const letter = XLSX.utils.encode_col(idx);
                     const label = `${letter} (${h.substring(0, 13)}${h.length > 13 ? '…' : ''})`;
                     timeSel.add(new Option(label, idx));
                     snSel.add(new Option(label, idx));
@@ -902,7 +944,7 @@
                 // 当"剔除后"筛选时，特殊处理显示
                 if (filterMode === 'clean') {
                     // 检查是否所有数据都被剔除了（所有规格列的所有值都被剔除）
-                    let allRemoved = true;
+                    let allRemoved = filteredRows.length > 0 && specCols.length > 0;
                     for (const row of filteredRows) {
                         for (const spec of specCols) {
                             const isRemoved = removedRowsGlobal.some(
@@ -935,7 +977,7 @@
 
                     // 显示表格：被剔除的单元格显示为空（灰色背景）
                     let html = '<table><thead><tr><th style="background:#ebf2fb;">#</th>';
-                    headers.forEach(h => { html += `<th>${h}</th>`; });
+                    headers.forEach(h => { html += `<th>${escapeHtml(h)}</th>`; });
                     html += '</tr></thead><tbody>';
                     filteredRows.forEach((row, idx) => {
                         html += `<tr><td class="row-number" style="background:#f5f9fe; font-weight:390;">${idx + 1}</td>`;
@@ -963,7 +1005,7 @@
                                     }
                                 }
                             }
-                            html += `<td class="${cellClass}">${cellValue}</td>`;
+                            html += `<td class="${cellClass}">${escapeHtml(cellValue)}</td>`;
                         });
                         html += '</tr>';
                     });
@@ -988,7 +1030,7 @@
 
                 // 正常显示表格（全部 / 仅超标）
                 let html = '<table><thead><tr><th style="background:#ebf2fb;">#</th>';
-                headers.forEach(h => { html += `<th>${h}</th>`; });
+                headers.forEach(h => { html += `<th>${escapeHtml(h)}</th>`; });
                 html += '</tr></thead><tbody>';
                 filteredRows.forEach((row, idx) => {
                     html += `<tr><td class="row-number" style="background:#f5f9fe; font-weight:390;">${idx + 1}</td>`;
@@ -1001,7 +1043,7 @@
                                 cellClass = 'out-of-spec-red';
                             }
                         }
-                        html += `<td class="${cellClass}">${row[colIdx] !== undefined ? row[colIdx] : ''}</td>`;
+                        html += `<td class="${cellClass}">${escapeHtml(row[colIdx])}</td>`;
                     });
                     html += '</tr>';
                 });
@@ -1058,10 +1100,10 @@
                     html += `<tr>
                 <td><input type="checkbox" class="row-checkbox" data-index="${idx}" ${isChecked}></td>
                 <td>${idx + 1}</td>
-                <td>${sn}</td>
-                <td>${time}</td>
-                <td>${item.specInfo}</td>
-                <td>${item.reason}</td>
+                <td>${escapeHtml(sn)}</td>
+                <td>${escapeHtml(time)}</td>
+                <td>${escapeHtml(item.specInfo)}</td>
+                <td>${escapeHtml(item.reason)}</td>
                 <td><button class="restore-btn" data-index="${idx}">↩ 恢复</button></td>
             </tr>`;
                 });
@@ -1152,19 +1194,29 @@
                     alert('请先选择要永久删除的数据');
                     return;
                 }
-                if (!confirm(`确定要永久删除 ${selectedRemovedIndices.size} 条剔除记录吗？此操作不可撤销！`)) {
+                if (!confirm(`确定要永久清空 ${selectedRemovedIndices.size} 个剔除单元格吗？对应测量值将不再参与计算与导出，原始文件不会修改。此操作不可撤销！`)) {
                     return;
                 }
                 const indicesToDelete = Array.from(selectedRemovedIndices).sort((a, b) => b - a);
                 const count = indicesToDelete.length;
                 indicesToDelete.forEach(idx => {
                     if (idx >= 0 && idx < removedRowsGlobal.length) {
+                        const item = removedRowsGlobal[idx];
+                        const spec = specColumns.find(col => col.header === item.specInfo);
+                        if (spec) {
+                            const sn = String(item.row[item.snIdx] ?? '').trim();
+                            const time = String(item.row[item.timeIdx] ?? '').trim();
+                            rawData.slice(1).forEach(row => {
+                                if (String(row[item.snIdx] ?? '').trim() === sn && String(row[item.timeIdx] ?? '').trim() === time) row[spec.index] = '';
+                            });
+                            item.row[spec.index] = '';
+                        }
                         removedRowsGlobal.splice(idx, 1);
                     }
                 });
                 selectedRemovedIndices.clear();
                 refreshDisplayWithManualRemoved();
-                statusBadge.textContent = `🗑️ 已永久删除 ${count} 条剔除记录`;
+                statusBadge.textContent = `🗑️ 已永久清空 ${count} 个剔除单元格`;
                 setTimeout(() => { statusBadge.textContent = `就绪`; }, 2200);
             }
 
@@ -1200,6 +1252,8 @@
                     return { ...col, values, removedCount };
                 });
 
+                const rowMisdetectRate = getPcsMisdetectStats(dedupedRows, specColumns).rate;
+                document.getElementById('pcsMisdetectRate').textContent = rowMisdetectRate.toFixed(2) + '%';
                 const stats = columnsData.map(col => {
                     const vals = col.values;
                     const n = vals.length;
@@ -1216,17 +1270,13 @@
                     const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - avg) ** 2, 0) / n);
                     const usl = col.upper;
                     const lsl = col.lower;
-                    const cp = (usl - lsl) / (6 * std);
-                    const cpu = (usl - avg) / (3 * std);
-                    const cpl = (avg - lsl) / (3 * std);
-                    const cpk = Math.min(cpu, cpl);
+                    const { cp, cpk } = getCapabilityIndices(n, std, avg, usl, lsl);
                     const overCount = vals.filter(v => v > usl || v < lsl).length;
-                    const overRate = n > 0 ? (overCount / n * 100) : 0;
                     return {
                         max: max.toFixed(2), min: min.toFixed(2),
                         avg: avg.toFixed(2), std: std.toFixed(2),
-                        cp: cp.toFixed(2), cpk: cpk.toFixed(2),
-                        over: overCount, rate: overRate.toFixed(2) + '%',
+                        cp: formatCapability(cp, 2), cpk: formatCapability(cpk, 2),
+                        over: overCount, rate: rowMisdetectRate.toFixed(2) + '%',
                         removed: col.removedCount,
                         _rawMax: max, _rawMin: min, _rawAvg: avg,
                         _rawStd: std, _rawCp: cp, _rawCpk: cpk
@@ -1367,6 +1417,8 @@
                     return { ...col, values, removedCount };
                 });
 
+                const rowMisdetectRate = getPcsMisdetectStats(dedupedRows, specColumns).rate;
+                document.getElementById('pcsMisdetectRate').textContent = rowMisdetectRate.toFixed(2) + '%';
                 const stats = columnsData.map(col => {
                     const vals = col.values;
                     const n = vals.length;
@@ -1383,17 +1435,13 @@
                     const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - avg) ** 2, 0) / n);
                     const usl = col.upper;
                     const lsl = col.lower;
-                    const cp = (usl - lsl) / (6 * std);
-                    const cpu = (usl - avg) / (3 * std);
-                    const cpl = (avg - lsl) / (3 * std);
-                    const cpk = Math.min(cpu, cpl);
+                    const { cp, cpk } = getCapabilityIndices(n, std, avg, usl, lsl);
                     const overCount = vals.filter(v => v > usl || v < lsl).length;
-                    const overRate = n > 0 ? (overCount / n * 100) : 0;
                     return {
                         max: max.toFixed(2), min: min.toFixed(2),
                         avg: avg.toFixed(2), std: std.toFixed(2),
-                        cp: cp.toFixed(2), cpk: cpk.toFixed(2),
-                        over: overCount, rate: overRate.toFixed(2) + '%',
+                        cp: formatCapability(cp, 2), cpk: formatCapability(cpk, 2),
+                        over: overCount, rate: rowMisdetectRate.toFixed(2) + '%',
                         removed: col.removedCount,
                         _rawMax: max, _rawMin: min, _rawAvg: avg,
                         _rawStd: std, _rawCp: cp, _rawCpk: cpk
@@ -1426,6 +1474,7 @@
                     currentFilterMode = 'all';
                     filterAllBtn.classList.add('active-filter');
                     filterOutOfSpecBtn.classList.remove('active-filter');
+                    filterCleanBtn.classList.remove('active-filter');
                 }
                 if (filteredBySn.length > 0) {
                     statusBadge.textContent = `✅ ${dedupedRows.length} 样本 · 剔除 ${removedRowsGlobal.length} 点`;
@@ -1461,14 +1510,14 @@
                     { label: 'CP', key: 'cp', colorType: 'cp' },
                     { label: 'CPK', key: 'cpk', colorType: 'cpk' },
                     { label: '超标数量', key: 'over' },
-                    { label: '超标率', key: 'rate' },
+                    { label: '误测率 (PCS)', key: 'rate' },
                     { label: '剔除数据', key: 'removed' }
                 ];
                 let html = '<table><thead><tr><th>指标</th>';
-                cols.forEach(col => { html += `<th>${col.header}</th>`; });
+                cols.forEach(col => { html += `<th>${escapeHtml(col.header)}</th>`; });
                 html += '</tr></thead><tbody>';
                 rowDefs.forEach((def) => {
-                    let rowClass = (def.label === '超标数量' || def.label === '超标率') ? 'highlight-over' : '';
+                    let rowClass = (def.key === 'over' || def.key === 'rate') ? 'highlight-over' : '';
                     if (def.label === '剔除数据') rowClass = 'removed-row';
                     html += `<tr class="${rowClass}"><td class="row-label">${def.label}</td>`;
                     cols.forEach((col, ci) => {
@@ -1513,13 +1562,13 @@
 
                 let html = `<div style="font-size:0.70rem; color:#16a34a; margin-bottom:5px;">✅ 共 ${cleanRows.length} 行正常数据</div>`;
                 html += '<table><thead><tr><th style="background:#ebf2fb;">#</th>';
-                headers.forEach(h => { html += `<th>${h}</th>`; });
+                headers.forEach(h => { html += `<th>${escapeHtml(h)}</th>`; });
                 html += '</tr></thead><tbody>';
 
                 cleanRows.forEach((row, idx) => {
                     html += `<tr><td class="row-number" style="background:#f5f9fe; font-weight:390;">${idx + 1}</td>`;
                     headers.forEach((_, colIdx) => {
-                        let cellValue = row[colIdx] !== undefined ? row[colIdx] : '';
+                        let cellValue = escapeHtml(row[colIdx]);
                         // 检查是否超标（但这里不应该有超标数据，因为已经被剔除了）
                         const spec = specCols.find(s => s.index === colIdx);
                         if (spec) {
@@ -1552,7 +1601,7 @@
                 }
 
                 let html = '<table><thead><tr><th style="background:#ebf2fb;">指标</th>';
-                cols.forEach(col => { html += `<th>${col.header}</th>`; });
+                cols.forEach(col => { html += `<th>${escapeHtml(col.header)}</th>`; });
                 html += '</tr></thead><tbody>';
 
                 const rowDefs = [
@@ -1567,12 +1616,12 @@
                     { label: 'CP', key: 'cp', colorType: 'cp' },
                     { label: 'CPK', key: 'cpk', colorType: 'cpk' },
                     { label: '超标数量', key: 'over' },
-                    { label: '超标率', key: 'rate' },
+                    { label: '误测率 (PCS)', key: 'rate' },
                     { label: '剔除记录数', key: 'removed' }
                 ];
 
                 rowDefs.forEach((def) => {
-                    let rowClass = (def.label === '超标数量' || def.label === '超标率') ? 'highlight-over' : '';
+                    let rowClass = (def.key === 'over' || def.key === 'rate') ? 'highlight-over' : '';
                     if (def.label === '剔除记录数') rowClass = 'removed-row';
                     html += `<tr class="${rowClass}"><td class="row-label" style="background:#f6faff;font-weight:550;">${def.label}</td>`;
                     cols.forEach((col, ci) => {
@@ -1707,6 +1756,7 @@
                     });
                     const removedUniqueRows = removedRowsSet.size;
                     const normalRows = dedupedRowsForExport.length - removedUniqueRows;
+                    const pcsMisdetect = getPcsMisdetectStats(dedupedRowsForExport, specColumns);
 
                     // 重新计算统计量
                     const columnsData = specColumns.map(col => {
@@ -1745,15 +1795,12 @@
                         const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - avg) ** 2, 0) / n);
                         const usl = col.upper;
                         const lsl = col.lower;
-                        const cp = (usl - lsl) / (6 * std);
-                        const cpu = (usl - avg) / (3 * std);
-                        const cpl = (avg - lsl) / (3 * std);
-                        const cpk = Math.min(cpu, cpl);
+                        const { cp, cpk } = getCapabilityIndices(n, std, avg, usl, lsl);
                         const overCount = vals.filter(v => v > usl || v < lsl).length;
-                        const overRate = n > 0 ? (overCount / n * 100) : 0;
 
                         let cpk_rating = '';
-                        if (cpk >= 1.67) cpk_rating = '优秀';
+                        if (cpk === null) cpk_rating = n < 2 ? '样本不足' : '无波动，无法判定';
+                        else if (cpk >= 1.67) cpk_rating = '优秀';
                         else if (cpk >= 1.30) cpk_rating = '良好';
                         else if (cpk > 0) cpk_rating = '需改进';
                         else cpk_rating = '严重不足';
@@ -1761,9 +1808,9 @@
                         return {
                             max: max.toFixed(4), min: min.toFixed(4),
                             avg: avg.toFixed(4), std: std.toFixed(4),
-                            cp: cp.toFixed(4), cpk: cpk.toFixed(4),
+                            cp: formatCapability(cp, 4), cpk: formatCapability(cpk, 4),
                             cpk_rating: cpk_rating,
-                            over: overCount, rate: overRate.toFixed(2),
+                            over: overCount, rate: pcsMisdetect.rate.toFixed(2),
                             removed: col.removedCount,
                             _rawCpk: cpk,
                             _rawCp: cp
@@ -1789,6 +1836,8 @@
                     ws1.addRow(['数据概览']);
                     ws1.addRow(['项目', '数值']);
                     ws1.addRow(['总样本数', dedupedRowsForExport.length]);
+                    ws1.addRow(['误测 PCS（同行只计 1）', pcsMisdetect.count]);
+                    ws1.addRow(['误测率 PCS (%)', pcsMisdetect.rate.toFixed(2)]);
                     ws1.addRow(['剔除记录数（含多规格）', removedRowsGlobal.length]);
                     ws1.addRow(['被剔除行数（去重）', removedUniqueRows]);
                     ws1.addRow(['有效样本数', normalRows]);
@@ -1816,7 +1865,7 @@
                         { label: 'CPK (制程能力指数)', key: 'cpk' },
                         { label: 'CPK 评级', key: 'cpk_rating' },
                         { label: '超标数量', key: 'over' },
-                        { label: '超标率 (%)', key: 'rate' },
+                        { label: '误测率 PCS (%)', key: 'rate' },
                         { label: '剔除记录数', key: 'removed' }
                     ];
 
@@ -1970,6 +2019,8 @@
                     ws4.addRow(['数据概览']);
                     ws4.addRow(['指标', '数值']);
                     ws4.addRow(['总数据行数', dedupedRowsForExport.length]);
+                    ws4.addRow(['误测 PCS（同行只计 1）', pcsMisdetect.count]);
+                    ws4.addRow(['误测率 PCS (%)', pcsMisdetect.rate.toFixed(2)]);
                     ws4.addRow(['有效样本数', normalRows]);
                     ws4.addRow(['剔除行数（去重）', removedUniqueRows]);
                     ws4.addRow(['剔除记录总数', removedRowsGlobal.length]);
@@ -2137,22 +2188,6 @@
                 renderRawDataTable(dedupedRowsForExport, headers, specColumns, currentFilterMode, searchTerm);
             });
 
-            filterAllBtn.addEventListener('click', function () {
-                currentFilterMode = 'all';
-                filterAllBtn.classList.add('active-filter');
-                filterOutOfSpecBtn.classList.remove('active-filter');
-                const searchTerm = searchBox.value;
-                renderRawDataTable(dedupedRowsForExport, headers, specColumns, 'all', searchTerm);
-            });
-
-            filterOutOfSpecBtn.addEventListener('click', function () {
-                currentFilterMode = 'outofspec';
-                filterOutOfSpecBtn.classList.add('active-filter');
-                filterAllBtn.classList.remove('active-filter');
-                const searchTerm = searchBox.value;
-                renderRawDataTable(dedupedRowsForExport, headers, specColumns, 'outofspec', searchTerm);
-            });
-
             selectAllRemoved.addEventListener('change', function () {
                 const isChecked = this.checked;
                 const checkboxes = removedDetailWrap.querySelectorAll('.row-checkbox');
@@ -2170,32 +2205,11 @@
             batchRestoreBtn.addEventListener('click', batchRestoreItems);
             batchDeleteBtn.addEventListener('click', batchDeleteItems);
 
-            // ---------- 加载示例数据 ----------
-            async function loadSampleData() {
-                try {
-                    const response = await fetch('sample_data.csv');
-                    if (!response.ok) throw new Error('No sample data');
-                    const text = await response.text();
-                    const rows = parseCSV(text);
-                    if (rows.length < 2) throw new Error('Empty sample');
-                    rawData = rows;
-                    headers = rows[0].map(h => String(h).trim());
-                    updateColSelects(headers, rows.slice(1));
-                    removedRowsGlobal = [];
-                    selectedRemovedIndices.clear();
-                    dedupedRowsForExport = [];
-                    baseDedupedRows = [];
-                    generateReportInternal();
-                    statusBadge.textContent = `📂 已加载示例数据 (CSV)`;
-                    setTimeout(() => { statusBadge.textContent = `就绪`; }, 2500);
-                } catch (e) {
-                    console.log('No sample data available, please upload a CSV or XLSX file.');
-                    tableContainer.innerHTML = '<table><tr><td>请上传 CSV 或 XLSX 文件开始分析</td></tr></table>';
-                    rawDataTableWrap.innerHTML = '<p style="color:#7088a8;">暂无数据，请上传文件</p>';
-                    removedDetailWrap.innerHTML = '<p style="color:#607a9a;">暂无数据</p>';
-                }
-            }
-            loadSampleData();
+            // 离线初始状态，不请求仓库中不存在的示例文件。
+            fileNameDisplay.textContent = '(待上传文件)';
+            tableContainer.innerHTML = '<table><tr><td>请上传 CSV 或 XLSX 文件开始分析</td></tr></table>';
+            rawDataTableWrap.innerHTML = '<p style="color:#7088a8;">暂无数据，请上传文件</p>';
+            removedDetailWrap.innerHTML = '<p style="color:#607a9a;">暂无数据</p>';
         })();
     </script>
 </body>

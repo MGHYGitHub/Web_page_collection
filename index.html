@@ -3,296 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MGHY 本地工具门户</title>
-  <!-- 预加载CSS提高性能 -->
-  <link rel="preload" href="style.css" as="style">
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/x-icon" href="./icons/dh.ico">
-  <style>
-    :root{--portal-bg:#0e141b;--portal-panel:#18222d;--portal-line:#30404f;--portal-text:#eaf0f5;--portal-muted:#93a4b5;--portal-accent:#f4b640;--portal-blue:#38bdf8}
-    body{margin:0;padding:28px;background-color:var(--portal-bg);background-image:linear-gradient(rgba(128,150,168,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(128,150,168,.06) 1px,transparent 1px),radial-gradient(circle at 85% -10%,#273d51 0,transparent 36%);background-size:28px 28px,28px 28px,auto;color:var(--portal-text)}
-    .container{max-width:1320px}.layout-wrapper,.main-content{width:100%}header{padding:28px 0 18px;text-align:left;border-bottom:1px solid var(--portal-line)}header h1{margin:0;color:#f6c45b;font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-.04em}header h1::before{content:'MGHY / ';color:#77c4ec;font-size:.36em;letter-spacing:.12em;vertical-align:middle}.subtitle{margin:10px 0 0;color:var(--portal-muted);font-size:14px}.subtitle::after{content:' · 本地优先 · 离线可用';color:#f1bc4c}.search-container{margin:24px 0 12px}.search-input{width:100%;padding:15px 17px;color:var(--portal-text);background:#151e27;border:1px solid #3a4b5a;border-radius:5px;box-shadow:none}.search-input:focus{border-color:#f4b640;box-shadow:0 0 0 3px rgba(244,182,64,.12)}.category-filter{gap:8px;margin:14px 0 22px}.category-btn{padding:8px 13px;color:#b8c6d2;background:#1a2530;border:1px solid #344453;border-radius:3px;font-weight:700}.category-btn.active,.category-btn:hover{color:#151b21;background:#f4b640;border-color:#f4b640}.cards-container{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:14px}.card{min-height:158px;margin:0;background:linear-gradient(145deg,rgba(34,45,57,.98),rgba(22,30,39,.98));border:1px solid #344453;border-radius:5px;box-shadow:0 12px 25px rgba(0,0,0,.18);transition:transform .18s,border-color .18s}.card:hover{transform:translateY(-3px);border-color:#f4b640}.card-content{height:100%;padding:18px}.icon-container{width:38px;height:38px;margin-bottom:15px;background:#253341;border:1px solid #405263;border-radius:4px}.card-icon-img{width:24px;height:24px}.card-title{color:#eef5fa;font-size:18px}.card-main-desc{display:none}.card-sub-desc{margin-top:8px;color:#98a9b8;font-size:13px}.card-link{border-radius:5px}.card-link::after{content:'打开工具 ↗';position:absolute;right:16px;bottom:15px;color:#f4c35c;font-size:12px;font-weight:700}.announcement-modal{background:rgba(6,10,14,.72);backdrop-filter:blur(6px)}.announcement-content{color:#dce6ee;background:#1d2832;border:1px solid #455867;border-radius:5px;box-shadow:0 25px 50px rgba(0,0,0,.42)}.announcement-header{background:#25333f;border-bottom-color:#455867}.announcement-header h3,.announcement-title{color:#f4c35c}.announcement-text{color:#bdcbd6}.announcement-footer{border-top-color:#455867}.announcement-action.confirm{color:#161c22;background:#f4b640}.announcement-action.dont-show{color:#c6d2dc;background:#344553}@media(max-width:640px){body{padding:16px}.cards-container{grid-template-columns:1fr}header{padding-top:12px}}
-    .portal-actions{display:flex;gap:9px;justify-content:flex-end;margin:-4px 0 14px}.portal-action{padding:9px 12px;color:#dce8f0;background:#1a2631;border:1px solid #3b4d5d;border-radius:3px;font-weight:700;cursor:pointer}.portal-action.primary{color:#172029;background:#f4b640;border-color:#f4b640}.portal-action:hover{border-color:#f4b640;transform:translateY(-1px)}.custom-remove{position:absolute;z-index:3;right:12px;top:12px;width:25px;height:25px;color:#ffb6ad;background:#542e31;border:1px solid #945052;border-radius:3px;cursor:pointer;font-size:16px;line-height:1}.card.is-custom{border-top-color:#f4b640}.card-modal{position:fixed;z-index:20;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(5,9,13,.72);backdrop-filter:blur(5px)}.card-modal.show{display:flex}.card-modal-box{width:min(520px,100%);padding:22px;background:#1a2530;border:1px solid #465968;border-radius:5px;box-shadow:0 24px 55px rgba(0,0,0,.45)}.card-modal-box h2{margin:0 0 6px;color:#f4c35c;font-size:21px}.card-modal-box p{margin:0 0 18px;color:#9eb1c0;font-size:13px}.card-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card-form-grid label{display:grid;gap:6px;color:#c7d4de;font-size:12px;font-weight:700}.card-form-grid label.full{grid-column:1/-1}.card-form-grid input{width:100%;padding:10px;color:#eaf0f5;background:#101820;border:1px solid #405362;border-radius:3px;outline:none}.card-form-grid input:focus{border-color:#f4b640}.card-modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}@media(max-width:640px){.portal-actions{justify-content:stretch}.portal-action{flex:1}.card-form-grid{grid-template-columns:1fr}}
-  </style>
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#111b26">
+  <meta name="description" content="Oranges 本地工具门户：工时管理、CPK 分析、Mapping、计时器与自定义快捷卡片。">
+  <title>Oranges · 本地工具门户</title>
+  <link rel="stylesheet" href="style.css?v=20261011">
+  <link id="site-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='31' cy='36' r='22' fill='%23ff8736'/%3E%3Cellipse cx='38' cy='12' rx='13' ry='5' transform='rotate(-28 38 12)' fill='%2347a447'/%3E%3Ccircle cx='24' cy='29' r='5' fill='%23ffb56d' opacity='.65'/%3E%3C/svg%3E">
+  <script src="links.js?v=20261011" defer></script>
+  <script src="portal.js?v=20261011" defer></script>
 </head>
 <body>
-  <div class="container">
-    <div class="layout-wrapper">
-      <div class="main-content">
-        <header>
-          <h1>本地工具门户</h1>
-          <p class="subtitle">工作、分析与效率工具统一入口</p>
-        </header>
-        
-        <div class="search-container">
-          <input type="text" class="search-input" placeholder="搜索导航项..." aria-label="搜索导航项">
-        </div>
+  <main class="container">
+    <header class="portal-header">
+      <p class="portal-brand">🍊 ORANGES</p>
+      <h1>本地工具门户</h1>
+      <p class="subtitle">工作、分析与效率工具统一入口</p>
+    </header>
+    <div class="portal-clock"><strong id="portalClock">--:--</strong><span id="portalDate"></span></div>
+    <div class="quick-search-wrap">
+      <span class="search-symbol" aria-hidden="true">⌕</span>
+      <input id="quickSearch" class="quick-search" type="search" placeholder="搜索工具名称、分类或简介" aria-label="搜索工具" autocomplete="off">
+    </div>
+    <section class="widget-grid" aria-label="快捷组件">
+      <article class="widget-card countdown-card">
+        <h2>📚 2026 考研倒计时</h2>
+        <div class="countdown-number" id="examCountdown">--</div>
+        <p class="countdown-meta">目标日期：2026年12月19日</p>
+      </article>
+      <article class="widget-card">
+        <h2>🧭 我的工具台</h2>
+        <p class="widget-summary" id="toolSummary">正在整理工具入口…</p>
+        <p class="countdown-meta">常用工具，一步直达。</p>
+      </article>
+      <button class="widget-add" id="widgetAddBtn" type="button"><span aria-hidden="true">＋</span><span>添加自定义卡片</span><small>链接保存在当前浏览器</small></button>
+    </section>
+    <section class="tools-section" aria-labelledby="toolsHeading">
+      <div class="tools-toolbar">
+        <div><h2 id="toolsHeading">全部工具</h2><p id="toolsCount" class="tools-count" aria-live="polite"></p></div>
         <div class="portal-actions">
-          <button class="portal-action" id="exportCardsBtn" type="button">导出 links.js</button>
+          <button class="portal-action" id="exportCardsBtn" type="button">↓ 导出 links.js</button>
           <button class="portal-action primary" id="addCardBtn" type="button">＋ 添加卡片</button>
         </div>
-        
-        <div class="category-filter" id="categoryFilter"></div>
-        
-        <div class="cards-container" id="cardsContainer"></div>
       </div>
-    </div> <!-- 闭合 layout-wrapper -->
-  </div> <!-- 闭合 container -->
+      <nav class="category-filter" id="categoryFilter" aria-label="工具分类"></nav>
+      <div class="cards-container" id="cardsContainer"></div>
+      <p class="portal-status" id="portalStatus" role="status"></p>
+      <noscript><p class="cards-empty">请启用 JavaScript 来查看工具卡片。</p></noscript>
+    </section>
+    <footer class="portal-footer"><span>🍊 MGHY · 让工具回归简单</span><button class="footer-link" id="openAnnouncementBtn" type="button">使用说明</button></footer>
+  </main>
 
-  <div class="card-modal" id="cardModal" aria-hidden="true">
+  <dialog class="card-modal" id="cardModal" aria-labelledby="cardModalTitle" aria-describedby="cardModalHint">
     <form class="card-modal-box" id="cardForm">
-      <h2>添加自定义卡片</h2>
-      <p>保存后立即显示并保存在当前浏览器；导出 <code>links.js</code> 后可上传到网站。</p>
+      <div class="modal-heading"><h2 id="cardModalTitle">添加自定义卡片</h2><button class="modal-close" id="closeCardBtn" type="button" aria-label="关闭添加卡片">×</button></div>
+      <p class="modal-hint" id="cardModalHint">保存后立即显示；导出 links.js 可将这些卡片带到其他设备。</p>
       <div class="card-form-grid">
-        <label>名称<input id="cardName" required maxlength="40" placeholder="例如：日报系统"></label>
-        <label>分类<input id="cardCategory" maxlength="20" value="自定义" placeholder="例如：工作"></label>
-        <label class="full">链接地址<input id="cardUrl" required maxlength="500" placeholder="https://example.com 或 ./tools/page.html"></label>
-        <label>图标（Emoji）<input id="cardIcon" maxlength="8" value="◇" placeholder="◇"></label>
-        <label>简介<input id="cardDesc" maxlength="80" placeholder="一句话说明用途"></label>
+        <label>名称<input id="cardName" required maxlength="40" placeholder="例如：日报系统" autocomplete="off"></label>
+        <label>分类<input id="cardCategory" maxlength="20" value="自定义" placeholder="例如：工作" autocomplete="off"></label>
+        <label class="full">链接地址<input id="cardUrl" required maxlength="500" placeholder="https://example.com 或 ./tools/page.html" inputmode="url" autocomplete="url"></label>
+        <label>备用图标<input id="cardIcon" maxlength="16" placeholder="自动获取失败时显示 ❌" autocomplete="off"></label>
+        <label>简介<input id="cardDesc" maxlength="80" placeholder="一句话说明用途" autocomplete="off"></label>
       </div>
+      <p class="form-error" id="cardFormError" role="alert"></p>
       <div class="card-modal-actions"><button class="portal-action" id="cancelCardBtn" type="button">取消</button><button class="portal-action primary" type="submit">保存卡片</button></div>
     </form>
-  </div>
-
-  <div class="announcement-modal" id="announcementModal">
+  </dialog>
+  <dialog class="announcement-modal" id="announcementModal" aria-labelledby="announcementTitle">
     <div class="announcement-content">
-      <div class="announcement-header">
-        <h3>📢 本地工具台</h3>
-        <button class="announcement-close" onclick="closeAnnouncement()">×</button>
-      </div>
+      <div class="modal-heading"><h2 id="announcementTitle">📢 本地工具台</h2><button class="modal-close" id="closeAnnouncementBtn" type="button" aria-label="关闭使用说明">×</button></div>
       <div class="announcement-body">
-        <div class="announcement-item">
-          <div class="announcement-title">离线工具入口已整理</div>
-          <div class="announcement-text">Mapping、CPK、在线计时器和工时系统均可从此页直接打开。</div>
-          <div class="announcement-text">核心工具使用本地文件，适合内网或断网环境。</div>
-        </div>
+        <h3>一个入口，连接所有工具</h3><p>Mapping、CPK、在线计时器和工时系统均可从此页打开；卡片支持搜索与分类筛选。</p>
+        <h3>自定义你的工具台</h3><p>添加的卡片保存在当前浏览器。导出 links.js 后替换网站同名文件，即可同步到其他设备。</p>
+        <p class="modal-hint">部分工具的图标、在线查询和第三方数据需要网络。</p>
       </div>
-      <div class="announcement-footer">
-        <button class="announcement-action dont-show" onclick="dontShowAnnouncement()">24小时内不再显示</button>
-        <button class="announcement-action confirm" onclick="closeAnnouncement()">我知道了</button>
-      </div>
+      <div class="announcement-footer"><button class="portal-action" id="dontShowAnnouncementBtn" type="button">24小时内不再显示</button><button class="portal-action primary" id="confirmAnnouncementBtn" type="button">我知道了</button></div>
     </div>
-  </div>
-
-  <!-- 异步加载JS -->
-  <script src="links.js" defer></script>
-  <script>
-    // 全局函数
-    function closeAnnouncement() {
-      const modal = document.getElementById('announcementModal');
-      modal.classList.remove('show');
-    }
-
-    function dontShowAnnouncement() {
-      const now = new Date();
-      const dontShowUntil = now.setDate(now.getDate() + 1);
-      localStorage.setItem('announcementDontShowUntil', dontShowUntil.toString());
-      closeAnnouncement();
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-      // 检查本地存储是否设置了不显示
-      const dontShowUntil = localStorage.getItem('announcementDontShowUntil');
-      const now = new Date().getTime();
-      
-      if (!dontShowUntil || now > parseInt(dontShowUntil)) {
-        // 显示公告弹窗
-        setTimeout(() => {
-          const modal = document.getElementById('announcementModal');
-          modal.classList.add('show');
-          
-          // 20秒后自动关闭
-          setTimeout(() => {
-            if (modal.classList.contains('show')) {
-              closeAnnouncement();
-            }
-          }, 20000);
-        }, 1000);
-      }
-
-      // 主逻辑
-      const cardsContainer = document.getElementById('cardsContainer');
-      const categoryFilter = document.getElementById('categoryFilter');
-      const searchInput = document.querySelector('.search-input');
-      const cardModal = document.getElementById('cardModal');
-      const cardForm = document.getElementById('cardForm');
-      const CUSTOM_CARDS_KEY = 'mghyPortalCustomCards';
-      const localTools = [];
-      let customCards = loadCustomCards();
-      let portalLinks = buildPortalLinks();
-
-      function loadCustomCards() {
-        try { return JSON.parse(localStorage.getItem(CUSTOM_CARDS_KEY) || '[]'); }
-        catch { return []; }
-      }
-
-      function buildPortalLinks() {
-        const merged = [...localTools, ...linksData, ...customCards.map(item => ({ ...item, isCustom: true }))];
-        const seen = new Set();
-        return merged.filter(item => {
-          const key = `${item.name}|${item.url}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-      }
-
-      function escapeHtml(value) {
-        return String(value || '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[char]);
-      }
-      
-      // 生成分类按钮
-      function renderCategoryButtons() {
-        categoryFilter.innerHTML = '';
-        const categories = [...new Set(portalLinks.map(item => item.category))];
-        
-        // 添加"全部"按钮
-        const allBtn = document.createElement('button');
-        allBtn.className = 'category-btn active';
-        allBtn.textContent = '全部';
-        allBtn.dataset.category = 'all';
-        allBtn.addEventListener('click', filterByCategory);
-        categoryFilter.appendChild(allBtn);
-        
-        // 添加其他分类按钮
-        categories.forEach(category => {
-          const btn = document.createElement('button');
-          btn.className = 'category-btn';
-          btn.textContent = category;
-          btn.dataset.category = category;
-          btn.addEventListener('click', filterByCategory);
-          categoryFilter.appendChild(btn);
-        });
-      }
-      
-        // 生成卡片
-        function renderCards(data) {
-          cardsContainer.innerHTML = '';
-          
-          data.forEach(item => {
-            const card = document.createElement('div');
-            card.className = `card${item.isCustom ? ' is-custom' : ''}`;
-            card.dataset.category = item.category;
-            
-            // 创建图标容器
-            const iconContainer = document.createElement('div');
-            iconContainer.className = 'icon-container';
-            
-            // 1. 优先使用本地图标
-            if (item.localIcon && !/^https?:\/\//i.test(item.localIcon)) {
-              iconContainer.innerHTML = `<img src="${escapeHtml(item.localIcon)}" alt="${escapeHtml(item.name)}" class="card-icon-img">`;
-            } 
-            // 离线优先：不自动请求网站 favicon，直接使用数据内图标。
-            else showFallbackIcon(iconContainer, item.icon);
-            
-            card.innerHTML = `
-              <div class="card-content">
-                <h3 class="card-title">${escapeHtml(item.name)}</h3>
-                <p class="card-main-desc">${escapeHtml(item.mainDesc)}</p>
-                <p class="card-sub-desc">${escapeHtml(item.subDesc)}</p>
-                <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener" class="card-link" title="访问${escapeHtml(item.name)}" aria-label="访问${escapeHtml(item.name)}"></a>
-              </div>
-            `;
-            
-            // 将图标容器插入到卡片内容的最前面
-            card.querySelector('.card-content').prepend(iconContainer);
-            if (item.isCustom) {
-              const removeButton = document.createElement('button');
-              removeButton.className = 'custom-remove';
-              removeButton.type = 'button';
-              removeButton.title = '删除此自定义卡片';
-              removeButton.textContent = '×';
-              removeButton.addEventListener('click', event => { event.preventDefault(); removeCustomCard(item.id); });
-              card.appendChild(removeButton);
-            }
-            cardsContainer.appendChild(card);
-          });
-        }
-
-        // 显示备用图标的辅助函数
-        function showFallbackIcon(container, emoji) {
-          container.innerHTML = emoji 
-            ? `<div class="card-icon">${escapeHtml(emoji)}</div>`
-            : '<div class="card-icon">🌐</div>';
-        }
-
-      function refreshPortal() {
-        portalLinks = buildPortalLinks();
-        searchInput.value = '';
-        renderCategoryButtons();
-        renderCards(portalLinks);
-      }
-
-      function removeCustomCard(id) {
-        if (!confirm('删除这个自定义卡片吗？')) return;
-        customCards = customCards.filter(item => item.id !== id);
-        localStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify(customCards));
-        refreshPortal();
-      }
-
-      document.getElementById('addCardBtn').addEventListener('click', () => { cardModal.classList.add('show'); cardModal.setAttribute('aria-hidden', 'false'); document.getElementById('cardName').focus(); });
-      document.getElementById('cancelCardBtn').addEventListener('click', () => { cardModal.classList.remove('show'); cardModal.setAttribute('aria-hidden', 'true'); cardForm.reset(); });
-      cardModal.addEventListener('click', event => { if (event.target === cardModal) document.getElementById('cancelCardBtn').click(); });
-      cardForm.addEventListener('submit', event => {
-        event.preventDefault();
-        const url = document.getElementById('cardUrl').value.trim();
-        if (!/^(https?:\/\/|\.\/|\.\.\/|\/)/i.test(url)) { alert('链接请使用 https://、./、../ 或 / 开头。'); return; }
-        customCards.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, category: document.getElementById('cardCategory').value.trim() || '自定义', name: document.getElementById('cardName').value.trim(), url, mainDesc: '', subDesc: document.getElementById('cardDesc').value.trim(), icon: document.getElementById('cardIcon').value.trim() || '◇' });
-        localStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify(customCards));
-        document.getElementById('cancelCardBtn').click();
-        refreshPortal();
-      });
-      document.getElementById('exportCardsBtn').addEventListener('click', () => {
-        const exported = [...linksData, ...customCards.map(({ id, ...card }) => card)];
-        const content = `// 由 MGHY 本地工具门户导出\n// 上传时替换网站根目录的 links.js\nconst linksData = ${JSON.stringify(exported, null, 2)};\n`;
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([content], { type: 'text/javascript;charset=utf-8' }));
-        link.download = 'links.js';
-        link.click();
-        URL.revokeObjectURL(link.href);
-      });
-      
-      // 分类筛选
-      function filterByCategory(e) {
-        const category = e.target.dataset.category;
-        
-        document.querySelectorAll('.category-btn').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        e.target.classList.add('active');
-        
-        if (category === 'all') {
-          renderCards(portalLinks);
-        } else {
-          const filteredData = portalLinks.filter(item => item.category === category);
-          renderCards(filteredData);
-        }
-      }
-      
-      // 搜索功能
-      searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const activeCategory = document.querySelector('.category-btn.active').dataset.category;
-        
-        let filteredData = portalLinks;
-        
-        if (activeCategory !== 'all') {
-          filteredData = portalLinks.filter(item => item.category === activeCategory);
-        }
-        
-        filteredData = filteredData.filter(item => 
-          item.name.toLowerCase().includes(searchTerm) || 
-          item.mainDesc.toLowerCase().includes(searchTerm) ||
-          item.subDesc.toLowerCase().includes(searchTerm)
-        );
-        
-        renderCards(filteredData);
-      });
-      
-      // 初始化
-      renderCategoryButtons();
-      renderCards(portalLinks);
-    });
-  </script>
+  </dialog>
 </body>
 </html>

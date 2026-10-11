@@ -123,6 +123,7 @@ const linksData = [
     url: "https://tu.mghy.top/",
     mainDesc: "",
     subDesc: "Telegraph-Image",
+    localIcon: "https://tu.mghy.top/favicon.ico",
     icon: "❌",
   },
   {
@@ -131,7 +132,7 @@ const linksData = [
     url: "https://docs.mghy.top/",
     mainDesc: "",
     subDesc: "好记性不如烂笔头",
-    localIcon: "https://zy.mghy.top/assets/img/logo.jpg",
+    localIcon: "https://docs.mghy.top/favicon.ico",
     icon: "❌",
   },
   // {

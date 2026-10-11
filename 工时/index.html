@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" style="color-scheme: dark;">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#101012">
     <title>加班工时计算系统</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="holiday-config.js"></script>
-    <link rel="stylesheet" href="style1.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link rel="stylesheet" href="icons.css?v=20261011">
+    <script src="../CPK/js/xlsx.full.min.js"></script>
+    <script src="holiday-config.js?v=20261011"></script>
+    <link rel="stylesheet" href="style1.css?v=20261011">
 
     <style>
         /* 加班时长限制警告样式 */
@@ -824,13 +824,13 @@
     </style>
 </head>
 
-<body>
+<body data-theme="dark">
     <div class="container">
         <header>
             <h1><i class="fas fa-clock"></i> 加班工时计算系统</h1>
             <p>精确计算加班时长与加班费用，数据本地保存不丢失</p>
-            <div class="app-brand-mark" aria-label="版本与作者"><span class="brand-orange">🍊</span><span>v6.2</span><span>MGHYGitHub · 橙子🍊</span></div>
-            <button class="toolbar-btn icon-only header-theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" title="切换深色模式"><i class="fas fa-moon"></i></button>
+            <div class="app-brand-mark" aria-label="版本与作者"><span class="brand-orange">🍊</span><span>v6.3</span><span>MGHYGitHub · 橙子🍊</span></div>
+            <a class="tool-home-link" href="../index.html">← 返回工具集</a>
         </header>
 
         <div class="card compact-salary-card">
@@ -838,11 +838,11 @@
                 <h2 class="compact-title"><i class="fas fa-money-bill-wave"></i> 工资设置</h2>
                 <div class="input-group-compact">
                     <label for="salary">月标准工资 (元)</label>
-                    <input type="number" id="salary" value="4900" min="0">
+                    <input type="number" id="salary" value="4900" min="0" step="0.01">
                     <label for="night-subsidy">夜班补贴 (元/天)</label>
                     <input type="number" id="night-subsidy" value="20" min="0" step="1">
                 </div>
-                <label class="pay-option"><input type="checkbox" id="social-insurance-toggle"> 估算深圳五险一金与个税</label>
+                <label class="pay-option"><input type="checkbox" id="social-insurance-toggle"><span id="social-insurance-label">五险个税：关</span></label>
                 <div class="salary-display-compact">
                     <div class="salary-item-compact">
                         <div class="label-sm">日薪</div>
@@ -853,7 +853,8 @@
                         <div class="value-sm" id="hourly-salary">26.94</div>
                     </div>
                 </div>
-                <div id="deduction-detail" class="deduction-detail">五险一金/个税：未启用</div><div class="deduction-source">数据来源于：<a href="https://hrss.sz.gov.cn/" target="_blank" rel="noopener">深圳市人力资源和社会保障局公开政策</a> · 更新时间：<span id="deduction-updated"></span></div>
+                <div id="deduction-detail" class="deduction-detail"></div>
+                <div class="deduction-source" id="deduction-source" hidden>公开政策参考：<a href="https://hrss.sz.gov.cn/" target="_blank" rel="noopener noreferrer">深圳人社局</a> · <a href="https://shenzhen.chinatax.gov.cn/" target="_blank" rel="noopener noreferrer">深圳税务局</a> · <a href="https://zjj.sz.gov.cn/" target="_blank" rel="noopener noreferrer">深圳住建局 / 公积金</a><br>按月薪简化估算，缴费基数、险种档次及累计预扣可能不同 · 本次估算：<span id="deduction-updated"></span></div>
             </div>
 
             <div class="overtime-rates-compact">
@@ -912,7 +913,7 @@
                     <div class="stat-item-compact">
                         <div class="stat-value-compact" id="total-leave">0.0H</div>
                         <div class="stat-label-compact">总请假</div>
-                        <div class="stat-subtext-compact">扣款: <span id="leave-deduction">0.00</span></div><div class="stat-subtext-compact deduction-card-detail" id="deduction-card-detail">五险一金：未启用</div>
+                        <div class="stat-subtext-compact">请假扣款: <span id="leave-deduction">0.00</span></div><div class="stat-subtext-compact deduction-card-detail" id="deduction-card-detail" hidden></div>
                     </div>
                 </div>
 
@@ -932,7 +933,7 @@
                     <div class="stat-item-compact">
                         <div class="stat-value-compact" id="net-income">4900.00</div>
                         <div class="stat-label-compact">净收入</div>
-                        <div class="stat-subtext-compact">工资+加班费-请假</div>
+                        <div class="stat-subtext-compact" id="net-income-formula">工资+加班费+补贴-请假</div>
                     </div>
                 </div>
             </div>
@@ -1044,6 +1045,7 @@
                         </div>
                     </div>
                 </div>
+                <div class="excel-table-scroll" tabindex="0" role="region" aria-label="加班明细表，可左右滑动查看完整列">
                 <table class="excel-table">
                     <thead>
                         <tr>
@@ -1061,13 +1063,14 @@
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="setting-modal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <button class="close" type="button" aria-label="关闭设置">&times;</button>
             <h3><i class="fas fa-edit"></i> 自定义设置</h3>
             <div class="form-group"><label for="overtime-reason">加班事由：</label><input type="text" id="overtime-reason"
                     placeholder="如：JHS项目加班工作"></div>
@@ -1134,27 +1137,28 @@
         </div>
     </div>
 
-    <footer class="app-signature"><span class="brand-orange">🍊</span><strong>加班工时计算系统 v6.2</strong><span>作者：MGHYGitHub · 橙子🍊</span><button id="holiday-settings-trigger" class="holiday-settings-trigger" type="button" title="连续点击两次打开节假日设置" aria-label="节假日设置"><i class="fas fa-calendar-alt"></i></button></footer>
+    <footer class="app-signature"><span class="brand-orange">🍊</span><strong>加班工时计算系统 v6.3</strong><span>作者：MGHYGitHub · 橙子🍊</span><button id="holiday-settings-trigger" class="holiday-settings-trigger" type="button" title="连续点击两次打开节假日设置" aria-label="节假日设置"><i class="fas fa-calendar-alt"></i></button></footer>
     <div id="holiday-settings-modal" class="holiday-settings-modal" hidden>
         <section class="holiday-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="holiday-settings-title">
             <button id="holiday-settings-close" class="holiday-settings-close" type="button" aria-label="关闭">&times;</button>
             <div class="holiday-settings-icon"><i class="fas fa-calendar-check"></i></div>
             <p class="holiday-settings-eyebrow">HOLIDAY CALENDAR</p><h2 id="holiday-settings-title">节假日可视化设置</h2>
-            <div class="holiday-calendar-toolbar"><button id="holiday-prev-month" type="button">‹</button><select id="holiday-year-select" aria-label="年份"></select><select id="holiday-month-select" aria-label="月份"></select><button id="holiday-next-month" type="button">›</button></div>
-            <p class="holiday-settings-help">导入国家节假日表后，可在右侧 JSON 中微调。红色为法定节假日，橙色为调休日，紫色为补班日。</p>
+            <div class="holiday-calendar-toolbar"><button id="holiday-prev-month" type="button" aria-label="上一月">‹</button><select id="holiday-year-select" aria-label="年份"></select><select id="holiday-month-select" aria-label="月份"></select><button id="holiday-next-month" type="button" aria-label="下一月">›</button><button id="holiday-today-btn" type="button">今天</button></div>
+            <p class="holiday-settings-help">点击或右键日期选择类型，修改会自动保存在当前浏览器。支持导入按年份整理的 JSON，或在右侧编辑当前年份。</p>
             <div class="holiday-settings-grid"><div class="holiday-calendar-preview" id="holiday-calendar-preview"></div><textarea id="holiday-json-editor" spellcheck="false" aria-label="节假日 JSON"></textarea></div>
             <div class="holiday-legend"><span><i class="legend-dot holiday"></i>法定节假日</span><span><i class="legend-dot extra"></i>调休日</span><span><i class="legend-dot makeup"></i>补班日</span><span><i class="legend-dot normal"></i>普通日期</span></div>
+            <p id="holiday-settings-status" class="holiday-settings-status" role="status" aria-live="polite"></p>
             <div class="holiday-settings-actions"><button id="holiday-clear-btn" type="button" class="holiday-clear-btn"><i class="fas fa-eraser"></i> 一键清除全部标记</button><label class="holiday-import-btn"><i class="fas fa-file-import"></i> 导入 JSON<input id="holiday-import-input" type="file" accept="application/json,.json" hidden></label><button id="holiday-reset-btn" type="button">恢复当前年份</button><button id="holiday-export-btn" class="holiday-export-btn" type="button"><i class="fas fa-download"></i> 导出 holiday-config.js</button></div>
         </section>
     </div>
 
     <aside class="update-announcement" id="update-announcement" aria-live="polite">
-        <button class="announcement-tab" id="announcement-tab" type="button"><i class="fas fa-bullhorn"></i><span>v6.2 更新</span></button>
+        <button class="announcement-tab" id="announcement-tab" type="button"><i class="fas fa-bullhorn"></i><span>v6.3 更新</span></button>
         <div class="announcement-panel">
             <button class="announcement-close" id="announcement-close" type="button" aria-label="收起公告">&times;</button>
-            <div class="announcement-heading"><span>🍊</span><div><strong>v6.2 更新公告（含 v6.1）</strong><small>MGHYGitHub · 橙子🍊</small></div></div>
+            <div class="announcement-heading"><span>🍊</span><div><strong>v6.3 更新公告（含 v6.1 / v6.2）</strong><small>2026-10-11 · MGHYGitHub · 橙子🍊</small></div></div>
             <p>这次把页面从“记录工具”升级成了更完整的加班管理台：</p>
-            <ul><li>v6.2：夜班节假日、调休日启用 8H 主班，并统一填报 01:00–03:00 休息时间</li><li>v6.1：新增节假日可视化设置、JSON 导入导出和深色模式兼容</li><li>v6.2：优化手机端明细表横向浏览，新增移动端自适应布局</li><li>v6.2：新增夜班补贴、五险一金及个税估算明细</li></ul>
+            <ul><li>v6.3：统一深色菜单与弹窗，手机明细表独立横滚，公告不再遮挡正文</li><li>v6.3：合并节假日编辑器，修复右键设置、年月切换、返回今天与完整导出</li><li>v6.3：修复五险分项合计、月末切月和工资备份恢复，核心依赖改为本地加载</li><li>v6.2：夜班休息日必选 8H 主班，休息时间为 01:00–03:00；新增补贴和五险个税估算</li><li>v6.1：新增节假日可视化设置、JSON 导入导出和深色模式兼容</li></ul>
             <label class="announcement-option"><input id="announcement-dismiss" type="checkbox"> 此版本不再自动弹出</label>
         </div>
     </aside>
@@ -1426,23 +1430,31 @@
     </style>
 
     <script>
-      document.getElementById('holiday-clear-btn')?.addEventListener('click',()=>{const e=document.getElementById('holiday-json-editor');if(!e)return;e.value=JSON.stringify({holidays:[],extraWorkDays:[],makeUpWorkDays:[]},null,2);e.dispatchEvent(new Event('input'));});
-    </script>
-    <script>
-        console.info('%c🍊 加班工时计算系统 v6.2', 'color:#ff8a00;font-size:18px;font-weight:700;');
+        console.info('%c🍊 加班工时计算系统 v6.3', 'color:#ff8a00;font-size:18px;font-weight:700;');
         console.info('%c作者：MGHYGitHub · 橙子🍊  |  请认准官方署名', 'color:#ff8a00;font-size:13px;font-weight:600;');
         // ========== 初始化变量 ==========
         let currentDate = new Date();
-        let salary = localStorage.getItem('salary') || 4900;
-        let nightSubsidy = Number(localStorage.getItem('nightSubsidy') || 20);
+        const nonNegativeAmount = (value, fallback = 0) => {
+            const amount = Number(value);
+            return Number.isFinite(amount) && amount >= 0 ? amount : fallback;
+        };
+        let salary = nonNegativeAmount(localStorage.getItem('salary') ?? 4900, 4900);
+        let nightSubsidy = nonNegativeAmount(localStorage.getItem('nightSubsidy') ?? 20, 20);
         let socialInsuranceEnabled = localStorage.getItem('socialInsuranceEnabled') === 'true';
         let isMultiselectMode = false;
         let isNightShiftMode = false;
         let selectedDates = new Set();
-        let allOvertimeData = JSON.parse(localStorage.getItem('allOvertimeData')) || {};
+        let allOvertimeData = {};
+        try {
+            const storedData = JSON.parse(localStorage.getItem('allOvertimeData') || '{}');
+            if (storedData && typeof storedData === 'object' && !Array.isArray(storedData)) allOvertimeData = storedData;
+        } catch (error) {
+            console.warn('工时数据格式异常，原始数据仍保留在浏览器中。请使用备份恢复。', error);
+        }
         let lastSavedOvertimeState = JSON.stringify(allOvertimeData);
         const undoStack = [];
         let pendingCopiedRecord = null;
+        let pendingConfirmClose = null;
 
         // 常量
         const MAX_DAILY_OVERTIME = 3;
@@ -1478,7 +1490,6 @@
         const multiselectCancel = document.getElementById('multiselect-cancel');
         const multiselectApply = document.getElementById('multiselect-apply');
         const nightModeToggle = document.getElementById('night-mode-toggle');
-        const themeToggle = document.getElementById('theme-toggle');
 
         function toggleGlobalStats() {
             const content = document.getElementById('collapse-content');
@@ -1849,13 +1860,31 @@
         // 自定义确认对话框（替代浏览器confirm）
         function customConfirm(options) {
             return new Promise((resolve) => {
-                const existing = document.querySelector('.custom-confirm-overlay');
-                if (existing) existing.remove();
+                if (pendingConfirmClose) pendingConfirmClose(false);
+                const previousFocus = document.activeElement;
 
                 const overlay = document.createElement('div');
                 overlay.className = 'custom-confirm-overlay';
                 const dialog = document.createElement('div');
                 dialog.className = 'custom-confirm-dialog';
+                dialog.setAttribute('role', 'dialog');
+                dialog.setAttribute('aria-modal', 'true');
+                dialog.setAttribute('aria-label', options.title || '提示');
+                const finish = (approved) => {
+                    document.removeEventListener('keydown', keyHandler, { capture: true });
+                    overlay.remove();
+                    pendingConfirmClose = null;
+                    previousFocus?.focus();
+                    resolve(approved);
+                };
+                const keyHandler = (event) => {
+                    if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); finish(false); }
+                    if (event.key === 'Tab') {
+                        const controls = [...dialog.querySelectorAll('button')];
+                        if (event.shiftKey && document.activeElement === controls[0]) { event.preventDefault(); controls.at(-1)?.focus(); }
+                        else if (!event.shiftKey && document.activeElement === controls.at(-1)) { event.preventDefault(); controls[0]?.focus(); }
+                    }
+                };
 
                 const type = options.type || 'warning';
                 const iconMap = { warning: '⚠️', info: 'ℹ️', success: '✅', error: '❌' };
@@ -1874,18 +1903,12 @@
                 const cancelBtn = document.createElement('button');
                 cancelBtn.className = 'custom-confirm-btn cancel';
                 cancelBtn.textContent = options.cancelText || '取消';
-                cancelBtn.onclick = () => {
-                    overlay.remove();
-                    resolve(false);
-                };
+                cancelBtn.onclick = () => finish(false);
 
                 const confirmBtn = document.createElement('button');
                 confirmBtn.className = `custom-confirm-btn ${type === 'warning' ? 'warning' : 'confirm'}`;
                 confirmBtn.textContent = options.confirmText || '确定';
-                confirmBtn.onclick = () => {
-                    overlay.remove();
-                    resolve(true);
-                };
+                confirmBtn.onclick = () => finish(true);
 
                 if (options.showCancel !== false) footer.appendChild(cancelBtn);
                 footer.appendChild(confirmBtn);
@@ -1897,20 +1920,11 @@
                 document.body.appendChild(overlay);
 
                 overlay.onclick = (e) => {
-                    if (e.target === overlay) {
-                        overlay.remove();
-                        resolve(false);
-                    }
+                    if (e.target === overlay) finish(false);
                 };
-
-                const escHandler = (e) => {
-                    if (e.key === 'Escape') {
-                        overlay.remove();
-                        document.removeEventListener('keydown', escHandler);
-                        resolve(false);
-                    }
-                };
-                document.addEventListener('keydown', escHandler);
+                pendingConfirmClose = finish;
+                document.addEventListener('keydown', keyHandler, { capture: true });
+                (options.showCancel === false ? confirmBtn : cancelBtn).focus();
             });
         }
 
@@ -2192,9 +2206,22 @@
             const nightDays = Object.values(overtimeData).filter(item => item.nightShift && !item.isLeave).length;
             const subsidy = nightDays * (Number(nightSubsidy) || 0);
             const grossIncome = parseFloat(salary) + parseFloat(totalOvertimePay) + subsidy - parseFloat(leaveDeduction);
-            const insurance = socialInsuranceEnabled ? grossIncome * 0.105 : 0;
+            // 个人缴费简化估算：工伤、生育由单位承担，不计入个人扣款。
+            const contributionBase = nonNegativeAmount(salary);
+            const components = socialInsuranceEnabled ? {
+                pension: contributionBase * 0.08,
+                medical: contributionBase * 0.02,
+                unemployment: contributionBase * 0.005,
+                injury: 0,
+                maternity: 0,
+                housing: contributionBase * 0.05
+            } : { pension: 0, medical: 0, unemployment: 0, injury: 0, maternity: 0, housing: 0 };
+            const insurance = Object.values(components).reduce((sum, amount) => sum + amount, 0);
             const taxable = Math.max(0, grossIncome - insurance - 5000);
-            const tax = socialInsuranceEnabled ? (taxable <= 36000 ? taxable * 0.03 : 36000 * 0.03 + (taxable - 36000) * 0.1) : 0;
+            // 月度等效税率表；实际累计预扣需结合年内收入及专项附加扣除。
+            const taxBrackets = [[3000, 0.03, 0], [12000, 0.10, 210], [25000, 0.20, 1410], [35000, 0.25, 2660], [55000, 0.30, 4410], [80000, 0.35, 7160], [Infinity, 0.45, 15160]];
+            const [, taxRate, quickDeduction] = taxBrackets.find(([limit]) => taxable <= limit);
+            const tax = socialInsuranceEnabled ? Math.max(0, taxable * taxRate - quickDeduction) : 0;
             const netIncome = (grossIncome - insurance - tax).toFixed(2);
 
             // ✅ 更新UI
@@ -2208,9 +2235,15 @@
             overtimeCEl.textContent = 'C：' + overtimePayC;
             netIncomeEl.textContent = netIncome;
             netIncomeEl.title = `夜班补贴 ${subsidy.toFixed(2)} 元｜五险一金估算 ${insurance.toFixed(2)} 元｜个税估算 ${tax.toFixed(2)} 元`;
-            const detailEl = document.getElementById('deduction-detail'); if (detailEl) detailEl.innerHTML = socialInsuranceEnabled ? `养老 ${ (grossIncome*.08).toFixed(2)}｜医疗 ${(grossIncome*.02).toFixed(2)}｜失业 ${(grossIncome*.005).toFixed(2)}｜工伤 ${(grossIncome*.002).toFixed(2)}｜生育 ${(grossIncome*.001).toFixed(2)}｜公积金 ${(grossIncome*.05).toFixed(2)}<br>五险一金估算：${insurance.toFixed(2)} 元｜个税估算：${tax.toFixed(2)} 元｜夜班补贴：${subsidy.toFixed(2)} 元` : `夜班补贴：${subsidy.toFixed(2)} 元｜五险一金/个税未启用`;
+            const detailEl = document.getElementById('deduction-detail');
+            if (detailEl) detailEl.innerHTML = socialInsuranceEnabled ? `<div class="deduction-items"><span>养老 8%：${components.pension.toFixed(2)} 元</span><span>医疗 2%：${components.medical.toFixed(2)} 元</span><span>失业 0.5%：${components.unemployment.toFixed(2)} 元</span><span>工伤：0.00 元（单位承担）</span><span>生育：0.00 元（单位承担）</span><span>公积金 5%：${components.housing.toFixed(2)} 元</span></div><div class="deduction-totals"><span>五险一金估算：${insurance.toFixed(2)} 元</span><span>个税估算：${tax.toFixed(2)} 元</span><span>夜班补贴：${subsidy.toFixed(2)} 元</span></div>` : (subsidy > 0 ? `夜班补贴：${subsidy.toFixed(2)} 元` : '');
             const updatedEl = document.getElementById('deduction-updated'); if (updatedEl) updatedEl.textContent = new Date().toLocaleDateString('zh-CN');
-            const deductionCard = document.getElementById('deduction-card-detail'); if (deductionCard) deductionCard.textContent = socialInsuranceEnabled ? `五险一金：${insurance.toFixed(2)}｜个税：${tax.toFixed(2)}` : '五险一金：未启用';
+            const sourceEl = document.getElementById('deduction-source'); if (sourceEl) sourceEl.hidden = !socialInsuranceEnabled;
+            const labelEl = document.getElementById('social-insurance-label'); if (labelEl) labelEl.textContent = `五险个税：${socialInsuranceEnabled ? '开' : '关'}`;
+            document.querySelector('.pay-option')?.classList.toggle('is-enabled', socialInsuranceEnabled);
+            const deductionCard = document.getElementById('deduction-card-detail');
+            if (deductionCard) { deductionCard.hidden = !socialInsuranceEnabled; deductionCard.textContent = `五险一金：${insurance.toFixed(2)} 元｜个税：${tax.toFixed(2)} 元`; }
+            const formulaEl = document.getElementById('net-income-formula'); if (formulaEl) formulaEl.textContent = socialInsuranceEnabled ? '工资+加班费+补贴-请假-五险一金-个税' : '工资+加班费+补贴-请假';
 
             updateWeeklyProgress();
             markLimitWarnings();
@@ -2255,7 +2288,8 @@
                     if (searchQuery && !searchText.includes(searchQuery)) continue;
                     hasData = true;
                     let amount = isLeave ? -(hours * hourlySalary * 1.5) : hours * hourlySalary * multiplier;
-                    tableHTML += `<tr class="${isLeave ? 'leave-row' : 'overtime-row'}"><td class="date-column">${dateLabel}</td><td class="type-column"><span class="type-badge ${typeClass}">${typeText}</span></td><td class="hours-column">${isLeave ? '请假' : (data.nightShift ? '夜班加班' : '加班')} ${hours}H</td><td class="multiplier-column"><span class="multiplier-badge">${multiplier}倍</span></td><td class="amount-column">${amount.toFixed(2)}</td><td class="note-column">${data.note || '—'}</td></tr>`;
+                    const note = String(data.note || '—').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+                    tableHTML += `<tr class="${isLeave ? 'leave-row' : 'overtime-row'}"><td class="date-column">${dateLabel}</td><td class="type-column"><span class="type-badge ${typeClass}">${typeText}</span></td><td class="hours-column">${isLeave ? '请假' : (data.nightShift ? '夜班加班' : '加班')} ${hours}H</td><td class="multiplier-column"><span class="multiplier-badge">${multiplier}倍</span></td><td class="amount-column">${amount.toFixed(2)}</td><td class="note-column">${note}</td></tr>`;
                 }
             }
             excelTableBody.innerHTML = hasData ? tableHTML : `<tr><td colspan="6" class="no-data"><i class="fas fa-inbox"></i><br>暂无加班或请假记录</td></tr>`;
@@ -2286,6 +2320,7 @@
                 else if (dateType === 'extraWork') dayNumber.innerHTML = day + ' <span style="color:#f39c12;font-size:0.7em;">调</span>';
                 else if (dateType === 'makeUpWork') dayNumber.innerHTML = day + ' <span style="color:#6c5ce7;font-size:0.7em;">补</span>';
                 dayElement.appendChild(dayNumber);
+                if (isToday) { dayElement.setAttribute('aria-current', 'date'); dayElement.title = '今天'; }
                 if (overtimeData[dateString]) updateDayDisplay(dayElement, dateString, overtimeData[dateString].hours, overtimeData[dateString].isLeave, overtimeData[dateString].nightShift);
                 dayElement.addEventListener('click', () => handleDateClick(date, dayElement));
                 calendarEl.appendChild(dayElement);
@@ -2566,18 +2601,9 @@
             overlay.querySelector('.night-sheet-save').focus();
         }
 
-        function setTheme(theme) {
-            document.body.dataset.theme = theme;
-            localStorage.setItem('overtimeTheme', theme);
-            const isDark = theme === 'dark';
-            themeToggle.innerHTML = `<i class="fas fa-${isDark ? 'sun' : 'moon'}"></i>`;
-            themeToggle.setAttribute('aria-label', isDark ? '切换浅色模式' : '切换深色模式');
-            themeToggle.title = themeToggle.getAttribute('aria-label');
-        }
-
         function initAppearance() {
-            setTheme('dark');
-            themeToggle.hidden = true;
+            document.body.dataset.theme = 'dark';
+            localStorage.setItem('overtimeTheme', 'dark');
             setNightShiftMode(localStorage.getItem('nightShiftMode') === 'true');
             nightModeToggle.onclick = () => setNightShiftMode(!isNightShiftMode, true);
         }
@@ -2604,7 +2630,7 @@
             nightModeToggle.setAttribute('aria-pressed', String(enabled));
             nightModeToggle.innerHTML = enabled ? '<i class="fas fa-check"></i><span>夜班模式中</span>' : '<i class="fas fa-moon"></i><span>夜班加班</span>';
             if (enabled && isMultiselectMode) exitMultiselectMode();
-            if (announce) showNotification(enabled ? '夜班模式已开启：点击考勤日期录入固定 2 小时' : '已退出夜班模式', 'info');
+            if (announce) showNotification(enabled ? '夜班模式已开启：点击日期选择时段，休息日含必选 8H 主班' : '已退出夜班模式', 'info');
         }
 
         function handleDateClick(date, dayElement) {
@@ -2696,7 +2722,14 @@
             setTimeout(() => notification.remove(), 3000);
         }
 
+        function requireSpreadsheetLibrary() {
+            if (typeof XLSX !== 'undefined') return true;
+            showNotification('Excel 组件尚未加载，请检查网络后刷新重试。数据仍保存在本地。', 'error');
+            return false;
+        }
+
         function exportToExcel() {
+            if (!requireSpreadsheetLibrary()) return;
             const overtimeData = getCurrentOvertimeData();
             const hourlySalary = parseFloat(hourlySalaryEl.textContent);
             const year = currentDate.getFullYear();
@@ -2725,6 +2758,7 @@
         }
 
         async function importFromExcel(event) {
+            if (!requireSpreadsheetLibrary()) { event.target.value = ''; return; }
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -2867,15 +2901,29 @@
             showNotification('已撤销上一次数据修改', 'success');
         }
         function backupData() {
-            const payload = { version: 1, exportedAt: new Date().toISOString(), salary, overtimeData: allOvertimeData };
+            const payload = { version: 2, exportedAt: new Date().toISOString(), salary, nightSubsidy, socialInsuranceEnabled, overtimeData: allOvertimeData };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
             const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = '加班数据备份.json'; link.click(); URL.revokeObjectURL(link.href);
         }
         function restoreBackup(file) {
             const reader = new FileReader(); reader.onload = () => { try {
-                const payload = JSON.parse(reader.result); if (!payload || typeof payload.overtimeData !== 'object') throw new Error();
-                undoStack.push(JSON.stringify(allOvertimeData)); allOvertimeData = payload.overtimeData; salary = Number(payload.salary) || salary;
+                const payload = JSON.parse(reader.result);
+                const restored = payload?.overtimeData;
+                if (!restored || typeof restored !== 'object' || Array.isArray(restored)) throw new Error();
+                for (const [month, records] of Object.entries(restored)) {
+                    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || !records || typeof records !== 'object' || Array.isArray(records)) throw new Error();
+                    for (const [date, record] of Object.entries(records)) {
+                        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !date.startsWith(month + '-') || !record || typeof record !== 'object') throw new Error();
+                        const parsedDate = new Date(date + 'T00:00:00');
+                        if (!Number.isFinite(parsedDate.getTime()) || formatDateForInput(parsedDate) !== date || !Number.isFinite(Number(record.hours)) || Number(record.hours) < 0 || Number(record.hours) > 24) throw new Error();
+                    }
+                }
+                undoStack.push(JSON.stringify(allOvertimeData)); allOvertimeData = restored; salary = nonNegativeAmount(payload.salary, salary);
+                nightSubsidy = nonNegativeAmount(payload.nightSubsidy ?? nightSubsidy, nightSubsidy);
+                if (typeof payload.socialInsuranceEnabled === 'boolean') socialInsuranceEnabled = payload.socialInsuranceEnabled;
                 lastSavedOvertimeState = JSON.stringify(allOvertimeData); localStorage.setItem('allOvertimeData', lastSavedOvertimeState); localStorage.setItem('salary', salary);
+                localStorage.setItem('nightSubsidy', nightSubsidy); localStorage.setItem('socialInsuranceEnabled', String(socialInsuranceEnabled));
+                salaryInput.value = salary; nightSubsidyInput.value = nightSubsidy; socialInsuranceToggle.checked = socialInsuranceEnabled; calculateSalaries();
                 renderCalendar(); updateStats(); updateExcelTable(); updateGlobalStats(); showNotification('备份已恢复', 'success');
             } catch { showNotification('备份文件格式不正确', 'error'); } }; reader.readAsText(file);
         }
@@ -2937,11 +2985,11 @@
             updateExcelTable();
             initMultiselect();
             initKeyboardShortcuts();
-            salaryInput.oninput = () => { salary = parseFloat(salaryInput.value) || 0; calculateSalaries(); updateStats(); updateExcelTable(); saveToLocalStorage(); };
-            nightSubsidyInput.oninput = () => { nightSubsidy = Math.max(0, Number(nightSubsidyInput.value) || 0); localStorage.setItem('nightSubsidy', nightSubsidy); updateStats(); };
+            salaryInput.oninput = () => { salary = nonNegativeAmount(salaryInput.value); calculateSalaries(); updateStats(); updateExcelTable(); saveToLocalStorage(); };
+            nightSubsidyInput.oninput = () => { nightSubsidy = nonNegativeAmount(nightSubsidyInput.value); localStorage.setItem('nightSubsidy', nightSubsidy); updateStats(); };
             socialInsuranceToggle.onchange = () => { socialInsuranceEnabled = socialInsuranceToggle.checked; localStorage.setItem('socialInsuranceEnabled', String(socialInsuranceEnabled)); updateStats(); };
-            prevMonthBtn.onclick = () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); updateExcelTable(); };
-            nextMonthBtn.onclick = () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); updateExcelTable(); };
+            prevMonthBtn.onclick = () => { currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1); renderCalendar(); updateExcelTable(); };
+            nextMonthBtn.onclick = () => { currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1); renderCalendar(); updateExcelTable(); };
             exportExcelBtn.onclick = async () => {
                 const records = Object.values(getCurrentOvertimeData()).filter(Boolean);
                 const overtime = records.filter(item => !item.isLeave);
@@ -3143,6 +3191,7 @@
         }
 
         function exportToDatalink() {
+            if (!requireSpreadsheetLibrary()) return;
             const settings = loadSettings();
             const overtimeData = getCurrentOvertimeData();
             const year = currentDate.getFullYear();
@@ -3387,6 +3436,7 @@
         }
 
         function exportGlobalReport() {
+            if (!requireSpreadsheetLibrary()) return;
             const monthRange = getCurrentMonthRange();
             const quarterRange = getCurrentQuarterRange();
             const yearRange = getCurrentYearRange();
@@ -3441,15 +3491,8 @@
       .salary-basic-compact>.pay-option{flex:0 0 auto!important;margin:0!important;white-space:nowrap;align-self:center}.deduction-card-detail{color:#64b5ff!important;font-size:11px!important;margin-top:4px}
       @media(max-width:768px){.excel-table-container{width:100%!important;max-width:100vw!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch!important}.excel-table{min-width:720px!important;width:720px!important}.excel-table-header{min-width:720px!important}.excel-table-actions{flex-wrap:wrap!important}.update-announcement{bottom:12px!important;top:auto!important;right:8px!important}.update-announcement.is-collapsed{bottom:70px!important}.compact-salary-card .salary-basic-compact{gap:8px!important}.compact-salary-card .salary-basic-compact>.input-group-compact{flex-wrap:wrap!important}.compact-salary-card .salary-basic-compact>.pay-option{font-size:11px!important}}
     </style>
-    <script>
-      (()=>{const trigger=document.getElementById('holiday-settings-trigger'),modal=document.getElementById('holiday-settings-modal'),close=document.getElementById('holiday-settings-close'),editor=document.getElementById('holiday-json-editor'),preview=document.getElementById('holiday-calendar-preview');if(!trigger||!modal)return;let taps=0,timer;const year=String(new Date().getFullYear());const current=()=>holidayConfig[year]||{holidays:[],extraWorkDays:[],makeUpWorkDays:[]};const render=()=>{try{const data=JSON.parse(editor.value),rows=[...(data.holidays||[]).map(d=>['holiday','法定节假日',d]),...(data.extraWorkDays||[]).map(d=>['extra','调休日',d]),...(data.makeUpWorkDays||[]).map(d=>['makeup','补班日',d])].sort((a,b)=>a[2].localeCompare(b[2]));preview.innerHTML=`<strong>${year} 年已配置 ${rows.length} 天</strong>`+rows.slice(0,18).map(r=>`<div class="holiday-preview-row"><i class="holiday-dot ${r[0]}"></i><span>${r[2]}</span><b>${r[1]}</b></div>`).join('')+(rows.length>18?`<small>还有 ${rows.length-18} 天，请在右侧编辑器查看</small>`:'')}catch{preview.innerHTML='<span>JSON 格式暂不可预览，请检查括号和引号。</span>'}};const open=()=>{editor.value=JSON.stringify(current(),null,2);render();modal.hidden=false;editor.focus()};trigger.onclick=()=>{taps++;clearTimeout(timer);timer=setTimeout(()=>taps=0,650);if(taps>=2){taps=0;open()}};close.onclick=()=>modal.hidden=true;modal.onclick=e=>{if(e.target===modal)modal.hidden=true};editor.oninput=render;document.getElementById('holiday-reset-btn').onclick=()=>{editor.value=JSON.stringify(current(),null,2);render()};document.getElementById('holiday-import-input').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result);editor.value=JSON.stringify(parsed[year]||parsed,null,2);render()}catch{alert('导入失败：请使用 JSON 格式')}};r.readAsText(f);e.target.value=''};document.getElementById('holiday-export-btn').onclick=()=>{try{const data=JSON.parse(editor.value),source=`// 节假日配置（由 v6.2 可视化设置导出）\nconst holidayConfig = ${JSON.stringify({[year]:data},null,2)};\n\n`+'// 运行时函数请保留原 holiday-config.js 中的实现。';const blob=new Blob([source],{type:'text/javascript;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='holiday-config.js';a.click();URL.revokeObjectURL(a.href)}catch{alert('无法导出：请先修正 JSON')}}})()
-    </script>
-    <script>
-      (()=>{const modal=document.getElementById('holiday-settings-modal'),preview=document.getElementById('holiday-calendar-preview'),editor=document.getElementById('holiday-json-editor');if(!modal||!preview||!editor)return;let menu;const closeMenu=()=>{menu?.remove();menu=null};const draw=()=>{let d;try{d=JSON.parse(editor.value)}catch{return}const y=new Date().getFullYear(),m=new Date().getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),type=(s)=>d.holidays?.includes(s)?'holiday':d.extraWorkDays?.includes(s)?'extra':d.makeUpWorkDays?.includes(s)?'makeup':'';let h=`<div class="holiday-month-title"><span>${y} 年 ${m+1} 月</span><small>右键日期设置类型</small></div><div class="holiday-week"><b>日</b><b>一</b><b>二</b><b>三</b><b>四</b><b>五</b><b>六</b>`;for(let i=0;i<first;i++)h+='<span class="holiday-date empty"></span>';for(let day=1;day<=days;day++){const s=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;h+=`<span class="holiday-date ${type(s)}" data-date="${s}">${day}</span>`}preview.innerHTML=h+'</div>';preview.querySelectorAll('.holiday-date[data-date]').forEach(el=>el.oncontextmenu=e=>{e.preventDefault();closeMenu();menu=document.createElement('div');menu.className='holiday-context';menu.style.left=e.clientX+'px';menu.style.top=e.clientY+'px';[['holiday','法定节假日'],['extra','调休日'],['makeup','补班日'],['clear','清除标记']].forEach(([kind,label])=>{const b=document.createElement('button');b.textContent=label;b.onclick=()=>{let x=JSON.parse(editor.value);for(const k of ['holidays','extraWorkDays','makeUpWorkDays'])x[k]=(x[k]||[]).filter(v=>v!==el.dataset.date);if(kind==='holiday')x.holidays.push(el.dataset.date);if(kind==='extra')x.extraWorkDays.push(el.dataset.date);if(kind==='makeup')x.makeUpWorkDays.push(el.dataset.date);editor.value=JSON.stringify(x,null,2);draw();closeMenu()};menu.appendChild(b)});document.body.appendChild(menu)});};editor.addEventListener('input',draw);modal.addEventListener('click',e=>{if(e.target===modal)closeMenu()});new MutationObserver(()=>{if(!modal.hidden)draw()}).observe(modal,{attributes:true,attributeFilter:['hidden']});document.addEventListener('click',e=>{if(menu&&!menu.contains(e.target))closeMenu()})})()
-    </script>
-<script>document.getElementById('holiday-clear-btn')?.addEventListener('click',()=>{const e=document.getElementById('holiday-json-editor');if(!e)return;e.value=JSON.stringify({holidays:[],extraWorkDays:[],makeUpWorkDays:[]},null,2);e.dispatchEvent(new Event('input'));});(()=>{const p=document.getElementById('holiday-calendar-preview'),e=document.getElementById('holiday-json-editor'),ys=document.getElementById('holiday-year-select'),ms=document.getElementById('holiday-month-select');if(!p||!e||!ys||!ms)return;let cy=new Date().getFullYear(),cm=new Date().getMonth();for(let y=2020;y<=2035;y++)ys.add(new Option(y+' 年',y));for(let m=0;m<12;m++)ms.add(new Option((m+1)+' 月',m));ys.value=cy;ms.value=cm;const draw=()=>{let d;try{d=JSON.parse(e.value)}catch{return}ys.value=cy;ms.value=cm;const first=new Date(cy,cm,1).getDay(),days=new Date(cy,cm+1,0).getDate(),kind=s=>d.holidays?.includes(s)?'holiday':d.extraWorkDays?.includes(s)?'extra':d.makeUpWorkDays?.includes(s)?'makeup':'';let h=`<div class="holiday-month-title"><span>${cy} 年 ${cm+1} 月</span><small>右键日期设置类型</small></div><div class="holiday-week"><b>日</b><b>一</b><b>二</b><b>三</b><b>四</b><b>五</b><b>六</b>`;for(let i=0;i<first;i++)h+='<span class="holiday-date empty"></span>';for(let i=1;i<=days;i++){const s=`${cy}-${String(cm+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;h+=`<span class="holiday-date ${kind(s)}" data-date="${s}">${i}</span>`}p.innerHTML=h+'</div>';p.querySelectorAll('[data-date]').forEach(x=>x.oncontextmenu=a=>{a.preventDefault();const c=prompt('输入类型：holiday=法定节假日，extra=调休日，makeup=补班日，clear=清除',kind(x.dataset.date)||'holiday');if(!c)return;let z=JSON.parse(e.value);for(const k of ['holidays','extraWorkDays','makeUpWorkDays'])z[k]=(z[k]||[]).filter(v=>v!==x.dataset.date);if(c==='holiday')z.holidays.push(x.dataset.date);if(c==='extra')z.extraWorkDays.push(x.dataset.date);if(c==='makeup')z.makeUpWorkDays.push(x.dataset.date);e.value=JSON.stringify(z,null,2);draw()})};ys.onchange=()=>{cy=+ys.value;draw()};ms.onchange=()=>{cm=+ms.value;draw()};document.getElementById('holiday-prev-month').onclick=()=>{cm--;if(cm<0){cm=11;cy--}draw()};document.getElementById('holiday-next-month').onclick=()=>{cm++;if(cm>11){cm=0;cy++}draw()};document.getElementById('holiday-reset-btn')?.addEventListener('click',()=>setTimeout(draw,50));setInterval(()=>{if(!document.getElementById('holiday-settings-modal')?.hidden)draw()},300);})();</script>
-<script>document.getElementById('holiday-reset-btn')?.addEventListener('click',()=>{const p=document.getElementById('holiday-calendar-preview');if(p){p.style.visibility='hidden';setTimeout(()=>p.style.visibility='visible',360)}} ,true);</script>
-<script>document.getElementById('holiday-calendar-preview')?.addEventListener('contextmenu',e=>{const d=e.target.closest('[data-date]');if(!d)return;e.preventDefault();e.stopImmediatePropagation();document.querySelector('.holiday-context')?.remove();const m=document.createElement('div');m.className='holiday-context';m.style.cssText=`position:fixed;z-index:40000;left:${e.clientX}px;top:${e.clientY}px`;[['holiday','法定节假日'],['extra','调休日'],['makeup','补班日'],['clear','清除标记']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{const j=document.getElementById('holiday-json-editor'),x=JSON.parse(j.value);for(const a of ['holidays','extraWorkDays','makeUpWorkDays'])x[a]=(x[a]||[]).filter(v=>v!==d.dataset.date);if(k==='holiday')x.holidays.push(d.dataset.date);if(k==='extra')x.extraWorkDays.push(d.dataset.date);if(k==='makeup')x.makeUpWorkDays.push(d.dataset.date);j.value=JSON.stringify(x,null,2);j.dispatchEvent(new Event('input'));m.remove()};m.appendChild(b)});document.body.appendChild(m);setTimeout(()=>document.addEventListener('click',()=>m.remove(),{once:true}),0)},true);</script>
+    <link rel="stylesheet" href="worktime-polish.css?v=20261011">
+    <script src="holiday-settings.js?v=20261011"></script>
 </body>
 
 </html>

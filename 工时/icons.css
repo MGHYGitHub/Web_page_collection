@@ -1,0 +1,13 @@
+/* 使用仓库已有的 Font Awesome 4.7 字体，兼容本页使用的图标名称。 */
+@font-face{font-family:WorktimeIcons;src:url('../CPK/fonts/fontawesome-webfont.woff2') format('woff2');font-weight:normal;font-style:normal;font-display:swap}
+.fas,.far,.fa{display:inline-block;font:normal normal normal 1em/1 WorktimeIcons;min-width:1em;text-align:center;text-rendering:auto;-webkit-font-smoothing:antialiased}
+.fa-clock:before{content:'\f017'}.fa-calendar-alt:before,.fa-calendar-week:before{content:'\f073'}.fa-calendar-check:before{content:'\f274'}
+.fa-chart-bar:before{content:'\f080'}.fa-chart-line:before{content:'\f201'}.fa-chart-pie:before{content:'\f200'}
+.fa-check:before{content:'\f00c'}.fa-chevron-down:before{content:'\f078'}.fa-chevron-left:before{content:'\f053'}.fa-chevron-right:before{content:'\f054'}
+.fa-cog:before{content:'\f013'}.fa-copy:before{content:'\f0c5'}.fa-download:before{content:'\f019'}.fa-edit:before{content:'\f044'}.fa-eraser:before{content:'\f12d'}
+.fa-exclamation-triangle:before{content:'\f071'}.fa-file-import:before,.fa-upload:before{content:'\f093'}.fa-inbox:before{content:'\f01c'}.fa-info-circle:before{content:'\f05a'}
+.fa-link:before{content:'\f0c1'}.fa-money-bill-wave:before{content:'\f0d6'}.fa-moon:before{content:'\f186'}.fa-mouse-pointer:before{content:'\f245'}
+.fa-save:before{content:'\f0c7'}.fa-shield-alt:before{content:'\f132'}.fa-spinner:before{content:'\f110'}.fa-table:before{content:'\f0ce'}
+.fa-times:before{content:'\f00d'}.fa-times-circle:before{content:'\f057'}.fa-trash-alt:before{content:'\f014'}.fa-undo:before{content:'\f0e2'}.fa-bullhorn:before{content:'\f0a1'}
+.fa-spin{animation:worktime-icon-spin 1s linear infinite}@keyframes worktime-icon-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.fa-spin{animation:none}}
