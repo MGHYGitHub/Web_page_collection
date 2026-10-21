@@ -17,6 +17,14 @@ const linksData = [
   },
   {
     category: "本地工具",
+    name: "MSA 数据分析中心",
+    url: "./MSA/index.html",
+    mainDesc: "",
+    subDesc: "CGK、Xbar-S、相关性、GRR、偏倚与线性分析",
+    icon: "∿"
+  },
+  {
+    category: "本地工具",
     name: "站点监控中心",
     url: "./站点监控/站点监控.html",
     mainDesc: "",

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>MSA 数据分析中心</title>
+  <link rel="stylesheet" href="./msa.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <a class="back-link" href="../index.html" aria-label="返回首页">← 首页</a>
+        <div class="brand-mark" aria-hidden="true">∿</div>
+        <div>
+          <h1>MSA 数据分析中心</h1>
+          <p>CGK · Xbar-S · 相关性 · GRR · 偏倚 · 线性</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <span class="version-badge">v1.0.0</span>
+        <label class="button button-ghost file-button" for="fileInput">导入 Excel / CSV</label>
+        <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.txt" hidden>
+        <button id="exportAllBtn" class="button button-primary" type="button">导出完整报告</button>
+      </div>
+    </header>
+
+    <main class="main-layout">
+      <aside class="sidebar" aria-label="分析类型">
+        <div class="sidebar-title">分析模块</div>
+        <nav id="moduleNav" class="module-nav">
+          <button class="module-tab active" data-module="cgk" type="button"><span class="tab-icon">◎</span><span><b>量具研究 CGK</b><small>单列或多列重复测量</small></span></button>
+          <button class="module-tab" data-module="repeatability" type="button"><span class="tab-icon">⌁</span><span><b>重复性 Xbar-S</b><small>均值与标准差控制图</small></span></button>
+          <button class="module-tab" data-module="correlation" type="button"><span class="tab-icon">↗</span><span><b>相关性</b><small>拟合线与 R-Sq</small></span></button>
+          <button class="module-tab" data-module="grr" type="button"><span class="tab-icon">▦</span><span><b>GRR</b><small>交叉量具 R&amp;R</small></span></button>
+          <button class="module-tab" data-module="bias" type="button"><span class="tab-icon">◌</span><span><b>偏倚</b><small>正态概率与直方图</small></span></button>
+          <button class="module-tab" data-module="linearity" type="button"><span class="tab-icon">╱</span><span><b>线性</b><small>量具线性与偏倚</small></span></button>
+        </nav>
+        <div class="sidebar-tip"><strong>快速开始</strong><p>导入工作簿后，在左侧选择模块，确认数据范围并点击“开始分析”。结果与图表数据可在页面预览，也可一键导出为 Excel 子表。</p></div>
+      </aside>
+
+      <section class="workspace">
+        <div class="workspace-head">
+          <div><h2 id="moduleTitle">量具研究 CGK</h2><p id="moduleHint">第一行为表头，第 2–51 行为重复测量数据。每列独立计算。</p></div>
+          <div class="head-actions"><button id="clearDataBtn" class="button button-ghost" type="button">清除数据</button><button id="analyzeBtn" class="button button-primary" type="button">开始分析</button></div>
+        </div>
+
+        <div id="statusBar" class="status-bar" role="status"><span class="status-dot"></span><span id="statusText">等待导入数据，或粘贴表格内容开始。</span></div>
+
+        <section class="input-card card">
+          <div class="card-heading"><div><h3>数据输入</h3><p>支持粘贴制表符分隔数据，也支持直接导入 .xlsx / .xls / .csv 文件。</p></div><button id="togglePasteBtn" class="text-button" type="button">显示粘贴区</button></div>
+          <textarea id="pasteInput" class="paste-area" placeholder="将 Excel 单元格复制后粘贴到这里…\n示例：规格名称在第 1 行，测量值从第 2 行开始。" hidden></textarea>
+          <div id="dataMeta" class="data-meta" hidden><span>文件：<b id="fileName">—</b></span><span>行数：<b id="rowCount">0</b></span><span>列数：<b id="columnCount">0</b></span></div>
+          <div id="dataPreview" class="table-wrap preview-table" aria-live="polite"><div class="empty-state"><span class="empty-icon">＋</span><p>尚未载入数据</p><small>导入文件或打开粘贴区后，数据预览会显示在这里</small></div></div>
+        </section>
+
+        <section id="module-cgk" class="module-panel active" data-panel="cgk">
+          <div class="panel-intro"><div><h3>量具研究 · CGK</h3><p>根据规格中心与公差，评估量具的重复性和偏倚。规格可从表头自动识别，也可手动填写。</p></div><span class="formula-chip">Cg / Cgk</span></div>
+          <div class="option-grid">
+            <label>规格名称（可选）<input id="cgkSpec" type="text" placeholder="ISO(0±50)"></label>
+            <label>目标值（可选）<input id="cgkTarget" type="number" step="any" placeholder="自动从规格解析"></label>
+            <label>上限 USL（可选）<input id="cgkUSL" type="number" step="any" placeholder="自动从规格解析"></label>
+            <label>下限 LSL（可选）<input id="cgkLSL" type="number" step="any" placeholder="自动从规格解析"></label>
+          </div>
+          <div id="cgkSummary" class="result-grid"></div>
+          <div class="chart-card"><div class="chart-title"><h4>CGK 分布图</h4><span>均值、规格上下限与测量分布</span></div><canvas id="cgkChart" class="chart" height="280"></canvas></div>
+          <div id="cgkTable" class="table-wrap result-table"></div>
+        </section>
+
+        <section id="module-repeatability" class="module-panel" data-panel="repeatability">
+          <div class="panel-intro"><div><h3>重复性 · Xbar-S 控制图</h3><p>按测量顺序分组计算子组均值与标准差，识别超出控制界限的测量子组。</p></div><span class="formula-chip">X̄ · S</span></div>
+          <div class="option-grid">
+            <label>子组大小 n<input id="repeatGroupSize" type="number" min="2" max="25" value="5"></label>
+            <label>测量列<input id="repeatColumn" type="text" placeholder="留空则使用首列"></label>
+            <label>规格名称（可选）<input id="repeatSpec" type="text" placeholder="ISO(0±50)"></label>
+          </div>
+          <div id="repeatSummary" class="result-grid"></div>
+          <div class="charts-two"><div class="chart-card"><div class="chart-title"><h4>Xbar 控制图</h4><span>子组均值</span></div><canvas id="xbarChart" class="chart" height="240"></canvas></div><div class="chart-card"><div class="chart-title"><h4>S 控制图</h4><span>子组标准差</span></div><canvas id="sChart" class="chart" height="240"></canvas></div></div>
+          <div id="repeatTable" class="table-wrap result-table"></div>
+        </section>
+
+        <section id="module-correlation" class="module-panel" data-panel="correlation">
+          <div class="panel-intro"><div><h3>相关性 · 拟合线图</h3><p>将三坐标作为 X，AOI 作为 Y，按 PCS 数量拆分数据并计算拟合线与 R-Sq。</p></div><span class="formula-chip">AOI vs 三坐标</span></div>
+          <div class="option-grid">
+            <label>物料 PCS 数量<select id="correlationPcs"><option value="6">6 PCS</option><option value="8">8 PCS</option><option value="10">10 PCS</option><option value="custom">自定义</option></select></label>
+            <label>自定义 PCS（可选）<input id="correlationCustomPcs" type="number" min="2" max="100" placeholder="选择自定义后填写"></label>
+            <label>三坐标列<input id="correlationXColumn" type="text" placeholder="自动识别"></label>
+            <label>AOI 列<input id="correlationYColumn" type="text" placeholder="自动识别"></label>
+          </div>
+          <div id="correlationSummary" class="result-grid"></div>
+          <div class="chart-card"><div class="chart-title"><h4>拟合线图</h4><span>含 y=x 参考线</span></div><canvas id="correlationChart" class="chart" height="300"></canvas></div>
+          <div id="correlationTable" class="table-wrap result-table"></div>
+        </section>
+
+        <section id="module-grr" class="module-panel" data-panel="grr">
+          <div class="panel-intro"><div><h3>GRR · 交叉量具 R&amp;R</h3><p>A 列产品 SN，B 列操作员，C 列起为规格测量列。第 2、3 行可分别作为规格上限与下限。</p></div><span class="formula-chip">EV · AV · GRR</span></div>
+          <div class="option-grid">
+            <label>产品列<input id="grrPartColumn" type="text" value="A" placeholder="A"></label>
+            <label>操作员列<input id="grrOperatorColumn" type="text" value="B" placeholder="B"></label>
+            <label>测量起始列<input id="grrMeasureStart" type="text" value="C" placeholder="C"></label>
+            <label>重复次数（可选）<input id="grrRepeats" type="number" min="1" max="10" placeholder="自动识别"></label>
+          </div>
+          <div id="grrSummary" class="result-grid"></div>
+          <div class="chart-card"><div class="chart-title"><h4>GRR 变异组成</h4><span>方差分量近似</span></div><canvas id="grrChart" class="chart" height="280"></canvas></div>
+          <div id="grrTable" class="table-wrap result-table"></div>
+        </section>
+
+        <section id="module-bias" class="module-panel" data-panel="bias">
+          <div class="panel-intro"><div><h3>偏倚 · 正态概率与直方图</h3><p>A 列测量值，B 列参考平均值；若有 C 列差值则优先使用，否则自动计算 A − B。</p></div><span class="formula-chip">Bias = A − B</span></div>
+          <div class="option-grid">
+            <label>测量列<input id="biasMeasureColumn" type="text" value="A" placeholder="A"></label>
+            <label>参考平均值列<input id="biasReferenceColumn" type="text" value="B" placeholder="B"></label>
+            <label>差值列（可选）<input id="biasDifferenceColumn" type="text" value="C" placeholder="C"></label>
+            <label>置信水平<select id="biasConfidence"><option value="0.95">95%</option><option value="0.99">99%</option><option value="0.9">90%</option></select></label>
+          </div>
+          <div id="biasSummary" class="result-grid"></div>
+          <div class="charts-two"><div class="chart-card"><div class="chart-title"><h4>正态概率图</h4><span>偏倚分布位置</span></div><canvas id="biasProbabilityChart" class="chart" height="240"></canvas></div><div class="chart-card"><div class="chart-title"><h4>偏倚直方图</h4><span>测量差值</span></div><canvas id="biasHistogramChart" class="chart" height="240"></canvas></div></div>
+          <div id="biasTable" class="table-wrap result-table"></div>
+        </section>
+
+        <section id="module-linearity" class="module-panel" data-panel="linearity">
+          <div class="panel-intro"><div><h3>线性 · 量具线性和偏倚研究</h3><p>A 列测试项，B 列位置号，C 列测量值，D 列标准值。每行会计算对应偏倚。</p></div><span class="formula-chip">Bias vs Standard</span></div>
+          <div class="option-grid">
+            <label>测试项列<input id="linearityItemColumn" type="text" value="A" placeholder="A"></label>
+            <label>位置号列<input id="linearityPositionColumn" type="text" value="B" placeholder="B"></label>
+            <label>测量值列<input id="linearityMeasureColumn" type="text" value="C" placeholder="C"></label>
+            <label>标准值列<input id="linearityStandardColumn" type="text" value="D" placeholder="D"></label>
+          </div>
+          <div id="linearitySummary" class="result-grid"></div>
+          <div class="chart-card"><div class="chart-title"><h4>线性与偏倚图</h4><span>偏倚随标准值变化</span></div><canvas id="linearityChart" class="chart" height="300"></canvas></div>
+          <div id="linearityTable" class="table-wrap result-table"></div>
+        </section>
+
+        <footer class="page-footer"><span>MSA 数据分析中心 · 统计结果为工程估算，适合快速复核</span><span>建议使用最新版 Chrome / Edge</span></footer>
+      </section>
+    </main>
+  </div>
+  <script src="../CPK/js/xlsx.full.min.js"></script>
+  <script src="../msa-stats.js"></script>
+  <script src="./msa.js"></script>
+</body>
+</html>

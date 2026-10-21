@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ignored = new Set(['.git', '.codex', '.agents', 'node_modules']);
-const authoredScripts = ['portal.js', 'links.js', '工时/holiday-settings.js', '工时/holiday-config.js', '站点监控/monitor.js', '在线计时器/timer.js'];
+const authoredScripts = ['portal.js', 'links.js', 'msa-stats.js', 'MSA/msa.js', '工时/holiday-settings.js', '工时/holiday-config.js', '站点监控/monitor.js', '在线计时器/timer.js'];
 const issues = [];
 const checkedStyles = new Set();
 function walk(dir) {
